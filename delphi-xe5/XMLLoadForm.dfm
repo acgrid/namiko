@@ -16,7 +16,7 @@ object frmLoadXML: TfrmLoadXML
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 16
-  object LblSample: TTntLabel
+  object LblSample: TLabel
     Left = 16
     Top = 8
     Width = 18
@@ -36,7 +36,7 @@ object frmLoadXML: TfrmLoadXML
     Font.Style = [fsBold]
     ParentFont = False
   end
-  object GrpOptions: TTntRadioGroup
+  object GrpOptions: TRadioGroup
     Left = 16
     Top = 32
     Width = 201
@@ -71,7 +71,7 @@ object frmLoadXML: TfrmLoadXML
     TabOrder = 2
     OnClick = btnOKClick
   end
-  object ComboTiming: TTntComboBox
+  object ComboTiming: TComboBox
     Left = 16
     Top = 128
     Width = 49
@@ -85,7 +85,7 @@ object frmLoadXML: TfrmLoadXML
       #24310#36831
       #25552#21069)
   end
-  object OpenDialog: TTntOpenDialog
+  object OpenDialog: TOpenDialog
     Filter = #24377#24149#25968#25454'(*.xml)|*.xml'
     Title = #26085#35199#40657#21382#21490
     Left = 344

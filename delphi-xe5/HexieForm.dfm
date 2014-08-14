@@ -1,9 +1,9 @@
 object frmWordList: TfrmWordList
   Left = 306
   Top = 239
-  Width = 330
-  Height = 440
   Caption = #27827#34809#12398#35302#25163
+  ClientHeight = 402
+  ClientWidth = 314
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -15,20 +15,20 @@ object frmWordList: TfrmWordList
   OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 17
-  object LblDesc: TTntLabel
+  object LblDesc: TLabel
     Left = 8
     Top = 40
     Width = 290
     Height = 17
     Caption = #27599#34892#20445#23384#19968#20010'Perl'#20860#23481#27491#21017#34920#36798#24335'(PCRE) '#19981#38656#35201#39318#23614'//'
   end
-  object LblTestResult: TTntLabel
+  object LblTestResult: TLabel
     Left = 245
     Top = 12
     Width = 4
     Height = 17
   end
-  object HexieList: TTntMemo
+  object HexieList: TMemo
     Left = 8
     Top = 64
     Width = 300
@@ -36,7 +36,7 @@ object frmWordList: TfrmWordList
     ScrollBars = ssVertical
     TabOrder = 0
   end
-  object btnDone: TTntButton
+  object btnDone: TButton
     Left = 112
     Top = 370
     Width = 89
@@ -48,14 +48,14 @@ object frmWordList: TfrmWordList
     TabOrder = 1
     OnClick = btnDoneClick
   end
-  object EditTestSubject: TTntEdit
+  object EditTestSubject: TEdit
     Left = 8
     Top = 8
     Width = 160
     Height = 25
     TabOrder = 2
   end
-  object btnPCRETest: TTntButton
+  object btnPCRETest: TButton
     Left = 175
     Top = 8
     Width = 64
@@ -64,10 +64,5 @@ object frmWordList: TfrmWordList
     Default = True
     TabOrder = 3
     OnClick = btnPCRETestClick
-  end
-  object Hexie: TPerlRegEx
-    Options = [preMultiLine]
-    Left = 280
-    Top = 32
   end
 end

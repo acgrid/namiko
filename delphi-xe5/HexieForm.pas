@@ -4,16 +4,16 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, TntStdCtrls, PerlRegEx, ThreadTimer, MMTimer;
+  Dialogs, StdCtrls, PerlRegEx, ThreadTimer;
 
 type
   TfrmWordList = class(TForm)
-    HexieList: TTntMemo;
-    btnDone: TTntButton;
-    EditTestSubject: TTntEdit;
-    btnPCRETest: TTntButton;
-    LblDesc: TTntLabel;
-    LblTestResult: TTntLabel;
+    HexieList: TMemo;
+    btnDone: TButton;
+    EditTestSubject: TEdit;
+    btnPCRETest: TButton;
+    LblDesc: TLabel;
+    LblTestResult: TLabel;
     Hexie: TPerlRegEx;
     procedure FormCreate(Sender: TObject);
     procedure btnDoneClick(Sender: TObject);
@@ -45,7 +45,6 @@ begin
   //Nofify frmControl that all forms is loaded and can startup Networking
   with frmControl do begin
     SysReady := true;
-    TimerAddOC.SetEnabled(true);
     if chkAutoStartNet.Checked then btnNetStart.Click{$IFNDEF DEV} else Application.MessageBox('开始通信前，将收不到网络弹幕','提示',MB_ICONINFORMATION){$ENDIF};
   end;
 end;
@@ -75,13 +74,13 @@ function TfrmWordList.Hexied(Content: WideString): Boolean;
 var
   i : Integer;
 begin
-  Hexie.Subject := Content;
+  Hexie.Subject := UTF8Encode(Content);
   Result := false;
   for i := 0 to HexieList.Lines.Count - 1 do begin
-    Hexie.RegEx := HexieList.Lines.Strings[i];
+    Hexie.RegEx := UTF8Encode(HexieList.Lines.Strings[i]);
     if Hexie.Match then begin
-      Result := true;
-      exit;
+      Result := True;
+      Exit;
     end;
   end;
 end;

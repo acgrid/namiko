@@ -4,19 +4,18 @@ uses
   Forms,
   Windows,
   CtrlForm in 'CtrlForm.pas' {frmControl},
-  CCommentForm in 'CCommentForm.pas' {frmComment},
-  HexieForm in 'HexieForm.pas' {frmWordList},
-  XMLLoadForm in 'XMLLoadForm.pas' {frmLoadXML};
+  UDPHandleThread in 'UDPHandleThread.pas',
+  RenderThread in 'RenderThread.pas',
+  UpdateThread in 'UpdateThread.pas',
+  DispatchThread in 'DispatchThread.pas';
 
 {$R *.res}
 
 begin
   SetWindowLong(Application.Handle,GWL_EXSTYLE,WS_EX_TOOLWINDOW);
+  {$IFDEF DEBUG}ReportMemoryLeaksOnShutdown := DebugHook<>0;{$ENDIF}
   Application.Initialize;
   Application.Title := 'NamikoÊµÊ±µ¯Ä»';
   Application.CreateForm(TfrmControl, frmControl);
-  Application.CreateForm(TfrmComment, frmComment);
-  Application.CreateForm(TfrmWordList, frmWordList);
-  Application.CreateForm(TfrmLoadXML, frmLoadXML);
   Application.Run;
 end.

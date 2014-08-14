@@ -4,18 +4,18 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, TntStdCtrls, ExtCtrls, TntExtCtrls, TntDialogs,
+  Dialogs, StdCtrls, ExtCtrls,
   xmldom, XMLIntf, msxmldom, XMLDoc, CtrlForm, Math;
 
 type
   TfrmLoadXML = class(TForm)
-    GrpOptions: TTntRadioGroup;
+    GrpOptions: TRadioGroup;
     EditDelay: TLabeledEdit;
     btnOK: TButton;
-    LblSample: TTntLabel;
-    OpenDialog: TTntOpenDialog;
+    LblSample: TLabel;
+    OpenDialog: TOpenDialog;
     Label1: TLabel;
-    ComboTiming: TTntComboBox;
+    ComboTiming: TComboBox;
     procedure FormCreate(Sender: TObject);
     procedure btnOKClick(Sender: TObject);
     procedure GrpOptionsClick(Sender: TObject);

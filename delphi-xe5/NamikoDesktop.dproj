@@ -54,7 +54,7 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
-        <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
+        <DCC_Namespace>System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
@@ -81,15 +81,10 @@
         <DCCReference Include="CtrlForm.pas">
             <Form>frmControl</Form>
         </DCCReference>
-        <DCCReference Include="CCommentForm.pas">
-            <Form>frmComment</Form>
-        </DCCReference>
-        <DCCReference Include="HexieForm.pas">
-            <Form>frmWordList</Form>
-        </DCCReference>
-        <DCCReference Include="XMLLoadForm.pas">
-            <Form>frmLoadXML</Form>
-        </DCCReference>
+        <DCCReference Include="UDPHandleThread.pas"/>
+        <DCCReference Include="RenderThread.pas"/>
+        <DCCReference Include="UpdateThread.pas"/>
+        <DCCReference Include="DispatchThread.pas"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -116,7 +111,7 @@
                     <VersionInfo Name="MajorVer">1</VersionInfo>
                     <VersionInfo Name="MinorVer">0</VersionInfo>
                     <VersionInfo Name="Release">3</VersionInfo>
-                    <VersionInfo Name="Build">88</VersionInfo>
+                    <VersionInfo Name="Build">91</VersionInfo>
                     <VersionInfo Name="Debug">True</VersionInfo>
                     <VersionInfo Name="PreRelease">False</VersionInfo>
                     <VersionInfo Name="Special">False</VersionInfo>
@@ -128,7 +123,7 @@
                 <VersionInfoKeys>
                     <VersionInfoKeys Name="CompanyName"/>
                     <VersionInfoKeys Name="FileDescription"/>
-                    <VersionInfoKeys Name="FileVersion">1.0.3.88</VersionInfoKeys>
+                    <VersionInfoKeys Name="FileVersion">1.0.3.91</VersionInfoKeys>
                     <VersionInfoKeys Name="InternalName"/>
                     <VersionInfoKeys Name="LegalCopyright"/>
                     <VersionInfoKeys Name="LegalTrademarks"/>
@@ -139,7 +134,7 @@
                 </VersionInfoKeys>
             </Delphi.Personality>
             <Platforms>
-                <Platform value="Android">True</Platform>
+                <Platform value="Android" ActiveMobileDevice="emulator-5554">True</Platform>
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">False</Platform>
             </Platforms>
