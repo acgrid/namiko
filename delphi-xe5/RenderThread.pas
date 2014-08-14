@@ -187,7 +187,10 @@ begin
       LCreated: Calculate(TheComment); // SET: LWait or LMoving
       LWait: Calculate(TheComment); // SET: LMoving or none
       LMoving: Update(TheComment); // SET: LDelete
-      LDelete: Remove(TheComment);
+      LDelete: begin
+        Remove(TheComment);
+        Break; // Index is no longer valid
+      end;
     end;
   end;
 end;
