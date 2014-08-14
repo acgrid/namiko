@@ -426,7 +426,13 @@ begin
 end;
 
 procedure TfrmControl.AppendComment(var AComment: TComment);
+var
+  ChRed, ChBlue: Cardinal;
 begin
+  // TAlphaColor in GDI+ seems AARRGGBB while Delphi defines as AABBGGRR
+  ChRed := (AComment.Format.FontColor and $000000FF) shl 16;
+  ChBlue := (AComment.Format.FontColor and $00FF0000) shr 16;
+  AComment.Format.FontColor := (AComment.Format.FontColor and $FF00FF00) or ChRed or ChBlue;
   AppendListView(AComment);
   // Do not change these two lines
   AComment.Content := StringReplace(AComment.Content,'\n',#13,[rfReplaceAll]);
@@ -812,6 +818,19 @@ procedure TfrmControl.btnSetFixedLabelClick(Sender: TObject);
 begin
   //TestLabel.Font := OfficialCDemo.Font;
   MTitleText := StringReplace(editOfficialComment.Text,'/n',#13,[rfReplaceAll]);
+  if Assigned(RThread) then begin
+    GraphicSharedMutex.Acquire;
+    try
+      RThread.MTitleText := MTitleText;
+      RThread.MTitleTop := MTitleTop;
+      RThread.MTitleLeft := MTitleLeft;
+      RThread.MTitleFontName := MTitleFontName;
+      RThread.MTitleFontSize := MTitleFontSize;
+      RThread.MTitleFontColor := MTitleFontColor;
+    finally
+      GraphicSharedMutex.Release;
+    end;
+  end;
 end;
 
 procedure TfrmControl.ButtonStartThreadsClick(Sender: TObject);
@@ -982,7 +1001,7 @@ begin
   cobNetCFontSize.Text := ini.ReadString('NetComment','FontSize','18');
   NetDefaultFontSize := StrToFloat(cobNetCFontSize.Text);
   cobNetCFontColor.Brush.Color := StringToColor(ini.ReadString('NetComment','FontColor','clWhite'));
-  NetDefaultFontColor := StringToAlphaColor(ini.ReadString('NetComment','FontColor','clWhite'));
+  NetDefaultFontColor := cobNetCFontColor.Brush.Color or $FF000000;
   cobNetCFontBold.Checked := ini.ReadBool('NetComment','FontBold',false);
   if cobNetCFontBold.Checked then NetDefaultFontStyle := 1 else NetDefaultFontStyle := 0;
   // Official Comment Format
@@ -991,7 +1010,7 @@ begin
   cobOfficialCFontSize.Text := ini.ReadString('OfficialComment','FontSize','26');
   OfficialFontSize := StrToFloat(cobOfficialCFontSize.Text);
   cobOfficialCFontColor.Brush.Color := StringToColor(ini.ReadString('OfficialComment','FontColor','clBlue'));
-  OfficialFontColor := StringToAlphaColor(ini.ReadString('OfficialComment','FontColor','clWhite'));
+  OfficialFontColor := cobOfficialCFontColor.Brush.Color or $FF000000;;
   cobOfficialCFontBold.Checked := ini.ReadBool('OfficialComment','FontBold',True);
   if cobOfficialCFontBold.Checked then OfficialFontStyle := 1 else OfficialFontStyle := 0;
   // Window Position
@@ -1020,7 +1039,7 @@ begin
 
   NetDefaultDuration := ini.ReadInteger('Timing','DefaultCommentShowTime',DEFAULT_NETCOMMENT_DURATION);
   try
-    editNetPassword.Text := UncrypKey(ini.ReadString('Connection','Key','UNDEF'),KEY);
+    editNetPassword.Text := UncrypKey(ini.ReadString('Connection','Key','BA9FB3809EE62C55BBC2C3CC8AB68EF6'),KEY);
   except
     editNetPassword.Text := '233-614-789-998';
     LogEvent('Õ®–≈√‹¬ÎŒ¥…Ë÷√£°');

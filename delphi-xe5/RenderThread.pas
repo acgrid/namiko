@@ -28,6 +28,11 @@ type
   TFontFamilyDict = TDictionary<string,GPFONTFAMILY>;
 type
   TRenderThread = class(TThread)
+    MTitleText: string;
+    MTitleTop, MTitleLeft: Integer;
+    MTitleFontName: WideString;
+    MTitleFontSize: Single;
+    MTitleFontColor: TAlphaColor;
     constructor Create(Handle: HWND; Width: Integer; Height: Integer; var RenderList: TLiveCommentCollection; var UpdateQueue: TRenderUnitQueue);
     destructor Destroy(); override;
   protected
@@ -473,6 +478,23 @@ begin
     GdipDrawPath(PGraphic, FPPen, FPPath);
     GdipFillPath(PGraphic, PBrush, FPPath);
     GdipDeleteBrush(PBrush);
+  end;
+  GraphicSharedMutex.Acquire;
+  try
+    if Length(MTitleText) > 0 then begin // Display the Title
+      GdipCreateSolidFill(MTitleFontColor,PBrush);
+      StrRect.X := MTitleLeft;
+      StrRect.Y := MTitleTop;
+      StrRect.Width := 0;
+      StrRect.Height := 0;
+      GdipAddPathStringI(FPPath, PWideChar(MTitleText), Length(MTitleText),
+        GetFontFamily(MTitleFontName), 1, MTitleFontSize, @StrRect, FPStringFormat);
+      GdipDrawPath(PGraphic, FPPen, FPPath);
+      GdipFillPath(PGraphic, PBrush, FPPath);
+      GdipDeleteBrush(PBrush);      
+    end;
+  finally
+    GraphicSharedMutex.Release;
   end;
   {$IFDEF DEBUG}GdipDrawLine(PGraphic, FPPen, 0,0,FWidth,FHeight);{$ENDIF}
   GdipDeleteGraphics(PGraphic);
