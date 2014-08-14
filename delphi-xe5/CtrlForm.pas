@@ -285,8 +285,6 @@ type
     XMLDelay : Integer;
     FreezingTime : TTime;
 
-    CommentIndex : Array of TTime;
-
     procedure WindowTrayMessage(var Message: TMessage);
     message NamikoTrayMessage;
     procedure WMHotKey(var Msg : TWMHotKey); message WM_HOTKEY;
