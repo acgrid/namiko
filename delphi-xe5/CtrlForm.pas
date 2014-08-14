@@ -842,7 +842,7 @@ begin
   ColorDialog.Color := cobNetCFontColor.Brush.Color;
   if ColorDialog.Execute then begin
     cobNetCFontColor.Brush.Color := ColorDialog.Color;
-    NetDefaultFontColor := ColorDialog.Color;
+    NetDefaultFontColor := ColorDialog.Color or $FF000000;
   end;
 end;
 
@@ -852,6 +852,7 @@ begin
   ColorDialog.Color := cobOfficialCFontColor.Brush.Color;
   if ColorDialog.Execute then begin
     cobOfficialCFontColor.Brush.Color := ColorDialog.Color;
+    OfficialFontColor := ColorDialog.Color or $FF000000;
   end;
 end;
 
