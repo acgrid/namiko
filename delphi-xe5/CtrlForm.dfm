@@ -61,6 +61,7 @@ object frmControl: TfrmControl
       Width = 121
       Height = 25
       Caption = #38544#34255#24377#24149#31034#20363'(&W)'
+      Enabled = False
       TabOrder = 0
       OnClick = btnCCWorkClick
     end
@@ -70,6 +71,7 @@ object frmControl: TfrmControl
       Width = 75
       Height = 25
       Caption = #21464#26356'(&G)'
+      Enabled = False
       TabOrder = 1
       OnClick = btnCCShowClick
     end
@@ -497,7 +499,7 @@ object frmControl: TfrmControl
       Top = 43
       Width = 73
       Height = 17
-      Caption = 'TCP'#20027#21160
+      Caption = 'HTTP'#20027#21160
       Enabled = False
       TabOrder = 1
       OnClick = radioNetPortClick
@@ -669,7 +671,7 @@ object frmControl: TfrmControl
       TabOrder = 4
     end
     object EditTimespanDiscarded: TLabeledEdit
-      Left = 248
+      Left = 263
       Top = 54
       Width = 27
       Height = 25
@@ -689,6 +691,15 @@ object frmControl: TfrmControl
       Caption = #20572#27490#32447#31243
       TabOrder = 6
       OnClick = ButtonTerminateThreadClick
+    end
+    object ButtonStartThreads: TButton
+      Left = 86
+      Top = 54
+      Width = 75
+      Height = 25
+      Caption = #21551#21160#32447#31243
+      TabOrder = 7
+      OnClick = ButtonStartThreadsClick
     end
   end
   object Log: TMemo

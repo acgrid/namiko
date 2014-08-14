@@ -102,6 +102,7 @@ begin
             finally
               CommentPoolMutex.Release;
             end;
+            Continue;
           end
           else begin
             {$IFDEF DEBUG}ReportLog(Format('[调度] 迟调度 %u ',[i]));{$ENDIF}

@@ -226,6 +226,7 @@ type
     CheckBox1: TCheckBox;
     EditTimespanDiscarded: TLabeledEdit;
     ButtonTerminateThread: TButton;
+    ButtonStartThreads: TButton;
     procedure btnCCShowClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnCCWorkClick(Sender: TObject);
@@ -273,6 +274,7 @@ type
     procedure EdtNetDelayChange(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ButtonTerminateThreadClick(Sender: TObject);
+    procedure ButtonStartThreadsClick(Sender: TObject);
 
   private
     { Private declarations }
@@ -608,7 +610,7 @@ begin
       CreateD := False;
   end;
   if CreateD then begin
-    DThread := TDispatchThread.Create(30000,300,CommentPool,LiveCommentPool);
+    DThread := TDispatchThread.Create(20000,300,CommentPool,LiveCommentPool);
     LogEvent('创建调度线程');
     DThread.Start;
   end;
@@ -810,6 +812,11 @@ procedure TfrmControl.btnSetFixedLabelClick(Sender: TObject);
 begin
   //TestLabel.Font := OfficialCDemo.Font;
   MTitleText := StringReplace(editOfficialComment.Text,'/n',#13,[rfReplaceAll]);
+end;
+
+procedure TfrmControl.ButtonStartThreadsClick(Sender: TObject);
+begin
+  StartThreads;
 end;
 
 procedure TfrmControl.ButtonTerminateThreadClick(Sender: TObject);
@@ -1276,9 +1283,9 @@ begin
         radioNetTransmit.Enabled := False;
         editNetPort.Enabled := False;
         editNetPassword.Enabled := False;
-        LogEvent('TCP监听启动于端口 ' + editNetPort.Text);
+        LogEvent('UDP监听启动于端口 ' + editNetPort.Text);
       except
-        LogEvent('TCP服务器初始化失败，检查防火墙或端口冲突。');
+        LogEvent('UDP服务器初始化失败，检查防火墙或端口冲突。');
       end;
     end
     else if radioNetPort.Checked then begin

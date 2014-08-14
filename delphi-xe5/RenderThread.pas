@@ -474,7 +474,7 @@ begin
     GdipFillPath(PGraphic, PBrush, FPPath);
     GdipDeleteBrush(PBrush);
   end;
-  {$IFDEF DEBUG}GdipDrawLine(PGraphic, FPPen, 0,0,100,100);{$ENDIF}
+  {$IFDEF DEBUG}GdipDrawLine(PGraphic, FPPen, 0,0,FWidth,FHeight);{$ENDIF}
   GdipDeleteGraphics(PGraphic);
 end;
 
