@@ -370,7 +370,7 @@ begin
           Exit;
         end;
         if FUpdateQueue.Count >= FUpdateQueue.Capacity then begin
-          {$IFDEF DEBUG}ReportLog('[绘制] 显示队列满');{$ENDIF}
+          //{$IFDEF DEBUG}ReportLog('[绘制] 显示队列满');{$ENDIF}
           SleepThisCycle := True;
         end;
       finally

@@ -328,6 +328,8 @@ type
     CommentPool: TCommentCollection;
     LiveCommentPool: TLiveCommentCollection;
     UpdateQueue: TRenderUnitQueue;
+    // TListView Wrapper
+    ListViewOffset: Integer;
     // New Procedures
     procedure UpdateListView(const CommentID: Integer); // called by AppendListView
     procedure AppendListView(const AComment: TComment);
@@ -404,20 +406,20 @@ var
   Index: Integer;
 begin
   if CommentID > CommentPool.Count then Exit;
-  if CommentID > ListComments.Items.Count then Exit;
-  Index := CommentID - 1;
+  Index := CommentID - ListViewOffset - 1;
+  if Index > ListComments.Items.Count then Exit;
   AComment := CommentPool.Items[Index];
-  if StrToInt(ListComments.Items[Index].SubItems.Strings[T_ID]) = CommentID then begin // Out of range
-    case AComment.Status of
-      Created: ListComments.Items.Item[Index].Caption := 'C';
-      Pending: ListComments.Items.Item[Index].Caption := 'P';
-      Starting: ListComments.Items.Item[Index].Caption := 'S';
-      Waiting: ListComments.Items.Item[Index].Caption := 'W';
-      Displaying: ListComments.Items.Item[Index].Caption := '<';
-      Removing: ListComments.Items.Item[Index].Caption := 'R';
-      Removed: ListComments.Items.Item[Index].Caption := 'D';
-    end;
+  //if StrToInt(ListComments.Items[Index].SubItems.Strings[T_ID]) = CommentID then begin // Out of range
+  case AComment.Status of
+    Created: ListComments.Items.Item[Index].Caption := 'C';
+    Pending: ListComments.Items.Item[Index].Caption := 'P';
+    Starting: ListComments.Items.Item[Index].Caption := 'S';
+    Waiting: ListComments.Items.Item[Index].Caption := 'W';
+    Displaying: ListComments.Items.Item[Index].Caption := '<';
+    Removing: ListComments.Items.Item[Index].Caption := 'R';
+    Removed: ListComments.Items.Item[Index].Caption := 'D';
   end;
+  //end;
 end;
 
 procedure TfrmControl.AppendComment(var AComment: TComment);
@@ -671,6 +673,7 @@ begin
   CurrListIndex := 0;
   ClearedItemCount := 0;
   XMLDelay := 0;
+  ListViewOffset := 0;
   //Set Internal Time as System Time
   InternalTime := Time();
   InternalTimeOffset := 0;
@@ -715,7 +718,7 @@ begin
   LiveCommentPool := TLiveCommentCollection.Create(True);
   LiveCommentPoolMutex.Release;
   UpdateQueue := TRenderUnitQueue.Create();
-  UpdateQueue.Capacity := 100;
+  UpdateQueue.Capacity := 256;
   UpdateQueueMutex.Release;
   LogEvent('创建弹幕池和临时空间');
   CreateCommentWindow;
@@ -1392,10 +1395,8 @@ end;
 procedure TfrmControl.btnClearListClick(Sender: TObject);
 begin
   SysReady := False;
-  CurrListIndex := 0;
-  inc(ClearedItemCount,ListComments.Items.Count);
+  ListViewOffset := ListComments.Items.Count;
   ListComments.Items.Clear;
-  SetLength(CommentIndex,0);
   SysReady := True;
 end;
 
@@ -1459,7 +1460,7 @@ initialization
   LiveCommentPoolMutex := TMutex.Create(@DefaultSA,True,'live_pool_m');
   UpdateQueueMutex := TMutex.Create(@DefaultSA,True,'render_queue_m');
   DispatchS := TSemaphore.Create(@DefaultSA,0,1024,'dispatch_s',False);
-  UpdateS := TSemaphore.Create(@DefaultSA,0,255,'update_s',False);
+  UpdateS := TSemaphore.Create(@DefaultSA,0,512,'update_s',False);
 
 finalization
   CommentPoolMutex.Free();

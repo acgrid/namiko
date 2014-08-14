@@ -163,7 +163,7 @@ begin
           CheckPool(FPoolFrontier,NewFrontier - 1); // Fast dispatch
           FPoolFrontier := NewFrontier;
         end
-        else if NewFrontier - 1 > FPoolTail + 1 then begin
+        else if NewFrontier - 1 >= FPoolTail + 1 then begin
           CheckPool(FPoolTail + 1,NewFrontier - 1); // Normal dispatch, Prevent OUT OF RANGE
         end;
       end;
