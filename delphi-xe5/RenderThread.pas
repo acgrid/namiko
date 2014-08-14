@@ -138,59 +138,72 @@ var
   AWidth, AHeight, Speed: Integer;
   ACommentUnit: TCommentUnit;
 begin
-  with ALiveComment do begin
-    if Status <> TLiveCommentStatus.LCreated then Exit;
-    AHeight := 0;
-    GetStringDim(Body.Content,Body.Format,AWidth,AHeight);
-    Width := AWidth;
-    Height := AHeight;
-    case Body.Effect.Display of
-      Scroll: begin
-        Left := FWidth{$IFDEF DEBUG} - AWidth{$ENDIF}; // For inspect
-        Speed := (AWidth + FWidth) div (Body.Effect.StayTime div DEFAULT_UPDATE_INTERVAL);
-        if Speed > DEFAULT_MAX_SCROLL_SPEED then begin
-          Body.Effect.Speed := DEFAULT_MAX_SCROLL_SPEED;
-          Body.Effect.StayTime := (AWidth + FWidth) * DEFAULT_MAX_SCROLL_SPEED div DEFAULT_UPDATE_INTERVAL;
-        end
-        else
-          Body.Effect.Speed := Speed;
-        {$IFDEF DEBUG}ReportLog(Format('[绘制] 计算速度 %u 路径总长 %u 时间 %u',[Speed,AWidth + FWidth,Body.Effect.StayTime]));{$ENDIF}
-      end;
-      UpperFixed, LowerFixed: begin
-        Left := (FWidth - AWidth) div 2;
+  LiveCommentPoolMutex.Acquire;
+  try
+    with ALiveComment do begin
+      if Status <> TLiveCommentStatus.LCreated then Exit;
+      AHeight := 0;
+      GetStringDim(Body.Content,Body.Format,AWidth,AHeight);
+      Width := AWidth;
+      Height := AHeight;
+      case Body.Effect.Display of
+        Scroll: begin
+          Left := FWidth{$IFDEF DEBUG} - AWidth{$ENDIF}; // For inspect
+          Speed := (AWidth + FWidth) div (Body.Effect.StayTime div DEFAULT_UPDATE_INTERVAL);
+          if Speed > DEFAULT_MAX_SCROLL_SPEED then begin
+            Body.Effect.Speed := DEFAULT_MAX_SCROLL_SPEED;
+            Body.Effect.StayTime := (AWidth + FWidth) * DEFAULT_MAX_SCROLL_SPEED div DEFAULT_UPDATE_INTERVAL;
+          end
+          else
+            Body.Effect.Speed := Speed;
+          {$IFDEF DEBUG}ReportLog(Format('[绘制] 计算速度 %u 路径总长 %u 时间 %u',[Speed,AWidth + FWidth,Body.Effect.StayTime]));{$ENDIF}
+        end;
+        UpperFixed, LowerFixed: begin
+          Left := (FWidth - AWidth) div 2;
+        end;
       end;
     end;
+    RequestChannel(ALiveComment);
+    with ACommentUnit do begin
+      PString := PWideChar(ALiveComment.Body.Content);
+      Length := System.Length(ALiveComment.Body.Content);
+      Left := ALiveComment.Left;
+      Top := ALiveComment.Top;
+      PFontFamily := GetFontFamily(ALiveComment.Body.Format.FontName);
+      FillColor := ALiveComment.Body.Format.FontColor;
+      FontSize := ALiveComment.Body.Format.FontSize;
+      FontStyle := ALiveComment.Body.Format.FontStyle;
+    end;
+    FRenderBuffer.Add(ALiveComment.Body.ID,ACommentUnit);
+    ALiveComment.Status := LMoving;
+  finally
+    LiveCommentPoolMutex.Release;
   end;
-  RequestChannel(ALiveComment);
-  with ACommentUnit do begin
-    PString := PWideChar(ALiveComment.Body.Content);
-    Length := System.Length(ALiveComment.Body.Content);
-    Left := ALiveComment.Left;
-    Top := ALiveComment.Top;
-    PFontFamily := GetFontFamily(ALiveComment.Body.Format.FontName);
-    FillColor := ALiveComment.Body.Format.FontColor;
-    FontSize := ALiveComment.Body.Format.FontSize;
-    FontStyle := ALiveComment.Body.Format.FontStyle;
-  end;
-  FRenderBuffer.Add(ALiveComment.Body.ID,ACommentUnit);
-  ALiveComment.Status := LMoving;
 end;
 
 procedure TRenderThread.DoUpdatePool();
 var
   TheComment: TLiveComment;
-  I: Integer;
+  I, PoolCount: Integer;
 begin
-  for I := 0 to FRenderList.Count - 1 do begin
-    TheComment := FRenderList.Items[I];
+  LiveCommentPoolMutex.Acquire;
+  try
+    PoolCount := FRenderList.Count;
+  finally
+    LiveCommentPoolMutex.Release;
+  end;
+  for I := 0 to PoolCount - 1 do begin
+    LiveCommentPoolMutex.Acquire;
+    try
+      if I < FRenderList.Count then TheComment := FRenderList.Items[I] else Continue;
+    finally
+      LiveCommentPoolMutex.Release;
+    end;    
     case TheComment.Status of
       LCreated: Calculate(TheComment); // SET: LWait or LMoving
       LWait: Calculate(TheComment); // SET: LMoving or none
       LMoving: Update(TheComment); // SET: LDelete
-      LDelete: begin
-        Remove(TheComment);
-        Break; // Index is no longer valid
-      end;
+      LDelete: Remove(TheComment);
     end;
   end;
 end;
@@ -342,7 +355,7 @@ var
   MainDC, CurrentHDC: HDC;
   CurrentBitmap: HBITMAP;
 
-  LastCycleUnitCount: Integer;
+  LivePoolCount, LastCycleUnitCount: Integer;
   SleepThisCycle: Boolean;
   ThisRenderUnit: TRenderUnit;
 begin
@@ -384,24 +397,18 @@ begin
       LastCycleUnitCount := FRenderBuffer.Count;
       LiveCommentPoolMutex.Acquire;
       try
+        //{$IFDEF DEBUG}ReportLog(Format('[绘制] 已请求运行时弹幕池',[]));{$ENDIF}
         if Self.Terminated then begin // Signalled to be terminated
           {$IFDEF DEBUG}ReportLog('[绘制] 退出 #3');{$ENDIF}
           Exit;
         end;
-        if FRenderList.Count > 0 then begin
-          // Iteration to local data structure and do update/delete
-          DoUpdatePool(); // Huge Procedure
-        end
-        else
-          SleepThisCycle := True;
+        LivePoolCount := FRenderList.Count;
       finally
         LiveCommentPoolMutex.Release;
+        //{$IFDEF DEBUG}ReportLog(Format('[绘制] 已释放运行时弹幕池',[]));{$ENDIF}
       end;
+      if LivePoolCount > 0 then DoUpdatePool(); // Iteration to local data structure and do update/delete
 
-      if SleepThisCycle then begin
-        Sleep(30);
-        Continue;
-      end;
       if Self.Terminated then begin // Signalled to be terminated
         {$IFDEF DEBUG}ReportLog('[绘制] 退出 #4');{$ENDIF}
         Exit;
@@ -431,6 +438,11 @@ begin
         finally
           UpdateQueueMutex.Release;
         end;
+      end
+      else begin
+        // Nothing to do. Idle for a while
+        Sleep(100);
+        Continue;
       end;
     end;
   finally
@@ -509,13 +521,24 @@ begin
 end;
 
 procedure TRenderThread.Remove(ALiveComment: TLiveComment);
+var
+  ID: Integer;
 begin
+  ID := ALiveComment.Body.ID;
   CommentPoolMutex.Acquire;
-  ALiveComment.Body.Status := Removed;
-  CommentPoolMutex.Release;
-  NotifyStatusChanged(ALiveComment.Body.ID);
-  FRenderBuffer.Remove(ALiveComment.Body.ID);
-  FRenderList.Remove(ALiveComment);
+  try
+    ALiveComment.Body.Status := Removed;
+    NotifyStatusChanged(ID); // add mutex
+  finally
+    CommentPoolMutex.Release;
+  end;
+  LiveCommentPoolMutex.Acquire;
+  try
+    FRenderList.Remove(ALiveComment);
+  finally
+    LiveCommentPoolMutex.Release;
+  end;
+  FRenderBuffer.Remove(ID); // Internal CommentUnits Buffer
 end;
 
 procedure TRenderThread.ReportLog(Info: string);
@@ -529,41 +552,46 @@ procedure TRenderThread.Update(ALiveComment: TLiveComment);
 var
   ACommentUnit: TCommentUnit;
 begin
-  // Update TCommentUnit -> Modify -> Determine Removal
-  if ALiveComment.Body.Effect.Display = Scroll then begin
-    // Only Scroll comment need update its CommentUnit
-    FRenderBuffer.TryGetValue(ALiveComment.Body.ID,ACommentUnit);
-    // Modify ALiveComment
-    if ALiveComment.Left > 0 - ALiveComment.Width then begin
-      ALiveComment.Left := ALiveComment.Left - ALiveComment.Body.Effect.Speed;
+  LiveCommentPoolMutex.Acquire;
+  try
+    // Update TCommentUnit -> Modify -> Determine Removal
+    if ALiveComment.Body.Effect.Display = Scroll then begin
+      // Only Scroll comment need update its CommentUnit
+      FRenderBuffer.TryGetValue(ALiveComment.Body.ID,ACommentUnit);
+      // Modify ALiveComment
+      if ALiveComment.Left > 0 - ALiveComment.Width then begin
+        ALiveComment.Left := ALiveComment.Left - ALiveComment.Body.Effect.Speed;
+      end
+      else begin
+        Dec(ALiveComment.Body.Effect.RepeatCount);
+        if ALiveComment.Body.Effect.RepeatCount <= 0 then begin
+          ALiveComment.Status := LDelete; // EXIT 1
+          ALiveComment.Body.Status := Removing;
+        end
+        else
+          ALiveComment.Left := FWidth;
+      end;
+      ACommentUnit.Left := ALiveComment.Left;
+      FRenderBuffer.AddOrSetValue(ALiveComment.Body.ID,ACommentUnit);
+      //{$IFDEF DEBUG}ReportLog(Format('[绘制] 飞行弹幕 %u更新到%d',[ALiveComment.Body.ID,ACommentUnit.Left]));{$ENDIF}
     end
-    else begin
-      Dec(ALiveComment.Body.Effect.RepeatCount);
-      if ALiveComment.Body.Effect.RepeatCount <= 0 then begin
+    else begin // Static
+      if ALiveComment.Body.Effect.StayTime <= 0 then begin
         ALiveComment.Status := LDelete; // EXIT 1
         ALiveComment.Body.Status := Removing;
       end
       else
-        ALiveComment.Left := FWidth;
+        ALiveComment.Body.Effect.StayTime := ALiveComment.Body.Effect.StayTime - DEFAULT_UPDATE_INTERVAL;
     end;
-    ACommentUnit.Left := ALiveComment.Left;
-    FRenderBuffer.AddOrSetValue(ALiveComment.Body.ID,ACommentUnit);
-    //{$IFDEF DEBUG}ReportLog(Format('[绘制] 飞行弹幕 %u更新到%d',[ALiveComment.Body.ID,ACommentUnit.Left]));{$ENDIF}
-  end
-  else begin // Static
-    if ALiveComment.Body.Effect.StayTime <= 0 then begin
-      ALiveComment.Status := LDelete; // EXIT 1
-      ALiveComment.Body.Status := Removing;
-    end
-    else
-      ALiveComment.Body.Effect.StayTime := ALiveComment.Body.Effect.StayTime - DEFAULT_UPDATE_INTERVAL;
+  finally
+    LiveCommentPoolMutex.Release;
   end;
 end;
 
 procedure TRenderThread.NotifyStatusChanged(CommentID: Integer);
 begin
   Synchronize(procedure begin
-    frmControl.UpdateListView(CommentID);
+    if Assigned(frmControl) then frmControl.UpdateListView(CommentID);
   end);
 end;
 

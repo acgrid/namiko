@@ -118,7 +118,7 @@ end;
 procedure TUpdateThread.ReportLog(Info: string);
 begin
   Synchronize(procedure begin
-    frmControl.LogEvent(Info);
+    if Assigned(frmControl) then frmControl.LogEvent(Info);
   end);
 end;
 

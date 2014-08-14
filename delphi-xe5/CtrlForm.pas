@@ -400,6 +400,7 @@ begin
   end;
 end;
 
+// WARNING: Call Me After CommentPoolMutex.Acquire!
 procedure TfrmControl.UpdateListView(const CommentID: Integer);
 var
   AComment: TComment;
@@ -746,17 +747,17 @@ begin
   Shell_NotifyIcon(NIM_DELETE,@TrayIconData);
   UnRegisterHotKey(handle,DispatchKey);
   GlobalDeleteAtom(DispatchKey);
-  DThread.Free;
-  RThread.Free;
-  UThread.Free;
+  FreeAndNil(DThread);
+  FreeAndNil(RThread);
+  FreeAndNil(UThread);
   CommentPoolMutex.Acquire;
-  CommentPool.Free;
+  FreeAndNil(CommentPool);
   CommentPoolMutex.Release;
   LiveCommentPoolMutex.Acquire;
-  LiveCommentPool.Free;
+  FreeAndNil(LiveCommentPool);
   LiveCommentPoolMutex.Release;
   UpdateQueueMutex.Acquire;
-  UpdateQueue.Free;
+  FreeAndNil(UpdateQueue);
   UpdateQueueMutex.Release;
   if CCWnd > 0 then DestroyWindow(CCWnd);
 end;
@@ -918,13 +919,13 @@ begin
 end;
 
 procedure TfrmControl.btnSaveCommentClick(Sender: TObject);
-var
+{var
   XMLDoc : TXMLDocument;
   DocIntf : IXMLDocument;
   RootNode, CNode : IXMLNode;
-  i : Integer;
+  i : Integer;}
 begin
-  if SaveDialog.Execute then begin
+  {if SaveDialog.Execute then begin
     XMLDoc := TXMLDocument.Create(nil);
     try
       DocIntf := XMLDoc;
@@ -936,14 +937,14 @@ begin
         for i := 0 to CommentPool.Count - 1 do begin
           CNode := RootNode.AddChild('comment');
           // Read CommentPool instead
-          {with ListComments.Items.Item[i].SubItems do begin
+          with ListComments.Items.Item[i].SubItems do begin
             CNode.AddChild('time').Text := Strings[T_LTIME];
             CNode.AddChild('content').Text := Strings[T_TEXT];
             CNode.AddChild('format').Text := Strings[T_FORMAT];
             CNode.AddChild('repeat').Text := Strings[T_CYCLE];
             CNode.AddChild('duration').Text := Strings[T_OCTIME];
             CNode.AddChild('data').Text := Strings[T_STATUS];
-          end;}
+          end;
         end;
         XMLDoc.SaveToFile(SaveDialog.FileName);
       except
@@ -953,7 +954,7 @@ begin
     finally
       XMLDoc.Free;
     end;
-  end;
+  end;}
 end;
 
 procedure TfrmControl.LogEvent(Info: WideString);

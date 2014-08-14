@@ -664,6 +664,7 @@ object frmControl: TfrmControl
       Height = 17
       Caption = #35760#24405#36890#35759#26085#24535'(&I)'
       Checked = True
+      Enabled = False
       State = cbChecked
       TabOrder = 4
     end

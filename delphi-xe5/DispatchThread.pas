@@ -82,7 +82,12 @@ begin
   TimeNow := Now();
   with FMainPool do begin
     for i := From to Till do begin
-      AComment := Items[i];
+      CommentPoolMutex.Acquire;
+      try
+        if i < Count then AComment := Items[i] else Continue; // Double Check
+      finally
+        CommentPoolMutex.Release;
+      end;
       if (AComment.Status = Created) or (AComment.Status = Pending) then begin
         // Subject to be dispatched
         {$IFDEF DEBUG}ReportLog(Format('[调度] 调度 %u 创建或待定状态',[i]));{$ENDIF}
@@ -90,8 +95,13 @@ begin
           // TOO OLD
           if TimeNow - AComment.Time > MDiscardBefore / 86400000 then begin
             {$IFDEF DEBUG}ReportLog(Format('[调度] 调度 %u 超时删除',[i]));{$ENDIF}
-            AComment.Status := Removed;
-            NotifyStatusChanged(AComment.ID);
+            CommentPoolMutex.Acquire;
+            try
+              AComment.Status := Removed;
+              NotifyStatusChanged(AComment.ID);
+            finally
+              CommentPoolMutex.Release;
+            end;
           end
           else begin
             {$IFDEF DEBUG}ReportLog(Format('[调度] 迟调度 %u ',[i]));{$ENDIF}
@@ -108,8 +118,13 @@ begin
         end;
         if AComment.Status = Created then begin
           {$IFDEF DEBUG}ReportLog(Format('[调度] 过早调度 %u ',[i]));{$ENDIF}
-          AComment.Status := Pending;
-          NotifyStatusChanged(AComment.ID);
+          CommentPoolMutex.Acquire;
+          try
+            AComment.Status := Pending;
+            NotifyStatusChanged(AComment.ID);
+          finally
+            CommentPoolMutex.Release;
+          end;
         end;
       end
       else if AComment.Status = Removed then begin
@@ -124,23 +139,30 @@ procedure TDispatchThread.DoDispatch(AComment: TComment);
 var
   ALiveComment: TLiveComment;
 begin
-  AComment.Status := TCommentStatus.Starting;
-  NotifyStatusChanged(AComment.ID);
+  CommentPoolMutex.Acquire;
+  try
+    AComment.Status := TCommentStatus.Starting;
+    NotifyStatusChanged(AComment.ID);
+  finally
+    CommentPoolMutex.Release;
+  end;
   ALiveComment := TLiveComment.Create();
   ALiveComment.Body := AComment;
   {$IFDEF DEBUG}ReportLog(Format('[调度] 初始化运行时弹幕 %u',[ALiveComment.Body.ID]));{$ENDIF}
   LiveCommentPoolMutex.Acquire;
   try
+    {$IFDEF DEBUG}ReportLog(Format('[调度] 已请求运行时弹幕池',[]));{$ENDIF}
     FLivePool.Add(ALiveComment);
   finally
     LiveCommentPoolMutex.Release;
+    {$IFDEF DEBUG}ReportLog(Format('[调度] 已释放运行时弹幕池',[]));{$ENDIF}
   end;
 end;
 
 procedure TDispatchThread.Execute;
 var
   WaitResult: TWaitResult;
-  NewFrontier: Integer;
+  PoolCount, NewFrontier: Integer;
 begin
   {$IFDEF DEBUG}NameThreadForDebugging('Dispatch');{$ENDIF}
   { Place thread code here }
@@ -157,22 +179,21 @@ begin
     end;
     CommentPoolMutex.Acquire;
     try
-      if FMainPool.Count > 0 then begin
-        NewFrontier := FMainPool.Last.ID; // ID is 1-started index
-        if (WaitResult = wrSignaled) and (NewFrontier > FPoolFrontier) then begin // Check the CommentPool
-          CheckPool(FPoolFrontier,NewFrontier - 1); // Fast dispatch
-          FPoolFrontier := NewFrontier;
-        end
-        else if NewFrontier - 1 >= FPoolTail + 1 then begin
-          CheckPool(FPoolTail + 1,NewFrontier - 1); // Normal dispatch, Prevent OUT OF RANGE
-        end;
-      end;
+      PoolCount := FMainPool.Count;
+      if PoolCount > 0 then NewFrontier := FMainPool.Last.ID; // ID is 1-started index
     finally
       CommentPoolMutex.Release;
     end;
-
+    if PoolCount > 0 then begin // KEEP IN MIND Count is MAYBE Changed!
+      if (WaitResult = wrSignaled) and (NewFrontier > FPoolFrontier) then begin // Check the CommentPool
+        CheckPool(FPoolFrontier,NewFrontier - 1); // Fast dispatch
+        FPoolFrontier := NewFrontier;
+      end
+      else if NewFrontier - 1 >= FPoolTail + 1 then begin
+        CheckPool(FPoolTail + 1,NewFrontier - 1); // Normal dispatch, Prevent OUT OF RANGE
+      end;
+    end;
   end;
-
 end;
 
 procedure TDispatchThread.ReportLog(Info: string);
@@ -185,7 +206,7 @@ end;
 procedure TDispatchThread.NotifyStatusChanged(CommentID: Integer);
 begin
   Synchronize(procedure begin
-    frmControl.UpdateListView(CommentID);
+    if Assigned(frmControl) then frmControl.UpdateListView(CommentID);
   end);
 end;
 
