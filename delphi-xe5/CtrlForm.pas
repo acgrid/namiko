@@ -262,7 +262,6 @@ type
     procedure cobOfficialCFontNameChange(Sender: TObject);
     procedure cobOfficialCFontSizeChange(Sender: TObject);
     procedure cobOfficialCFontBoldClick(Sender: TObject);
-    procedure btnEscAllClick(Sender: TObject);
     procedure grpSpecialEffectsClick(Sender: TObject);
     procedure grpTimingClick(Sender: TObject);
     procedure btnClearListClick(Sender: TObject);
@@ -1418,11 +1417,6 @@ end;
 procedure TfrmControl.cobOfficialCFontBoldClick(Sender: TObject);
 begin
   OfficialFontStyle := IfThen(cobOfficialCFontBold.Checked,1,0);
-end;
-
-procedure TfrmControl.btnEscAllClick(Sender: TObject);
-begin
-  // Stop Thread and output a empty DC
 end;
 
 function TfrmControl.GetCommentCount(): Integer;

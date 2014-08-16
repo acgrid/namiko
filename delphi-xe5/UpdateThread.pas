@@ -64,7 +64,7 @@ end;
 
 procedure TUpdateThread.Execute;
 var
-  FormDCPoint: TPoint;
+  FormOffsetPoint, FormDCPoint: TPoint;
   CurrentRenderUnit: TRenderUnit;
   WindowSize: SIZE;
   ScreenHDC: HDC;
@@ -85,6 +85,7 @@ begin
     SourceConstantAlpha := 255;
   end;
   FormDCPoint := Point(0,0);
+  FormOffsetPoint := Point(FRect.Left,FRect.Top);
   WindowSize.cx := FRect.Width;
   WindowSize.cy := FRect.Height;
   ReportLog('[显示] 进入主循环');
@@ -104,7 +105,7 @@ begin
     if CurrentRenderUnit.hDC = 0 then Continue; // MAYBE queue is really empty OR parent thread is call me to exit
     ScreenHDC := GetDC(FHandle);
     try
-      UpdateLayeredWindow(FHandle,ScreenHDC,nil,@WindowSize,CurrentRenderUnit.hDC,@FormDCPoint,0,@FBlend,ULW_ALPHA);
+      UpdateLayeredWindow(FHandle,ScreenHDC,@FormOffsetPoint,@WindowSize,CurrentRenderUnit.hDC,@FormDCPoint,0,@FBlend,ULW_ALPHA);
     finally
       ReleaseDC(FHandle,ScreenHDC);
       ReleaseDC(FHandle,CurrentRenderUnit.hSrcDC);

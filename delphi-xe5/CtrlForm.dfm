@@ -771,7 +771,6 @@ object frmControl: TfrmControl
     Font.Style = []
     ParentFont = False
     TabOrder = 13
-    OnClick = btnEscAllClick
   end
   object BtnFreezing: TButton
     Left = 1032
