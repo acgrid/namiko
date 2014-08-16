@@ -27,6 +27,8 @@ type
 type
   TFontFamilyDict = TDictionary<string,GPFONTFAMILY>;
 type
+  TCommentIndexList = TList<Integer>;
+type
   TRenderThread = class(TThread)
     MTitleText: string;
     MTitleTop, MTitleLeft: Integer;
@@ -58,9 +60,9 @@ type
     procedure DoDrawHDC(var ARenderUnit: TRenderUnit);
     procedure DoUpdatePool();
     procedure Execute; override;
-    function IsChannelUsed(FromPos, ToPos: Integer; Layer: Integer = 0): Boolean;
+    function GetPossibleConflicts(FromPos, ToPos: Integer; Layer: Integer = 0): TCommentIndexList;
     function GetFontFamily(AFontName: WideString): GpFontFamily;
-    procedure GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; OHeight: Integer);
+    procedure GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; var OHeight: Integer);
     procedure Remove(ALiveComment: TLiveComment);
     procedure ReportLog(Info: string);
     procedure RequestChannel(var AComment: TLiveComment);
@@ -230,13 +232,7 @@ begin
         n := 0;
         m := n + fs - 1;
         repeat
-          if IsChannelUsed(n,m,Layer) then begin  // Unused by any comments
-            if not ConflictTest(AComment,n,m,Layer) then begin
-              Done := true;
-              break;
-            end;
-          end
-          else begin
+          if not ConflictTest(AComment,n,m,Layer) then begin
             Done := true;
             break;
           end;
@@ -251,13 +247,7 @@ begin
         m := FHeight;
         n := m - fs + 1;
         repeat
-          if IsChannelUsed(n,m,Layer) then begin  // Unused by any comments
-            if not ConflictTest(AComment,n,m,Layer) then begin
-              Done := true;
-              break;
-            end;
-          end
-          else begin
+          if not ConflictTest(AComment,n,m,Layer) then begin
             Done := true;
             break;
           end;
@@ -275,33 +265,42 @@ begin
   AComment.ChannelTo := m;
 end;
 
-function TRenderThread.IsChannelUsed(FromPos, ToPos: Integer; Layer: Integer = 0): Boolean;
+function TRenderThread.GetPossibleConflicts(FromPos, ToPos: Integer; Layer: Integer = 0): TCommentIndexList;
 var
+  Index: Integer;
   TestComment: TLiveComment;
 begin
-  Result := false;
-  for TestComment in FRenderList.ToArray do begin
+  Result := TCommentIndexList.Create();
+  for Index := 0 to FRenderList.Count - 1 do begin
+    TestComment := FRenderList.Items[Index];
     if (Layer > 0) and (TestComment.ChannelLayer <> Layer) then Continue;
     if TestComment.Status = LCreated then Continue;
-    if (TestComment.ChannelFrom >= FromPos) and (TestComment.ChannelFrom <= ToPos) then begin Result := True; Exit; end;
-    if (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) then begin Result := True; Exit; end;
-    if (TestComment.ChannelTo >= FromPos) and (TestComment.ChannelTo <= ToPos) then begin Result := True; Exit; end;
+    if (TestComment.ChannelFrom >= FromPos) and (TestComment.ChannelFrom <= ToPos) then begin Result.Add(Index); Continue; end;
+    if (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) then begin Result.Add(Index); Continue; end;
+    if (TestComment.ChannelTo >= FromPos) and (TestComment.ChannelTo <= ToPos) then begin Result.Add(Index); Continue; end;
   end;
 end;
 
 function TRenderThread.ConflictTest(AComment: TLiveComment; FromPos: Integer; ToPos: Integer; Layer: Integer=0): Boolean;
 var
   TestComment: TLiveComment;
-  h: Integer;
+  PossibleConflicts: TCommentIndexList;
   CurrFlyTime, PervFlyTime, CheckTime : Double;
+  Index: Integer;
 begin
-  Result := False;
+  Result := False; // Default Value;
+  // GetPossibleConflicts
+  LiveCommentPoolMutex.Acquire; // DO NOT ACQUIRE ANY LOCKS IN THIS BLOCK!!!!
+  try
+    PossibleConflicts := GetPossibleConflicts(FromPos,ToPos,Layer);
+    if PossibleConflicts.Count = 0 then Exit; // No possible conflicts
+    // Logic based on there is at least one possible conflict(s)
   if AComment.Body.Effect.Display = LowerFixed then begin
     Result := True; // From bottom to top.
     Exit;
   end;
-  for h := FromPos to ToPos do begin
-    TestComment := FRenderList.Items[h];
+  for Index in PossibleConflicts do begin
+    TestComment := FRenderList.Items[Index];
     if (Layer > 0) and (TestComment.ChannelLayer <> Layer) then Continue;
     if (TestComment.Status = LMoving) or (TestComment.Status = LCreated) then Continue;
     if(TestComment.ChannelFrom >= FromPos) and (TestComment.ChannelFrom <= ToPos) or
@@ -316,7 +315,7 @@ begin
             end;
             else begin // #3 ReqUp-PervFly
               Result := Boolean(TestComment.Left + TestComment.Width > AComment.Left);
-              if Result then exit;
+              if Result then Exit;
             end;
           end;
         end;
@@ -352,6 +351,10 @@ begin
         end;
       end;
     end;
+  end;
+  finally
+    PossibleConflicts.Free;
+    LiveCommentPoolMutex.Release;
   end;
 end;
 
@@ -513,7 +516,7 @@ begin
   end;
 end;
 
-procedure TRenderThread.GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; OHeight: Integer);
+procedure TRenderThread.GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; var OHeight: Integer);
 var
   Rect, ResultRect: TIGPRectF;
   PFont: GPFONT;

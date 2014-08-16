@@ -3,11 +3,12 @@ unit HTTPWorker;
 interface
 
 uses
-  System.Classes;
+  System.Classes, IdHTTP;
 
 type
   THTTPWorkerThreads = class(TThread)
   protected
+    Worker: TIdHTTP;
     procedure Execute; override;
   end;
 
@@ -50,6 +51,7 @@ procedure THTTPWorkerThreads.Execute;
 begin
   NameThreadForDebugging('HTTP');
   { Place thread code here }
+
 end;
 
 end.
