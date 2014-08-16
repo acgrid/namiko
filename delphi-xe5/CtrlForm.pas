@@ -695,7 +695,7 @@ begin
   //Set Timezone
   GetTimeZoneInformation(m_timezone);
   TimeZoneBias := m_timezone.Bias * 60;
-  LogEvent(Format('获取时区偏移 %u',[TimeZoneBias]));
+  LogEvent(Format('获取时区偏移 %d',[TimeZoneBias]));
   LastHTTPRequest := DateTimeToUnix(Now())+TimeZoneBias;
   //Fetch Font List
   cobNetCFontName.Items.AddStrings(Screen.Fonts);
@@ -1284,6 +1284,7 @@ begin
       //radioNetTransmit.Enabled := True;
       editNetPassword.Enabled := True;
       editNetHost.Enabled := True;
+      CheckboxHTTPLog.Enabled := True;
       LogEvent('正在关闭HTTP抓取，停止接收网络弹幕');
       RemoteTime := 0;
     end;
@@ -1333,7 +1334,7 @@ begin
       end;
       LogEvent('创建并启动HTTP线程');
       HThread := THTTPWorkerThread.Create(editNetHost.Text,
-        NetPassword,
+        NetPassword,TimeZoneBias,
         IfThen(CheckboxHTTPLog.Checked,APP_DIR+'HTTP.log','')); // Auto Start!
     end
     else begin
