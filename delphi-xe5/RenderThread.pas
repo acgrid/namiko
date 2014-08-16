@@ -27,6 +27,8 @@ type
 type
   TFontFamilyDict = TDictionary<string,GPFONTFAMILY>;
 type
+  TBrushDict = TDictionary<TAlphaColor,GpBrush>;
+type
   TCommentIndexList = TList<Integer>;
 type
   TRenderThread = class(TThread)
@@ -51,6 +53,7 @@ type
     FRenderBuffer: TCommentUnits;
     // Reuseable GDI+ Resource
     FFFDict: TFontFamilyDict;
+    FSBDict: TBrushDict;
     FPGraphic: GpGraphics;
     FPStringFormat: GPSTRINGFORMAT;
     FPPath: GPPATH;
@@ -62,6 +65,7 @@ type
     procedure Execute; override;
     function GetPossibleConflicts(FromPos, ToPos: Integer; Layer: Integer = 0): TCommentIndexList;
     function GetFontFamily(AFontName: WideString): GpFontFamily;
+    function GetSolidBrush(AColor: TAlphaColor): GpBrush;
     procedure GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; var OHeight: Integer);
     procedure Remove(ALiveComment: TLiveComment);
     procedure ReportLog(Info: string);
@@ -111,6 +115,7 @@ begin
   FWidth := Width;
   FHeight := Height;
   FFFDict := TFontFamilyDict.Create();
+  FSBDict := TBrushDict.Create();
 
   GdipCreateFromHWND(FMainHandle,FPGraphic);
   GdipCreateStringFormat(0,LANG_NEUTRAL,FPStringFormat);
@@ -122,12 +127,21 @@ begin
   FRenderList := @RenderList;
   if not Assigned(UpdateQueue) then raise Exception.Create('TRenderUnit update queue is not initialized.');
   FUpdateQueue := @UpdateQueue;
+
+  // In main thread no mutex needed
+  MTitleText := frmControl.MTitleText;
+  MTitleTop := frmControl.MTitleTop;
+  MTitleLeft := frmControl.MTitleLeft;
+  MTitleFontName := frmControl.MTitleFontName;
+  MTitleFontSize := frmControl.MTitleFontSize;
+  MTitleFontColor := frmControl.MTitleFontColor;
   inherited Create(True);
 end;
 
 destructor TRenderThread.Destroy;
 var
   P: GpFontFamily;
+  SP: GpBrush;
 begin
   inherited Destroy();
   GdipDeleteGraphics(FPGraphic);
@@ -138,6 +152,8 @@ begin
     GdipDeleteFontFamily(P);
   end;
   FFFDict.Free;
+  for SP in FSBDict.Values do GdipDeleteBrush(SP);
+  FSBDict.Free;
 end;
 
 procedure TRenderThread.Calculate(ALiveComment: TLiveComment);
@@ -468,9 +484,9 @@ end;
 procedure TRenderThread.DoDrawHDC(var ARenderUnit: TRenderUnit);
 var
   PGraphic: GpGraphics;
-  PBrush: GpSolidFill;
   StrRect: TIGPRect;
   ACommentUnit: TCommentUnit;
+  Test: WideString;
 begin
   GdipCreateFromHDC(ARenderUnit.hDC,PGraphic);
   GdipSetSmoothingMode(PGraphic,SmoothingModeAntiAlias);
@@ -478,7 +494,6 @@ begin
   GdipResetPath(FPPath);
   for ACommentUnit in FRenderBuffer.Values do begin
     if ACommentUnit.Length = 0 then Continue;
-    GdipCreateSolidFill(ACommentUnit.FillColor,PBrush);
     StrRect.X := ACommentUnit.Left;
     StrRect.Y := ACommentUnit.Top;
     StrRect.Width := 0;
@@ -486,12 +501,12 @@ begin
     GdipAddPathStringI(FPPath, ACommentUnit.PString, ACommentUnit.Length,
       ACommentUnit.PFontFamily, ACommentUnit.FontStyle, ACommentUnit.FontSize, @StrRect, FPStringFormat);
     GdipDrawPath(PGraphic, FPPen, FPPath);
-    GdipFillPath(PGraphic, PBrush, FPPath);
-    GdipDeleteBrush(PBrush);
+    GdipFillPath(PGraphic, GetSolidBrush(ACommentUnit.FillColor), FPPath);
+    GdipResetPath(FPPath);
   end;
   GraphicSharedMutex.Acquire;
   try
-    if Length(MTitleText) > 0 then begin // Display the Title
+    {if Length(MTitleText) > 0 then begin // Display the Title
       GdipCreateSolidFill(MTitleFontColor,PBrush);
       StrRect.X := MTitleLeft;
       StrRect.Y := MTitleTop;
@@ -501,8 +516,17 @@ begin
         GetFontFamily(MTitleFontName), 1, MTitleFontSize, @StrRect, FPStringFormat);
       GdipDrawPath(PGraphic, FPPen, FPPath);
       GdipFillPath(PGraphic, PBrush, FPPath);
-      GdipDeleteBrush(PBrush);      
-    end;
+      GdipDeleteBrush(PBrush);
+    end;}
+    Test := '≤‚ ‘';
+    StrRect.X := 50;
+    StrRect.Y := 50;
+    StrRect.Width := 0;
+    StrRect.Height := 0;
+    GdipAddPathStringI(FPPath, PWideChar(Test), Length(Test),
+      GetFontFamily('Œ¢»Ì—≈∫⁄'), 1, 28, @StrRect, FPStringFormat);
+    GdipDrawPath(PGraphic, FPPen, FPPath);
+    GdipFillPath(PGraphic, GetSolidBrush($FF00CC00), FPPath);
   finally
     GraphicSharedMutex.Release;
   end;
@@ -520,6 +544,19 @@ begin
     GdipCreateFontFamilyFromName(PWideChar(AFontName),nil,PFontFamily);
     FFFDict.Add(AFontName,PFontFamily);
     Result := PFontFamily;
+  end;
+end;
+
+function TRenderThread.GetSolidBrush(AColor: TAlphaColor): GpBrush;
+var
+  PBrush: GpBrush;
+begin
+  if FSBDict.ContainsKey(AColor) then
+    Result := FSBDict.Items[AColor]
+  else begin
+    GdipCreateSolidFill(AColor,PBrush);
+    FSBDict.Add(AColor,PBrush);
+    Result := PBrush;
   end;
 end;
 
