@@ -279,6 +279,7 @@ begin
     if (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) then begin Result.Add(Index); Continue; end;
     if (TestComment.ChannelTo >= FromPos) and (TestComment.ChannelTo <= ToPos) then begin Result.Add(Index); Continue; end;
   end;
+  {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ %u ≤„ %u-%u ø…“… ˝¡ø%u',[Layer,FromPos,ToPos,Result.Count]));{$ENDIF}
 end;
 
 function TRenderThread.ConflictTest(AComment: TLiveComment; FromPos: Integer; ToPos: Integer; Layer: Integer=0): Boolean;
@@ -302,24 +303,30 @@ begin
   for Index in PossibleConflicts do begin
     TestComment := FRenderList.Items[Index];
     if (Layer > 0) and (TestComment.ChannelLayer <> Layer) then Continue;
-    if (TestComment.Status = LMoving) or (TestComment.Status = LCreated) then Continue;
+    {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√0',[]));{$ENDIF}
+    if TestComment.Status <> LMoving then Continue;
     if(TestComment.ChannelFrom >= FromPos) and (TestComment.ChannelFrom <= ToPos) or
       (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) or
       (TestComment.ChannelTo >= FromPos) then begin
+      {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√2',[]));{$ENDIF}
       case AComment.Body.Effect.Display of
         UpperFixed: begin
+          {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√3-A',[]));{$ENDIF}
           case TestComment.Body.Effect.Display of
             UpperFixed: begin // #4 Up-Up: Always Conflict
-              Result := true;
+              {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√4-A',[]));{$ENDIF}
+              Result := True;
               exit;
             end;
             else begin // #3 ReqUp-PervFly
+              {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√4-B',[]));{$ENDIF}
               Result := Boolean(TestComment.Left + TestComment.Width > AComment.Left);
               if Result then Exit;
             end;
           end;
         end;
         else begin
+          {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√3-B',[]));{$ENDIF}
           CurrFlyTime := (AComment.Left + AComment.Width) / AComment.Body.Effect.Speed;
           PervFlyTime := (TestComment.Left + TestComment.Width) / TestComment.Body.Effect.Speed;
           case TestComment.Body.Effect.Display of
