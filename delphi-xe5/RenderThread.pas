@@ -37,6 +37,7 @@ type
     MTitleFontName: WideString;
     MTitleFontSize: Single;
     MTitleFontColor: TAlphaColor;
+    MDoUpdate: Boolean;
     constructor Create(Handle: HWND; Width: Integer; Height: Integer; var RenderList: TLiveCommentCollection; var UpdateQueue: TRenderUnitQueue);
     destructor Destroy(); override;
   protected
@@ -135,6 +136,7 @@ begin
   MTitleFontName := frmControl.MTitleFontName;
   MTitleFontSize := frmControl.MTitleFontSize;
   MTitleFontColor := frmControl.MTitleFontColor;
+  MDoUpdate := True;
   inherited Create(True);
 end;
 
@@ -445,7 +447,8 @@ begin
         Exit;
       end;
 
-      if (FRenderBuffer.Count > 0) or (LastCycleUnitCount > 0) then begin
+      if (FRenderBuffer.Count > 0) or (LastCycleUnitCount > 0) or MDoUpdate then begin
+        MDoUpdate := False;
         // New hDC Interface and associated handle
         MainDC := GetDC(FMainHandle);
         if MainDC = 0 then raise Exception.Create('Cannot obtain HDC from HWND.');
@@ -506,8 +509,7 @@ begin
   end;
   GraphicSharedMutex.Acquire;
   try
-    {if Length(MTitleText) > 0 then begin // Display the Title
-      GdipCreateSolidFill(MTitleFontColor,PBrush);
+    if Length(MTitleText) > 0 then begin // Display the Title
       StrRect.X := MTitleLeft;
       StrRect.Y := MTitleTop;
       StrRect.Width := 0;
@@ -515,18 +517,8 @@ begin
       GdipAddPathStringI(FPPath, PWideChar(MTitleText), Length(MTitleText),
         GetFontFamily(MTitleFontName), 1, MTitleFontSize, @StrRect, FPStringFormat);
       GdipDrawPath(PGraphic, FPPen, FPPath);
-      GdipFillPath(PGraphic, PBrush, FPPath);
-      GdipDeleteBrush(PBrush);
-    end;}
-    Test := '≤‚ ‘';
-    StrRect.X := 50;
-    StrRect.Y := 50;
-    StrRect.Width := 0;
-    StrRect.Height := 0;
-    GdipAddPathStringI(FPPath, PWideChar(Test), Length(Test),
-      GetFontFamily('Œ¢»Ì—≈∫⁄'), 1, 28, @StrRect, FPStringFormat);
-    GdipDrawPath(PGraphic, FPPen, FPPath);
-    GdipFillPath(PGraphic, GetSolidBrush($FF00CC00), FPPath);
+      GdipFillPath(PGraphic, GetSolidBrush(MTitleFontColor), FPPath);
+    end;
   finally
     GraphicSharedMutex.Release;
   end;

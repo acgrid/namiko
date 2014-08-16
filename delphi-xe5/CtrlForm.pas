@@ -342,6 +342,7 @@ type
     procedure AppendNetComment(LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat);
     procedure AppendConsoleComment(AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
     procedure AppendLocalComment(LTime: TTime; RTime: TTime; AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
+    procedure UpdateCaption();
     // Old Procedures
     procedure LogEvent(Info: WideString);
   end;
@@ -369,6 +370,7 @@ implementation
 {$R *.dfm}
 uses
   UDPHandleThread, RenderThread, UpdateThread, DispatchThread, HTTPWorker,
+  SetupForm,
   IGDIPlusEmbedded;
 
 var
@@ -501,14 +503,7 @@ end;
 
 procedure TfrmControl.btnCCShowClick(Sender: TObject);
 begin
-  if CCWindowShow then begin
-    CCWindowShow := false;
-    btnCCShow.Caption := 'ÏÔÊ¾(&S)';
-  end
-  else begin
-    CCWindowShow := true;
-    btnCCShow.Caption := 'Òþ²Ø(&H)';
-  end;
+  FormDimSet.Show;
 end;
 
 procedure TfrmControl.WindowTrayMessage(var Message: TMessage);
@@ -821,10 +816,8 @@ begin
   StatusBar.Panels[5].Text := '±¾µØ '+TimeToStr(Time());
 end;
 
-procedure TfrmControl.btnSetFixedLabelClick(Sender: TObject);
+procedure TfrmControl.UpdateCaption;
 begin
-  //TestLabel.Font := OfficialCDemo.Font;
-  MTitleText := StringReplace(editOfficialComment.Text,'/n',#13,[rfReplaceAll]);
   if Assigned(RThread) then begin
     GraphicSharedMutex.Acquire;
     try
@@ -834,10 +827,27 @@ begin
       RThread.MTitleFontName := MTitleFontName;
       RThread.MTitleFontSize := MTitleFontSize;
       RThread.MTitleFontColor := MTitleFontColor;
+      RThread.MDoUpdate := True;
     finally
       GraphicSharedMutex.Release;
     end;
   end;
+end;
+
+procedure TfrmControl.btnSetFixedLabelClick(Sender: TObject);
+var
+  AColor, ChRed, ChBlue: Cardinal;
+begin
+  // TAlphaColor in GDI+ seems AARRGGBB while Delphi defines as AABBGGRR
+  AColor := cobOfficialCFontColor.Brush.Color;
+  ChRed := (AColor and $000000FF) shl 16;
+  ChBlue := (AColor and $00FF0000) shr 16;
+  AColor := (AColor and $FF00FF00) or ChRed or ChBlue or $FF000000;
+  MTitleText := StringReplace(editOfficialComment.Text,'/n',#13,[rfReplaceAll]);
+  MTitleFontName := cobOfficialCFontName.Items.Strings[cobOfficialCFontName.ItemIndex];
+  MTitleFontSize := StrToIntDef(cobOfficialCFontSize.Text,20) * 1.0;
+  MTitleFontColor := AColor;
+  UpdateCaption;
 end;
 
 procedure TfrmControl.ButtonStartThreadsClick(Sender: TObject);

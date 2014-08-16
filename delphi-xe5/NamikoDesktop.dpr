@@ -8,7 +8,8 @@ uses
   RenderThread in 'RenderThread.pas',
   UpdateThread in 'UpdateThread.pas',
   DispatchThread in 'DispatchThread.pas',
-  HTTPWorker in 'HTTPWorker.pas';
+  HTTPWorker in 'HTTPWorker.pas',
+  SetupForm in 'SetupForm.pas' {FormDimSet};
 
 {$R *.res}
 
@@ -18,5 +19,6 @@ begin
   Application.Initialize;
   Application.Title := 'NamikoÊµÊ±µ¯Ä»';
   Application.CreateForm(TfrmControl, frmControl);
+  Application.CreateForm(TFormDimSet, FormDimSet);
   Application.Run;
 end.

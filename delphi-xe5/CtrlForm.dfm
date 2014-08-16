@@ -71,7 +71,6 @@ object frmControl: TfrmControl
       Width = 75
       Height = 25
       Caption = #21464#26356'(&G)'
-      Enabled = False
       TabOrder = 1
       OnClick = btnCCShowClick
     end
