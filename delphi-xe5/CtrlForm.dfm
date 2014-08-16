@@ -500,7 +500,6 @@ object frmControl: TfrmControl
       Width = 73
       Height = 17
       Caption = 'HTTP'#20027#21160
-      Enabled = False
       TabOrder = 1
       OnClick = radioNetPortClick
     end
@@ -539,7 +538,6 @@ object frmControl: TfrmControl
       EditLabel.Width = 41
       EditLabel.Height = 17
       EditLabel.Caption = #22320#22336'(&U)'
-      Enabled = False
       ImeMode = imClose
       LabelPosition = lpLeft
       TabOrder = 4

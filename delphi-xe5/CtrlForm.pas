@@ -285,7 +285,6 @@ type
     { Private declarations }
     CCWindowShow, CCWindowWorking, Fetching, AddOCWorking : Boolean;
     DispatchKey : Integer;
-    HTTPURL : String;
     LastHTTPRequest : Integer;
     XMLDelay : Integer;
     FreezingTime : TTime;
@@ -370,12 +369,14 @@ implementation
 
 {$R *.dfm}
 uses
-  UDPHandleThread, RenderThread, UpdateThread, DispatchThread, IGDIPlusEmbedded;
+  UDPHandleThread, RenderThread, UpdateThread, DispatchThread, HTTPWorker,
+  IGDIPlusEmbedded;
 
 var
   RThread: TRenderThread;
   UThread: TUpdateThread;
   DThread: TDispatchThread;
+  HThread: THTTPWorkerThread;
 
 constructor TComment.Create;
 begin
@@ -657,6 +658,7 @@ begin
     UpdateS.Release; // Empty Operation
     UThread.Terminate;
   end;
+  if Assigned(HThread) and HThread.Started then HThread.Terminate;
 end;
 
 procedure TfrmControl.FormCreate(Sender: TObject);
@@ -764,6 +766,7 @@ begin
   FreeAndNil(DThread);
   FreeAndNil(RThread);
   FreeAndNil(UThread);
+  FreeAndNil(HThread);
   CommentPoolMutex.Acquire;
   FreeAndNil(CommentPool);
   CommentPoolMutex.Release;
@@ -1270,16 +1273,20 @@ begin
     else if IdUDPServerCCRecv.Active then begin
       IdUDPServerCCRecv.Active := False;
       editNetPort.Enabled := True;
+      editNetHost.Enabled := True;
       radioNetPort.Enabled := True;
-      radioNetTransmit.Enabled := True;
+      radioNetPasv.Enabled := True;
+      //radioNetTransmit.Enabled := True;
       editNetPassword.Enabled := True;
       LogEvent('UDP监听关闭，停止接收网络弹幕');
     end
     else begin
-      editNetHost.Enabled := True;
+      if Assigned(HThread) then HThread.Terminate;
       radioNetPasv.Enabled := True;
-      radioNetTransmit.Enabled := False;
-      LogEvent('已关闭HTTP抓取，停止接收网络弹幕');
+      //radioNetTransmit.Enabled := True;
+      editNetPassword.Enabled := True;
+      editNetHost.Enabled := True;
+      LogEvent('正在关闭HTTP抓取，停止接收网络弹幕');
       RemoteTime := 0;
     end;
     Networking := False;
@@ -1318,10 +1325,25 @@ begin
       end;
     end
     else if radioNetPort.Checked then begin
-      HTTPURL := editNetHost.Text;
-      {LogEvent('测试Web服务器连接：' + editNetHost.Text);
-      TestHTTPClient();}
-      LogEvent('暂不支持。');
+      if Assigned(HThread) then begin
+        if HThread.Finished then
+          HThread.Free
+        else begin
+          LogEvent('HTTP线程尚未退出，无法启动。');
+          Exit;
+        end;
+      end;
+      LogEvent('创建并启动HTTP线程');
+      HThread := THTTPWorkerThread.Create(editNetHost.Text,
+        IfThen(CheckboxHTTPLog.Checked,APP_DIR+'HTTP.log','')); // Auto Start!
+      CheckboxHTTPLog.Enabled := False;
+      Networking := True;
+      radioNetPasv.Enabled := False;
+      radioNetTransmit.Enabled := False;
+      radioNetPasv.Enabled := False;
+      editNetPassword.Enabled := False;
+      editNetHost.Enabled := False;
+      btnNetStart.Caption := '停止通信(&M)';
     end
     else begin
       LogEvent('暂不支持。');
