@@ -1036,6 +1036,7 @@ begin
     ini.ReadInteger('Display','WorkWindowTop',0),
     ini.ReadInteger('Display','WorkWindowWidth',ScreenWidth),
     ini.ReadInteger('Display','WorkWindowHeight',ScreenHeight div 2));
+  CCWinPos.Right := CCWinPos.Left + ini.ReadInteger('Display','WorkWindowWidth',ScreenWidth); // Width is derived property, not member variable!
   // Prompt Caption
   MTitleText := ini.ReadString('Display','TitleText','TEST');
   MTitleTop := ini.ReadInteger('Display','TitleTop',0);
@@ -1170,11 +1171,13 @@ procedure TfrmControl.FormCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 begin
   {$IFNDEF DEBUG}
+  {$IFDEF PASSWORD_CLOSE}
   if btnAdmin.Visible then begin
     CanClose := false;
     StatusBar.Panels[0].Text := '关你妹';
     exit;
   end;
+  {$ENDIF}
   CanClose := Boolean(Application.MessageBox('确认?','退出',MB_ICONQUESTION+MB_YESNO) = IDYES);
   {$ENDIF}
 end;

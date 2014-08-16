@@ -5,8 +5,8 @@ object frmControl: TfrmControl
   VertScrollBar.Visible = False
   BorderIcons = [biSystemMenu, biMinimize]
   Caption = 
-    'Namiko '#23454#26102#24377#24149#26700#38754#31471' for CT10 [Unicode GDI+ UDP without Hexied Version' +
-    ']'
+    'Namiko '#23454#26102#24377#24149#26700#38754#31471' for CT10 [Unicode GDI+ UDP/HTTP with PCRE-Hexiabl' +
+    'e Multi-threaded]'
   ClientHeight = 517
   ClientWidth = 1164
   Color = clBtnFace
@@ -720,6 +720,7 @@ object frmControl: TfrmControl
       EditLabel.Width = 86
       EditLabel.Height = 17
       EditLabel.Caption = #20002#24323#36807#26399#24377#24149'(s)'
+      Enabled = False
       LabelPosition = lpLeft
       NumbersOnly = True
       TabOrder = 9
