@@ -4,7 +4,7 @@ interface
 
 uses
   System.Classes, System.SysUtils, System.SyncObjs, System.DateUtils,
-  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, Data.DBXJSON;
+  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, Data.DBXJSON, PerlRegEx;
 
 type
   THTTPWorkerThread = class(TThread)
@@ -19,6 +19,7 @@ type
     FTimeout: Integer;
     FInterval: Integer;
     FPoolCount: Cardinal;
+    FHexie: TPerlRegEx;
     procedure Execute; override;
     procedure ReportLog(Info: string);
     procedure ReadLines(var AResponse: string);
@@ -28,7 +29,7 @@ type
 implementation
 
 uses
-  CtrlForm;
+  CtrlForm, HexieForm;
 
 const
   HTTP_RETRY_DELAY = 1000;
@@ -79,6 +80,7 @@ begin
     Logger.Active := True;
     Worker.Intercept := Logger;
   end;
+  FHexie := TPerlRegEx.Create();
   inherited Create(False); // Start upon created;
 end;
 
@@ -86,6 +88,7 @@ destructor THTTPWorkerThread.Destroy;
 begin
   Worker.Free;
   Logger.Free;
+  FHexie.Free;
   inherited Destroy();
 end;
 
@@ -231,7 +234,9 @@ var
   RTime, LTime: TDateTime;
   ThisAuthor: TCommentAuthor;
   ThisFormat: TCommentFormat;
-  Content: string;
+  Content, HexieString: string;
+  Hexie: TStringList;
+  HexieIndex: Integer;
   TimeFound, IPFound, ContentFound: Boolean;
 begin
   LTime := Now();
@@ -259,6 +264,32 @@ begin
         Content := TJSONPair(LItem).JsonValue.Value;
         ContentFound := True;
       end;
+    end;
+    HexieMutex.Acquire;
+    try
+      HexieString := HexieForm.HexieBuffer;
+    finally
+      HexieMutex.Release;
+    end;
+    Hexie := TStringList.Create();
+    try
+      Hexie.Text := HexieString;
+      try
+        FHexie.Subject := Content;
+        for HexieIndex := 0 to Hexie.Count - 1 do begin
+          FHexie.RegEx := Hexie.Strings[HexieIndex];
+          if FHexie.Match then begin
+            ReportLog(Format('[PCRE] 已和谐来自%s的弹幕"%s"',[ThisAuthor.Address,Content]));
+            Exit;
+          end;
+        end;
+      except
+        on E:Exception do begin
+          ReportLog('[PCRE] 正则表达式错误：'+E.Message);
+        end;
+      end;
+    finally
+      Hexie.Free;
     end;
     if TimeFound and IPFound and ContentFound then begin
       Synchronize(procedure begin

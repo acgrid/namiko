@@ -351,7 +351,8 @@ var
   APP_DIR: string; // Shared with other units
   TrayIconData: TNotifyIconData;
   // Thread Sync Objects
-  SharedConfigurationMutex, GraphicSharedMutex, HTTPSharedMutex, CommentPoolMutex, LiveCommentPoolMutex, UpdateQueueMutex: TMutex;
+  SharedConfigurationMutex, GraphicSharedMutex, HTTPSharedMutex, HexieMutex,
+  CommentPoolMutex, LiveCommentPoolMutex, UpdateQueueMutex: TMutex;
   DispatchS, UpdateS: TSemaphore;
   DefaultSA: TSecurityAttributes; // Use to create thread objects
   // Comment Layered Window
@@ -369,7 +370,7 @@ implementation
 {$R *.dfm}
 uses
   UDPHandleThread, RenderThread, UpdateThread, DispatchThread, HTTPWorker,
-  SetupForm,
+  SetupForm, HexieForm,
   IGDIPlusEmbedded;
 
 var
@@ -861,7 +862,7 @@ end;
 
 procedure TfrmControl.btnOpenFilterClick(Sender: TObject);
 begin
-  //frmWordList.Show;
+  frmWordList.Show;
 end;
 
 procedure TfrmControl.btnAdminClick(Sender: TObject);
@@ -1541,6 +1542,7 @@ initialization
   CommentPoolMutex := TMutex.Create(@DefaultSA,True,'main_pool_m');
   SharedConfigurationMutex := TMutex.Create(@DefaultSA,True,'shared_cfg_m');
   GraphicSharedMutex := TMutex.Create(@DefaultSA,True,'shared_gui_m');
+  HexieMutex := TMutex.Create(@DefaultSA,True,'shared_hx_m');
   HTTPSharedMutex := TMutex.Create(@DefaultSA,True,'shared_http_m');
   LiveCommentPoolMutex := TMutex.Create(@DefaultSA,True,'live_pool_m');
   UpdateQueueMutex := TMutex.Create(@DefaultSA,True,'render_queue_m');
@@ -1551,6 +1553,7 @@ finalization
   CommentPoolMutex.Free();
   SharedConfigurationMutex.Free();
   GraphicSharedMutex.Free();
+  HexieMutex.Free;
   HTTPSharedMutex.Free();
   LiveCommentPoolMutex.Free();
   UpdateQueueMutex.Free();

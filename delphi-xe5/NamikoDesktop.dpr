@@ -9,7 +9,8 @@ uses
   UpdateThread in 'UpdateThread.pas',
   DispatchThread in 'DispatchThread.pas',
   HTTPWorker in 'HTTPWorker.pas',
-  SetupForm in 'SetupForm.pas' {FormDimSet};
+  SetupForm in 'SetupForm.pas' {FormDimSet},
+  HexieForm in 'HexieForm.pas' {frmWordList};
 
 {$R *.res}
 
@@ -20,5 +21,6 @@ begin
   Application.Title := 'NamikoÊµÊ±µ¯Ä»';
   Application.CreateForm(TfrmControl, frmControl);
   Application.CreateForm(TFormDimSet, FormDimSet);
+  Application.CreateForm(TfrmWordList, frmWordList);
   Application.Run;
 end.

@@ -575,7 +575,6 @@ object frmControl: TfrmControl
     Width = 89
     Height = 25
     Caption = #36807#28388#21015#34920'(&X)'
-    Enabled = False
     TabOrder = 7
     OnClick = btnOpenFilterClick
   end
