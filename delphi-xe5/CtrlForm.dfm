@@ -822,10 +822,6 @@ object frmControl: TfrmControl
     Left = 352
     Top = 72
   end
-  object TCPLogFile: TIdServerInterceptLogFile
-    Left = 352
-    Top = 120
-  end
   object IdUDPServerCCRecv: TIdUDPServer
     Bindings = <>
     DefaultPort = 0

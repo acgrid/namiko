@@ -213,7 +213,6 @@ type
     editOfficialCommentDuration: TLabeledEdit;
     ChkAutoStartNet: TCheckBox;
     btnClearList: TButton;
-    TCPLogFile: TIdServerInterceptLogFile;
     radioNetTransmit: TRadioButton;
     editOfficialCommentDurationUpDown: TUpDown;
     EditHTTPInterval: TLabeledEdit;
@@ -708,7 +707,6 @@ begin
   HTTPSharedMutex.Release;
   //Set Path
   SaveDialog.InitialDir := APP_DIR;
-  TCPLogFile.Filename := APP_DIR+'TCPServer.log';
   //HTTPLog.Filename := APP_DIR+'HTTPClient.log';
   //Register Hotkey
   try
@@ -1335,15 +1333,8 @@ begin
       end;
       LogEvent('创建并启动HTTP线程');
       HThread := THTTPWorkerThread.Create(editNetHost.Text,
+        NetPassword,
         IfThen(CheckboxHTTPLog.Checked,APP_DIR+'HTTP.log','')); // Auto Start!
-      CheckboxHTTPLog.Enabled := False;
-      Networking := True;
-      radioNetPasv.Enabled := False;
-      radioNetTransmit.Enabled := False;
-      radioNetPasv.Enabled := False;
-      editNetPassword.Enabled := False;
-      editNetHost.Enabled := False;
-      btnNetStart.Caption := '停止通信(&M)';
     end
     else begin
       LogEvent('暂不支持。');
