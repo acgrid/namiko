@@ -152,11 +152,11 @@ begin
   {$IFDEF DEBUG}ReportLog(Format('[调度] 初始化运行时弹幕 %u',[ALiveComment.Body.ID]));{$ENDIF}
   LiveCommentPoolMutex.Acquire;
   try
-    {$IFDEF DEBUG}ReportLog(Format('[调度] 已请求运行时弹幕池',[]));{$ENDIF}
+    //{$IFDEF DEBUG}ReportLog(Format('[调度] 已请求运行时弹幕池',[]));{$ENDIF}
     FLivePool.Add(ALiveComment);
   finally
     LiveCommentPoolMutex.Release;
-    {$IFDEF DEBUG}ReportLog(Format('[调度] 已释放运行时弹幕池',[]));{$ENDIF}
+    //{$IFDEF DEBUG}ReportLog(Format('[调度] 已释放运行时弹幕池',[]));{$ENDIF}
   end;
 end;
 

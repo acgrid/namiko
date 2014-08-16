@@ -7,7 +7,8 @@ uses
   UDPHandleThread in 'UDPHandleThread.pas',
   RenderThread in 'RenderThread.pas',
   UpdateThread in 'UpdateThread.pas',
-  DispatchThread in 'DispatchThread.pas';
+  DispatchThread in 'DispatchThread.pas',
+  HTTPWorker in 'HTTPWorker.pas';
 
 {$R *.res}
 

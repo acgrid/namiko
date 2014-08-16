@@ -268,7 +268,7 @@ begin
       until Done;
     end;
   end;
-  {$IFDEF DEV}LogEvent(Format('[绘制] 分配通道 %d %d-%d',[Layer,n,m]));{$ENDIF}
+  {$IFDEF DEBUG}ReportLog(Format('[绘制] 分配通道 %d 层 %d到%d',[Layer,n,m]));{$ENDIF}
   AComment.ChannelLayer := Layer;
   AComment.ChannelFrom := n;
   AComment.Top := n;
