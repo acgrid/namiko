@@ -216,17 +216,20 @@ type
     TCPLogFile: TIdServerInterceptLogFile;
     radioNetTransmit: TRadioButton;
     editOfficialCommentDurationUpDown: TUpDown;
-    EditFetchInv: TLabeledEdit;
-    EditFetchInvUpDown: TUpDown;
+    EditHTTPInterval: TLabeledEdit;
+    UpDownHTTPInterval: TUpDown;
     BtnFreezing: TButton;
     DelayProgBar: TProgressBar;
     DelayLabel: TLabel;
     EdtNetDelay: TLabeledEdit;
     IdUDPServerCCRecv: TIdUDPServer;
-    CheckBox1: TCheckBox;
+    CheckBoxHTTPLog: TCheckBox;
     EditTimespanDiscarded: TLabeledEdit;
     ButtonTerminateThread: TButton;
     ButtonStartThreads: TButton;
+    EditHTTPTimeout: TLabeledEdit;
+    UpDownHTTPTimeout: TUpDown;
+    EditDiscardSeconds: TLabeledEdit;
     procedure btnCCShowClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnCCWorkClick(Sender: TObject);
@@ -275,6 +278,8 @@ type
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ButtonTerminateThreadClick(Sender: TObject);
     procedure ButtonStartThreadsClick(Sender: TObject);
+    procedure EditHTTPIntervalChange(Sender: TObject);
+    procedure EditHTTPTimeoutChange(Sender: TObject);
 
   private
     { Private declarations }
@@ -330,6 +335,8 @@ type
     UpdateQueue: TRenderUnitQueue;
     // TListView Wrapper
     ListViewOffset: Integer;
+    // HTTP Configuartion
+    HTTPTimeout, HTTPInterval: Cardinal; // Protected by HTTPSharedMutex
     // New Procedures
     procedure UpdateListView(const CommentID: Integer); // called by AppendListView
     procedure AppendListView(const AComment: TComment);
@@ -343,10 +350,10 @@ type
 
 var
   frmControl: TfrmControl;
-  APP_DIR, NamikoKey: string; // Shared with other units
+  APP_DIR: string; // Shared with other units
   TrayIconData: TNotifyIconData;
   // Thread Sync Objects
-  SharedConfigurationMutex, GraphicSharedMutex, CommentPoolMutex, LiveCommentPoolMutex, UpdateQueueMutex: TMutex;
+  SharedConfigurationMutex, GraphicSharedMutex, HTTPSharedMutex, CommentPoolMutex, LiveCommentPoolMutex, UpdateQueueMutex: TMutex;
   DispatchS, UpdateS: TSemaphore;
   DefaultSA: TSecurityAttributes; // Use to create thread objects
   // Comment Layered Window
@@ -696,6 +703,7 @@ begin
   APP_DIR := ExtractFilePath(ParamStr(0));
   LoadSetting(); // Call After APP_DIR
   LogEvent('读取配置文件');
+  HTTPSharedMutex.Release;
   //Set Path
   SaveDialog.InitialDir := APP_DIR;
   TCPLogFile.Filename := APP_DIR+'TCPServer.log';
@@ -1032,17 +1040,19 @@ begin
   editNetPort.Text := ini.ReadString('Connection','Port','7233');
   editNetHost.Text := ini.ReadString('Connection','Host','http://127.0.0.1/fetchcomment.php');
   chkAutoStartNet.Checked := ini.ReadBool('Connection','AutoStart',false);
-  //TimerFetch.Interval := ini.ReadInteger('Connection','Interval',1000);
-  EditFetchInv.Text := ini.ReadString('Connection','Interval','1000');
+  HTTPInterval := ini.ReadInteger('Connection','HTTPInterval',5000);
+  HTTPTimeout := ini.ReadInteger('Connection','HTTPTimeout',3000);
+  UpDownHTTPInterval.Position := HTTPInterval;
+  UpDownHTTPTimeout.Position := HTTPTimeout;
 
   NetDefaultDuration := ini.ReadInteger('Timing','DefaultCommentShowTime',DEFAULT_NETCOMMENT_DURATION);
   try
-    editNetPassword.Text := UncrypKey(ini.ReadString('Connection','Key','BA9FB3809EE62C55BBC2C3CC8AB68EF6'),KEY);
+    NetPassword := UncrypKey(ini.ReadString('Connection','Key','BA9FB3809EE62C55BBC2C3CC8AB68EF6'),KEY);
   except
-    editNetPassword.Text := '233-614-789-998';
+    NetPassword := '233-614-789-998';
     LogEvent('通信密码未设置！');
   end;
-  NetPassword := editNetPassword.Text;
+  editNetPassword.Text := NetPassword;
   // Other Parameters
   
   ini.Free;
@@ -1068,9 +1078,11 @@ begin
   ini.WriteBool('Connection','Passive',radioNetPasv.Checked);
   ini.WriteString('Connection','Port',editNetPort.Text);
   ini.WriteString('Connection','Host',editNetHost.Text);
-  ini.WriteString('Connection','Key',EncrypKey(editNetPassword.Text,KEY));
+  ini.WriteString('Connection','Key',EncrypKey(NetPassword,KEY));
   ini.WriteBool('Connection','AutoStart',ChkAutoStartNet.Checked);
-  //ini.WriteInteger('Connection','Interval',TimerFetch.Interval);
+  ini.WriteInteger('Connection','HTTPInterval',HTTPInterval);
+  ini.WriteInteger('Connection','HTTPTimeout',HTTPTimeout);
+
   ini.WriteInteger('Display','WorkWindowLeft',CCWinPos.Left);
   ini.WriteInteger('Display','WorkWindowTop',CCWinPos.Top);
   ini.WriteInteger('Display','WorkWindowWidth',CCWinPos.Width);
@@ -1249,10 +1261,10 @@ var
 begin
   if Networking then begin
     if Transmit then begin
-      editNetPort.Enabled := true;
-      radioNetPasv.Enabled := true;
-      radioNetPort.Enabled := true;
-      Transmit := false;
+      editNetPort.Enabled := True;
+      radioNetPasv.Enabled := True;
+      radioNetPort.Enabled := True;
+      Transmit := False;
       LogEvent('TCP转发服务已关闭');
     end
     else if IdUDPServerCCRecv.Active then begin
@@ -1264,13 +1276,13 @@ begin
       LogEvent('UDP监听关闭，停止接收网络弹幕');
     end
     else begin
-      editNetHost.Enabled := true;
-      radioNetPasv.Enabled := true;
-      radioNetTransmit.Enabled := true;
+      editNetHost.Enabled := True;
+      radioNetPasv.Enabled := True;
+      radioNetTransmit.Enabled := False;
       LogEvent('已关闭HTTP抓取，停止接收网络弹幕');
       RemoteTime := 0;
     end;
-    Networking := false;
+    Networking := False;
     btnNetStart.Caption := '开始通信(&M)';
   end
   else begin
@@ -1475,6 +1487,34 @@ begin
   end;
 end;
 
+procedure TfrmControl.EditHTTPIntervalChange(Sender: TObject);
+var
+  NewValue: Integer;
+begin
+  NewValue := StrToIntDef(EditHTTPInterval.Text,5000);
+  if NewValue < 1000 then Exit;
+  HTTPSharedMutex.Acquire;
+  try
+    HTTPInterval := NewValue;
+  finally
+    HTTPSharedMutex.Release;
+  end;
+end;
+
+procedure TfrmControl.EditHTTPTimeoutChange(Sender: TObject);
+var
+  NewValue: Integer;
+begin
+  NewValue := StrToIntDef(EditHTTPTimeout.Text,3000);
+  if NewValue < 500 then Exit;
+  HTTPSharedMutex.Acquire;
+  try
+    HTTPTimeout := NewValue;
+  finally
+    HTTPSharedMutex.Release;
+  end;
+end;
+
 initialization
   CoInitialize(nil);
   DefaultSA.nLength := SizeOf(TSecurityAttributes);
@@ -1483,6 +1523,7 @@ initialization
   CommentPoolMutex := TMutex.Create(@DefaultSA,True,'main_pool_m');
   SharedConfigurationMutex := TMutex.Create(@DefaultSA,True,'shared_cfg_m');
   GraphicSharedMutex := TMutex.Create(@DefaultSA,True,'shared_gui_m');
+  HTTPSharedMutex := TMutex.Create(@DefaultSA,True,'shared_http_m');
   LiveCommentPoolMutex := TMutex.Create(@DefaultSA,True,'live_pool_m');
   UpdateQueueMutex := TMutex.Create(@DefaultSA,True,'render_queue_m');
   DispatchS := TSemaphore.Create(@DefaultSA,0,1024,'dispatch_s',False);
@@ -1492,6 +1533,7 @@ finalization
   CommentPoolMutex.Free();
   SharedConfigurationMutex.Free();
   GraphicSharedMutex.Free();
+  HTTPSharedMutex.Free();
   LiveCommentPoolMutex.Free();
   UpdateQueueMutex.Free();
   DispatchS.Free();

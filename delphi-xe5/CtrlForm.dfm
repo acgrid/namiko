@@ -610,8 +610,8 @@ object frmControl: TfrmControl
     Caption = 'Debug Tools (Be Careful)'
     TabOrder = 10
     object editTimingInv: TLabeledEdit
-      Left = 86
-      Top = 85
+      Left = 249
+      Top = 20
       Width = 25
       Height = 25
       EditLabel.Width = 72
@@ -624,8 +624,8 @@ object frmControl: TfrmControl
       OnChange = editTimingInvChange
     end
     object editTimingInvUpDown: TUpDown
-      Left = 111
-      Top = 85
+      Left = 274
+      Top = 20
       Width = 16
       Height = 25
       Associate = editTimingInv
@@ -633,38 +633,39 @@ object frmControl: TfrmControl
       Position = 50
       TabOrder = 1
     end
-    object EditFetchInv: TLabeledEdit
+    object EditHTTPInterval: TLabeledEdit
       Left = 232
       Top = 85
       Width = 41
       Height = 25
-      EditLabel.Width = 96
+      EditLabel.Width = 78
       EditLabel.Height = 17
-      EditLabel.Caption = #20027#21160#27169#24335#26816#27979#38388#38548
+      EditLabel.Caption = 'HTTP'#26816#27979#38388#38548
       LabelPosition = lpLeft
       NumbersOnly = True
       TabOrder = 2
-      Text = '1000'
+      Text = '5000'
+      OnChange = EditHTTPIntervalChange
     end
-    object EditFetchInvUpDown: TUpDown
+    object UpDownHTTPInterval: TUpDown
       Left = 273
       Top = 85
       Width = 17
       Height = 25
-      Associate = EditFetchInv
-      Min = 300
-      Max = 5000
+      Associate = EditHTTPInterval
+      Min = 1000
+      Max = 60000
       Increment = 100
-      Position = 1000
+      Position = 5000
       TabOrder = 3
       Thousands = False
     end
-    object CheckBox1: TCheckBox
+    object CheckBoxHTTPLog: TCheckBox
       Left = 8
-      Top = 22
-      Width = 113
+      Top = 24
+      Width = 137
       Height = 17
-      Caption = #35760#24405#36890#35759#26085#24535'(&I)'
+      Caption = #35760#24405'HTTP'#36890#35759#26085#24535'(&I)'
       Checked = True
       Enabled = False
       State = cbChecked
@@ -700,6 +701,46 @@ object frmControl: TfrmControl
       Caption = #21551#21160#32447#31243
       TabOrder = 7
       OnClick = ButtonStartThreadsClick
+    end
+    object EditHTTPTimeout: TLabeledEdit
+      Left = 88
+      Top = 85
+      Width = 41
+      Height = 25
+      EditLabel.Width = 78
+      EditLabel.Height = 17
+      EditLabel.Caption = 'HTTP'#36229#26102#26102#38388
+      LabelPosition = lpLeft
+      NumbersOnly = True
+      TabOrder = 8
+      Text = '3000'
+      OnChange = EditHTTPTimeoutChange
+    end
+    object EditDiscardSeconds: TLabeledEdit
+      Left = 263
+      Top = 54
+      Width = 27
+      Height = 25
+      EditLabel.Width = 86
+      EditLabel.Height = 17
+      EditLabel.Caption = #20002#24323#36807#26399#24377#24149'(s)'
+      LabelPosition = lpLeft
+      NumbersOnly = True
+      TabOrder = 9
+      Text = '30'
+    end
+    object UpDownHTTPTimeout: TUpDown
+      Left = 129
+      Top = 85
+      Width = 16
+      Height = 25
+      Associate = EditHTTPTimeout
+      Min = 100
+      Max = 10000
+      Increment = 100
+      Position = 3000
+      TabOrder = 10
+      Thousands = False
     end
   end
   object Log: TMemo
