@@ -12,7 +12,7 @@ uses
   IdSocketHandle, IdGlobal,
   StrUtils, DateUtils, IdLogBase, IdLogFile,
   ShellAPI, ActiveX, IdExceptionCore, IdUDPBase, IdUDPServer,
-  System.UIConsts, IdComponent, IdBaseComponent;
+  System.UIConsts, System.Types, IdComponent, IdBaseComponent;
 
 const
   NamikoTrayMessage = WM_USER + 233;

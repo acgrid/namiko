@@ -223,12 +223,14 @@ begin
       if I < FRenderList.Count then TheComment := FRenderList.Items[I] else Continue;
     finally
       LiveCommentPoolMutex.Release;
-    end;    
-    case TheComment.Status of
-      LCreated: Calculate(TheComment); // SET: LWait or LMoving
-      LWait: Calculate(TheComment); // SET: LMoving or none
-      LMoving: Update(TheComment); // SET: LDelete
-      LDelete: Remove(TheComment);
+    end;
+    if Assigned(TheComment) then begin
+      case TheComment.Status of
+        LCreated: Calculate(TheComment); // SET: LWait or LMoving
+        LWait: Calculate(TheComment); // SET: LMoving or none
+        LMoving: Update(TheComment); // SET: LDelete
+        LDelete: Remove(TheComment);
+      end;
     end;
   end;
 end;
@@ -310,73 +312,73 @@ begin
   Result := False; // Default Value;
   // GetPossibleConflicts
   LiveCommentPoolMutex.Acquire; // DO NOT ACQUIRE ANY LOCKS IN THIS BLOCK!!!!
+  PossibleConflicts := GetPossibleConflicts(FromPos,ToPos,Layer);
   try
-    PossibleConflicts := GetPossibleConflicts(FromPos,ToPos,Layer);
     if PossibleConflicts.Count = 0 then Exit; // No possible conflicts
     // Logic based on there is at least one possible conflict(s)
-  if AComment.Body.Effect.Display = LowerFixed then begin
-    Result := True; // From bottom to top.
-    Exit;
-  end;
-  for Index in PossibleConflicts do begin
-    TestComment := FRenderList.Items[Index];
-    if (Layer > 0) and (TestComment.ChannelLayer <> Layer) then Continue;
-    {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√0',[]));{$ENDIF}
-    if TestComment.Status <> LMoving then Continue;
-    if(TestComment.ChannelFrom >= FromPos) and (TestComment.ChannelFrom <= ToPos) or
-      (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) or
-      (TestComment.ChannelTo >= FromPos) then begin
-      {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√2',[]));{$ENDIF}
-      case AComment.Body.Effect.Display of
-        UpperFixed: begin
-          {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√3-A',[]));{$ENDIF}
-          case TestComment.Body.Effect.Display of
-            UpperFixed: begin // #4 Up-Up: Always Conflict
-              {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√4-A',[]));{$ENDIF}
-              Result := True;
-              exit;
-            end;
-            else begin // #3 ReqUp-PervFly
-              {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√4-B',[]));{$ENDIF}
-              Result := Boolean(TestComment.Left + TestComment.Width > AComment.Left);
-              if Result then Exit;
+    if AComment.Body.Effect.Display = LowerFixed then begin
+      Result := True; // From bottom to top.
+      Exit;
+    end;
+    for Index in PossibleConflicts do begin
+      TestComment := FRenderList.Items[Index];
+      if (Layer > 0) and (TestComment.ChannelLayer <> Layer) then Continue;
+      {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√0',[]));{$ENDIF}
+      if TestComment.Status <> LMoving then Continue;
+      if(TestComment.ChannelFrom >= FromPos) and (TestComment.ChannelFrom <= ToPos) or
+        (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) or
+        (TestComment.ChannelTo >= FromPos) then begin
+        {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√2',[]));{$ENDIF}
+        case AComment.Body.Effect.Display of
+          UpperFixed: begin
+            {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√3-A',[]));{$ENDIF}
+            case TestComment.Body.Effect.Display of
+              UpperFixed: begin // #4 Up-Up: Always Conflict
+                {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√4-A',[]));{$ENDIF}
+                Result := True;
+                Exit;
+              end;
+              else begin // #3 ReqUp-PervFly
+                {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√4-B',[]));{$ENDIF}
+                Result := Boolean(TestComment.Left + TestComment.Width > AComment.Left);
+                if Result then Exit;
+              end;
             end;
           end;
-        end;
-        else begin
-          {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√3-B',[]));{$ENDIF}
-          CurrFlyTime := (AComment.Left + AComment.Width) / AComment.Body.Effect.Speed;
-          PervFlyTime := (TestComment.Left + TestComment.Width) / TestComment.Body.Effect.Speed;
-          case TestComment.Body.Effect.Display of
-            UpperFixed: begin // #2 ReqFly-PervUp
-              Result := Boolean(FWidth - (AComment.Left + AComment.Width) div AComment.Body.Effect.StayTime * TestComment.Body.Effect.StayTime >= TestComment.Left + TestComment.Width);
-              if Result then Exit;
-            end;
-            else begin // #1 Fly-Fly
-              //if LeftStr(AComment.Body.Content,1) = '@' then Exit;
-              Result := true;
-              if TestComment.Left + TestComment.Width < FWidth then begin
-                CheckTime := Min(CurrFlyTime,PervFlyTime);
-                if TestComment.Left + TestComment.Width - TestComment.Body.Effect.Speed * CheckTime <= AComment.Left - AComment.Body.Effect.Speed * CheckTime then Result := False;
+          else begin
+            {$IFDEF DEBUG}ReportLog(Format('[ªÊ÷∆] ≥ÂÕªºÏ≤‚ Œª÷√3-B',[]));{$ENDIF}
+            CurrFlyTime := (AComment.Left + AComment.Width) / AComment.Body.Effect.Speed;
+            PervFlyTime := (TestComment.Left + TestComment.Width) / TestComment.Body.Effect.Speed;
+            case TestComment.Body.Effect.Display of
+              UpperFixed: begin // #2 ReqFly-PervUp
+                Result := Boolean(FWidth - (AComment.Left + AComment.Width) div AComment.Body.Effect.StayTime * TestComment.Body.Effect.StayTime >= TestComment.Left + TestComment.Width);
+                if Result then Exit;
               end;
-              {if (CurrFlyTime > PervFlyTime) and (TestComment.Left + TestComment.Width < AComment.Left) then begin
-                Result := False;
-              end
-              else begin
-                Result := True;
-                Exit;
-              end;}
-              {Result := False;
-              if (TestComment.Left > FWidth div 3 * 2) and (TestComment.Width < FWidth div 2) then begin
-                Result := True;
-                Exit;
-              end;}
+              else begin // #1 Fly-Fly
+                //if LeftStr(AComment.Body.Content,1) = '@' then Exit;
+                Result := true;
+                if TestComment.Left + TestComment.Width < FWidth then begin
+                  CheckTime := Min(CurrFlyTime,PervFlyTime);
+                  if TestComment.Left + TestComment.Width - TestComment.Body.Effect.Speed * CheckTime <= AComment.Left - AComment.Body.Effect.Speed * CheckTime then Result := False;
+                end;
+                {if (CurrFlyTime > PervFlyTime) and (TestComment.Left + TestComment.Width < AComment.Left) then begin
+                  Result := False;
+                end
+                else begin
+                  Result := True;
+                  Exit;
+                end;}
+                {Result := False;
+                if (TestComment.Left > FWidth div 3 * 2) and (TestComment.Width < FWidth div 2) then begin
+                  Result := True;
+                  Exit;
+                end;}
+              end;
             end;
           end;
         end;
       end;
     end;
-  end;
   finally
     PossibleConflicts.Free;
     LiveCommentPoolMutex.Release;
@@ -489,7 +491,7 @@ var
   PGraphic: GpGraphics;
   StrRect: TIGPRect;
   ACommentUnit: TCommentUnit;
-  Test: WideString;
+  //Test: WideString;
 begin
   GdipCreateFromHDC(ARenderUnit.hDC,PGraphic);
   GdipSetSmoothingMode(PGraphic,SmoothingModeAntiAlias);
@@ -569,10 +571,10 @@ begin
         Length(AStr),
         PFont,
         @Rect,
-        NIL,
+        nil,
         @ResultRect,
-        NIL,
-        NIL
+        nil,
+        nil
     );
   finally
     GdipDeleteFont(PFont);

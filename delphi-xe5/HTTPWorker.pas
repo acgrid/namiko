@@ -99,7 +99,6 @@ var
   Response: string;
   LJSONObject: TJSONObject;
   JResult, JTimestamp: TJSONPair;
-  JIndex: Integer;
 begin
   NameThreadForDebugging('HTTP');
   { Place thread code here }
@@ -245,61 +244,68 @@ begin
   ThisFormat.DefaultColor := True;
   ThisFormat.DefaultStyle := True;
   try
-  LJsonArr := TJSONObject.ParseJSONValue(TEncoding.ASCII.GetBytes(AResponse),0) as TJSONArray;
-  for LJsonValue in LJsonArr do begin
-    TimeFound := False;
-    IPFound := False;
-    ContentFound := False;
-    for LItem in TJSONArray(LJsonValue) do begin
-      if TJSONPair(LItem).JsonString.Value = 'Timestamp' then begin
-        RTime := UnixToDateTime(StrToInt64(TJSONPair(LItem).JsonValue.Value()) - FTimeOffset);
-        TimeFound := True;
-      end;
-      if TJSONPair(LItem).JsonString.Value = 'IP' then begin
-        ThisAuthor.Source := TAuthorSource.Internet;
-        ThisAuthor.Address := TJSONPair(LItem).JsonValue.Value;
-        IPFound := True;
-      end;
-      if TJSONPair(LItem).JsonString.Value = 'Content' then begin
-        Content := TJSONPair(LItem).JsonValue.Value;
-        ContentFound := True;
-      end;
-    end;
-    HexieMutex.Acquire;
+    LJsonArr := TJSONObject.ParseJSONValue(TEncoding.ASCII.GetBytes(AResponse),0) as TJSONArray;
     try
-      HexieString := HexieForm.HexieBuffer;
-    finally
-      HexieMutex.Release;
-    end;
-    Hexie := TStringList.Create();
-    try
-      Hexie.Text := HexieString;
-      try
-        FHexie.Subject := Content;
-        for HexieIndex := 0 to Hexie.Count - 1 do begin
-          FHexie.RegEx := Hexie.Strings[HexieIndex];
-          if FHexie.Match then begin
-            ReportLog(Format('[PCRE] 已和谐来自%s的弹幕"%s"',[ThisAuthor.Address,Content]));
-            Exit;
+      for LJsonValue in LJsonArr do begin
+        TimeFound := False;
+        IPFound := False;
+        ContentFound := False;
+        for LItem in TJSONArray(LJsonValue) do begin
+          if TJSONPair(LItem).JsonString.Value = 'Timestamp' then begin
+            RTime := UnixToDateTime(StrToInt64(TJSONPair(LItem).JsonValue.Value()) - FTimeOffset);
+            TimeFound := True;
+          end;
+          if TJSONPair(LItem).JsonString.Value = 'IP' then begin
+            ThisAuthor.Source := TAuthorSource.Internet;
+            ThisAuthor.Address := TJSONPair(LItem).JsonValue.Value;
+            IPFound := True;
+          end;
+          if TJSONPair(LItem).JsonString.Value = 'Content' then begin
+            Content := TJSONPair(LItem).JsonValue.Value;
+            ContentFound := True;
           end;
         end;
-      except
-        on E:Exception do begin
-          ReportLog('[PCRE] 正则表达式错误：'+E.Message);
+        HexieMutex.Acquire;
+        try
+          HexieString := HexieForm.HexieBuffer;
+        finally
+          HexieMutex.Release;
+        end;
+        Hexie := TStringList.Create();
+        try
+          Hexie.Text := HexieString;
+          try
+            FHexie.Subject := Content;
+            for HexieIndex := 0 to Hexie.Count - 1 do begin
+              FHexie.RegEx := Hexie.Strings[HexieIndex];
+              if FHexie.Match then begin
+                ReportLog(Format('[PCRE] 已和谐来自%s的弹幕"%s"',[ThisAuthor.Address,Content]));
+                Exit;
+              end;
+            end;
+          except
+            on E:Exception do begin
+              ReportLog('[PCRE] 正则表达式错误：'+E.Message);
+            end;
+          end;
+        finally
+          Hexie.Free;
+        end;
+        if TimeFound and IPFound and ContentFound then begin
+          Synchronize(procedure begin
+            frmControl.AppendNetComment(LTime,RTime,ThisAuthor,Content,ThisFormat);
+          end);
         end;
       end;
-    finally
-      Hexie.Free;
+      finally
+        LJsonArr.Free;
+      end;
+    except
+      on E: Exception do begin
+      {$IFDEF DEBUG}ReportLog(Format('[HTTP] JSON 解析异常 %s "%s"',[E.ClassName,E.Message]));{$ENDIF}
+      Sleep(FInterval);
+      end;
     end;
-    if TimeFound and IPFound and ContentFound then begin
-      Synchronize(procedure begin
-        frmControl.AppendNetComment(LTime,RTime,ThisAuthor,Content,ThisFormat);
-      end);
-    end;
-  end;
-  finally
-    LJsonArr.Free;
-  end;
 end;
 
 procedure THTTPWorkerThread.ReportLog(Info: string);
