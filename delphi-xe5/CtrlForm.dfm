@@ -5,8 +5,8 @@ object frmControl: TfrmControl
   VertScrollBar.Visible = False
   BorderIcons = [biSystemMenu, biMinimize]
   Caption = 
-    'Namiko '#23454#26102#24377#24149#26700#38754#31471' for CT10 [Unicode GDI+ UDP/HTTP with PCRE-Hexiabl' +
-    'e Multi-threaded]'
+    'Namiko Danmaku Client [Unicode GDI+ UDP/HTTP PCRE Multi-threaded' +
+    ']'
   ClientHeight = 517
   ClientWidth = 1164
   Color = clBtnFace

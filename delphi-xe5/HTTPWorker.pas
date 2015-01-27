@@ -1,4 +1,4 @@
-unit HTTPWorker;
+ï»¿unit HTTPWorker;
 
 interface
 
@@ -119,7 +119,7 @@ begin
             if Assigned(JTimestamp) then begin
               RequestTimestamp := StrToInt64(JTimestamp.JsonValue.Value());
               RemoteTimeOffset := DateTimeToUnix(Now()) - (RequestTimestamp - FTimeOffset); // DateTimeToUnix is local timestamp - (PHP's UTC timestamp - offset of local to UTC)
-              ReportLog(Format('[HTTP] ²âÊÔ³É¹¦£¬±¾µØ-Ô¶³ÌÊ±¼ä²î%dÃë ¿ªÊ¼½ÓÊÕÍøÂçµ¯Ä»',[RemoteTimeOffset]));
+              ReportLog(Format('[HTTP] æµ‹è¯•æˆåŠŸï¼Œæœ¬åœ°-è¿œç¨‹æ—¶é—´å·®%dç§’ å¼€å§‹æ¥æ”¶ç½‘ç»œå¼¹å¹•',[RemoteTimeOffset]));
               Synchronize(procedure begin
                 with frmControl do begin
                   CheckboxHTTPLog.Enabled := False;
@@ -129,20 +129,20 @@ begin
                   radioNetPasv.Enabled := False;
                   editNetPassword.Enabled := False;
                   editNetHost.Enabled := False;
-                  btnNetStart.Caption := 'Í£Ö¹Í¨ĞÅ(&M)';
+                  btnNetStart.Caption := 'åœæ­¢é€šä¿¡(&M)';
                 end;
               end);
             end
             else if Assigned(JResult) then begin
-              ReportLog(Format('[HTTP] ²âÊÔ´íÎó£º·şÎñÆ÷×´Ì¬ %s',[JResult.JsonValue.Value()]));
+              ReportLog(Format('[HTTP] æµ‹è¯•é”™è¯¯ï¼šæœåŠ¡å™¨çŠ¶æ€ %s',[JResult.JsonValue.Value()]));
               Exit;
             end
             else begin
-              ReportLog('[HTTP] ²âÊÔ´íÎó£º·şÎñÆ÷Î´·µ»Ø×´Ì¬');
+              ReportLog('[HTTP] æµ‹è¯•é”™è¯¯ï¼šæœåŠ¡å™¨æœªè¿”å›çŠ¶æ€');
               Exit;
             end;
           except
-            ReportLog('[HTTP] ²âÊÔ´íÎó£º²»ºÏ·¨µÄJSON¸ñÊ½');
+            ReportLog('[HTTP] æµ‹è¯•é”™è¯¯ï¼šä¸åˆæ³•çš„JSONæ ¼å¼');
             {$IFDEF DEBUG}ReportLog(Response);{$ENDIF}
             Exit;
           end;
@@ -151,28 +151,28 @@ begin
         end;
       end
       else begin
-        ReportLog(Format('[HTTP] ²âÊÔ´íÎó£ºHTTP·µ»ØÖµ%u ·µ»Ø³¤¶È %u',[Worker.ResponseCode,Length(Response)]));
+        ReportLog(Format('[HTTP] æµ‹è¯•é”™è¯¯ï¼šHTTPè¿”å›å€¼%u è¿”å›é•¿åº¦ %u',[Worker.ResponseCode,Length(Response)]));
         Exit;
       end;
     except
       on EIdConnectTimeout do begin
-        ReportLog('[HTTP] ²âÊÔ´íÎó£ºÁ¬½Ó³¬Ê±');
+        ReportLog('[HTTP] æµ‹è¯•é”™è¯¯ï¼šè¿æ¥è¶…æ—¶');
         Exit;
       end;
       on EIdReadTimeout do begin
-        ReportLog('[HTTP] ²âÊÔ´íÎó£º½ÓÊÕ³¬Ê±');
+        ReportLog('[HTTP] æµ‹è¯•é”™è¯¯ï¼šæ¥æ”¶è¶…æ—¶');
         Exit;
       end;
       on E: Exception do begin
-        ReportLog(Format('[HTTP] ²âÊÔ´íÎó£º[%s] %s',[E.ClassName,E.Message]));
+        ReportLog(Format('[HTTP] æµ‹è¯•é”™è¯¯ï¼š[%s] %s',[E.ClassName,E.Message]));
         Exit;
       end;
     end;
     // Main Loop
-    {$IFDEF DEBUG}ReportLog('[HTTP] ½øÈëÖ÷Ñ­»·');{$ENDIF}
+    {$IFDEF DEBUG}ReportLog('[HTTP] è¿›å…¥ä¸»å¾ªç¯');{$ENDIF}
     while True do begin
       if Terminated then begin
-        {$IFDEF DEBUG}ReportLog('[HTTP] ÍË³ö #1');{$ENDIF}
+        {$IFDEF DEBUG}ReportLog('[HTTP] é€€å‡º #1');{$ENDIF}
         Exit;
       end;
       // Reload Configuration
@@ -186,40 +186,40 @@ begin
             ReadLines(Response);
             RequestTimestamp := DateTimeToUnix(Now()) + FTimeOffset;
           except
-            on E: Exception do ReportLog(Format('[HTTP] Ñ­»·JSONÒì³££º[%s] %s',[E.ClassName,E.Message]));
+            on E: Exception do ReportLog(Format('[HTTP] å¾ªç¯JSONå¼‚å¸¸ï¼š[%s] %s',[E.ClassName,E.Message]));
           end;
         end
         else begin
-          ReportLog(Format('[HTTP] Ñ­»·´íÎó£ºHTTP·µ»ØÖµ%u ·µ»Ø³¤¶È %u',[Worker.ResponseCode,Length(Response)]));
+          ReportLog(Format('[HTTP] å¾ªç¯é”™è¯¯ï¼šHTTPè¿”å›å€¼%u è¿”å›é•¿åº¦ %u',[Worker.ResponseCode,Length(Response)]));
           Sleep(HTTP_RETRY_DELAY);
           Continue;
         end;
       except
         on EIdConnectTimeout do begin
-          ReportLog('[HTTP] Á¬½Ó³¬Ê±');
+          ReportLog('[HTTP] è¿æ¥è¶…æ—¶');
           Sleep(HTTP_RETRY_DELAY);
           Continue;
         end;
         on EIdReadTimeout do begin
-          ReportLog('[HTTP] ½ÓÊÕ³¬Ê±');
+          ReportLog('[HTTP] æ¥æ”¶è¶…æ—¶');
           Sleep(HTTP_RETRY_DELAY);
           Continue;
         end;
         on E: Exception do begin
-          ReportLog(Format('[HTTP] Ñ­»·Òì³££º[%s] %s',[E.ClassName,E.Message]));
+          ReportLog(Format('[HTTP] å¾ªç¯å¼‚å¸¸ï¼š[%s] %s',[E.ClassName,E.Message]));
           Sleep(HTTP_RETRY_DELAY);
           Continue;
         end;
       end;
       if Terminated then begin
-        {$IFDEF DEBUG}ReportLog('[HTTP] ÍË³ö #2');{$ENDIF}
+        {$IFDEF DEBUG}ReportLog('[HTTP] é€€å‡º #2');{$ENDIF}
         Exit;
       end;
       Sleep(FInterval);
     end;
   except
     on E: Exception do begin
-      {$IFDEF DEBUG}ReportLog(Format('[HTTP] Òì³£%s "%s"',[E.ClassName,E.Message]));{$ENDIF}
+      {$IFDEF DEBUG}ReportLog(Format('[HTTP] å¼‚å¸¸%s "%s"',[E.ClassName,E.Message]));{$ENDIF}
       Sleep(FInterval);
     end;
   end;
@@ -279,13 +279,13 @@ begin
             for HexieIndex := 0 to Hexie.Count - 1 do begin
               FHexie.RegEx := Hexie.Strings[HexieIndex];
               if FHexie.Match then begin
-                ReportLog(Format('[PCRE] ÒÑºÍĞ³À´×Ô%sµÄµ¯Ä»"%s"',[ThisAuthor.Address,Content]));
+                ReportLog(Format('[PCRE] å·²å’Œè°æ¥è‡ª%sçš„å¼¹å¹•"%s"',[ThisAuthor.Address,Content]));
                 Exit;
               end;
             end;
           except
             on E:Exception do begin
-              ReportLog('[PCRE] ÕıÔò±í´ïÊ½´íÎó£º'+E.Message);
+              ReportLog('[PCRE] æ­£åˆ™è¡¨è¾¾å¼é”™è¯¯ï¼š'+E.Message);
             end;
           end;
         finally
@@ -302,7 +302,7 @@ begin
       end;
     except
       on E: Exception do begin
-      {$IFDEF DEBUG}ReportLog(Format('[HTTP] JSON ½âÎöÒì³£ %s "%s"',[E.ClassName,E.Message]));{$ENDIF}
+      {$IFDEF DEBUG}ReportLog(Format('[HTTP] JSON è§£æå¼‚å¸¸ %s "%s"',[E.ClassName,E.Message]));{$ENDIF}
       Sleep(FInterval);
       end;
     end;

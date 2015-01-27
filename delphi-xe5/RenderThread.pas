@@ -1,4 +1,4 @@
-unit RenderThread;
+ï»¿unit RenderThread;
 
 interface
 
@@ -181,7 +181,7 @@ begin
           end
           else
             Body.Effect.Speed := Speed;
-          {$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ¼ÆËãËÙ¶È %u Â·¾¶×Ü³¤ %u Ê±¼ä %u',[Speed,AWidth + FWidth,Body.Effect.StayTime]));{$ENDIF}
+          {$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] è®¡ç®—é€Ÿåº¦ %u è·¯å¾„æ€»é•¿ %u æ—¶é—´ %u',[Speed,AWidth + FWidth,Body.Effect.StayTime]));{$ENDIF}
         end;
         UpperFixed, LowerFixed: begin
           Left := (FWidth - AWidth) div 2;
@@ -278,7 +278,7 @@ begin
       until Done;
     end;
   end;
-  {$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ·ÖÅäÍ¨µÀ %d ²ã %dµ½%d',[Layer,n,m]));{$ENDIF}
+  {$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] åˆ†é…é€šé“ %d å±‚ %dåˆ°%d',[Layer,n,m]));{$ENDIF}
   AComment.ChannelLayer := Layer;
   AComment.ChannelFrom := n;
   AComment.Top := n;
@@ -299,7 +299,7 @@ begin
     if (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) then begin Result.Add(Index); Continue; end;
     if (TestComment.ChannelTo >= FromPos) and (TestComment.ChannelTo <= ToPos) then begin Result.Add(Index); Continue; end;
   end;
-  {$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ³åÍ»¼ì²â %u ²ã %u-%u ¿ÉÒÉÊıÁ¿%u',[Layer,FromPos,ToPos,Result.Count]));{$ENDIF}
+  {$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] å†²çªæ£€æµ‹ %u å±‚ %u-%u å¯ç–‘æ•°é‡%u',[Layer,FromPos,ToPos,Result.Count]));{$ENDIF}
 end;
 
 function TRenderThread.ConflictTest(AComment: TLiveComment; FromPos: Integer; ToPos: Integer; Layer: Integer=0): Boolean;
@@ -323,30 +323,30 @@ begin
     for Index in PossibleConflicts do begin
       TestComment := FRenderList.Items[Index];
       if (Layer > 0) and (TestComment.ChannelLayer <> Layer) then Continue;
-      {$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ³åÍ»¼ì²â Î»ÖÃ0',[]));{$ENDIF}
+      {$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] å†²çªæ£€æµ‹ ä½ç½®0',[]));{$ENDIF}
       if TestComment.Status <> LMoving then Continue;
       if(TestComment.ChannelFrom >= FromPos) and (TestComment.ChannelFrom <= ToPos) or
         (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) or
         (TestComment.ChannelTo >= FromPos) then begin
-        {$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ³åÍ»¼ì²â Î»ÖÃ2',[]));{$ENDIF}
+        {$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] å†²çªæ£€æµ‹ ä½ç½®2',[]));{$ENDIF}
         case AComment.Body.Effect.Display of
           UpperFixed: begin
-            {$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ³åÍ»¼ì²â Î»ÖÃ3-A',[]));{$ENDIF}
+            {$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] å†²çªæ£€æµ‹ ä½ç½®3-A',[]));{$ENDIF}
             case TestComment.Body.Effect.Display of
               UpperFixed: begin // #4 Up-Up: Always Conflict
-                {$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ³åÍ»¼ì²â Î»ÖÃ4-A',[]));{$ENDIF}
+                {$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] å†²çªæ£€æµ‹ ä½ç½®4-A',[]));{$ENDIF}
                 Result := True;
                 Exit;
               end;
               else begin // #3 ReqUp-PervFly
-                {$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ³åÍ»¼ì²â Î»ÖÃ4-B',[]));{$ENDIF}
+                {$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] å†²çªæ£€æµ‹ ä½ç½®4-B',[]));{$ENDIF}
                 Result := Boolean(TestComment.Left + TestComment.Width > AComment.Left);
                 if Result then Exit;
               end;
             end;
           end;
           else begin
-            {$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ³åÍ»¼ì²â Î»ÖÃ3-B',[]));{$ENDIF}
+            {$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] å†²çªæ£€æµ‹ ä½ç½®3-B',[]));{$ENDIF}
             CurrFlyTime := (AComment.Left + AComment.Width) / AComment.Body.Effect.Speed;
             PervFlyTime := (TestComment.Left + TestComment.Width) / TestComment.Body.Effect.Speed;
             case TestComment.Body.Effect.Display of
@@ -398,15 +398,15 @@ begin
   { Place thread code here }
 
   FRenderBuffer := TCommentUnits.Create();
-  {$IFDEF DEBUG}ReportLog('[»æÖÆ] Íê³É³õÊ¼»¯');{$ENDIF}
+  {$IFDEF DEBUG}ReportLog('[ç»˜åˆ¶] å®Œæˆåˆå§‹åŒ–');{$ENDIF}
   try
     // The thread loop
-    ReportLog('[»æÖÆ] ½øÈëÖ÷Ñ­»·');
+    ReportLog('[ç»˜åˆ¶] è¿›å…¥ä¸»å¾ªç¯');
     while True do begin
       Inc(FCounter);
       SleepThisCycle := False;
       if Self.Terminated then begin // Signalled to be terminated
-        {$IFDEF DEBUG}ReportLog('[»æÖÆ] ÍË³ö #1');{$ENDIF}
+        {$IFDEF DEBUG}ReportLog('[ç»˜åˆ¶] é€€å‡º #1');{$ENDIF}
         Exit;
       end;
 
@@ -414,11 +414,11 @@ begin
       UpdateQueueMutex.Acquire;
       try
         if Self.Terminated then begin // Signalled to be terminated
-          {$IFDEF DEBUG}ReportLog('[»æÖÆ] ÍË³ö #2');{$ENDIF}
+          {$IFDEF DEBUG}ReportLog('[ç»˜åˆ¶] é€€å‡º #2');{$ENDIF}
           Exit;
         end;
         if FUpdateQueue.Count >= FUpdateQueue.Capacity then begin
-          //{$IFDEF DEBUG}ReportLog('[»æÖÆ] ÏÔÊ¾¶ÓÁĞÂú');{$ENDIF}
+          //{$IFDEF DEBUG}ReportLog('[ç»˜åˆ¶] æ˜¾ç¤ºé˜Ÿåˆ—æ»¡');{$ENDIF}
           SleepThisCycle := True;
         end;
       finally
@@ -432,20 +432,20 @@ begin
       LastCycleUnitCount := FRenderBuffer.Count;
       LiveCommentPoolMutex.Acquire;
       try
-        //{$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ÒÑÇëÇóÔËĞĞÊ±µ¯Ä»³Ø',[]));{$ENDIF}
+        //{$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] å·²è¯·æ±‚è¿è¡Œæ—¶å¼¹å¹•æ± ',[]));{$ENDIF}
         if Self.Terminated then begin // Signalled to be terminated
-          {$IFDEF DEBUG}ReportLog('[»æÖÆ] ÍË³ö #3');{$ENDIF}
+          {$IFDEF DEBUG}ReportLog('[ç»˜åˆ¶] é€€å‡º #3');{$ENDIF}
           Exit;
         end;
         LivePoolCount := FRenderList.Count;
       finally
         LiveCommentPoolMutex.Release;
-        //{$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ÒÑÊÍ·ÅÔËĞĞÊ±µ¯Ä»³Ø',[]));{$ENDIF}
+        //{$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] å·²é‡Šæ”¾è¿è¡Œæ—¶å¼¹å¹•æ± ',[]));{$ENDIF}
       end;
       if LivePoolCount > 0 then DoUpdatePool(); // Iteration to local data structure and do update/delete
 
       if Self.Terminated then begin // Signalled to be terminated
-        {$IFDEF DEBUG}ReportLog('[»æÖÆ] ÍË³ö #4');{$ENDIF}
+        {$IFDEF DEBUG}ReportLog('[ç»˜åˆ¶] é€€å‡º #4');{$ENDIF}
         Exit;
       end;
 
@@ -636,7 +636,7 @@ begin
       end;
       ACommentUnit.Left := ALiveComment.Left;
       FRenderBuffer.AddOrSetValue(ALiveComment.Body.ID,ACommentUnit);
-      //{$IFDEF DEBUG}ReportLog(Format('[»æÖÆ] ·ÉĞĞµ¯Ä» %u¸üĞÂµ½%d',[ALiveComment.Body.ID,ACommentUnit.Left]));{$ENDIF}
+      //{$IFDEF DEBUG}ReportLog(Format('[ç»˜åˆ¶] é£è¡Œå¼¹å¹• %uæ›´æ–°åˆ°%d',[ALiveComment.Body.ID,ACommentUnit.Left]));{$ENDIF}
     end
     else begin // Static
       if ALiveComment.Body.Effect.StayTime <= 0 then begin

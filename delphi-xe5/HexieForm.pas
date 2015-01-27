@@ -1,4 +1,4 @@
-unit HexieForm;
+ï»¿unit HexieForm;
 
 interface
 
@@ -42,7 +42,7 @@ begin
     HexieList.Lines.LoadFromFile(APP_DIR+'HexieList.txt');
     HexieBuffer := HexieList.Lines.Text;
   except
-    frmControl.LogEvent('[PCRE] ºÍĞ³ÁĞ±íÎª¿Õ');
+    frmControl.LogEvent('[PCRE] å’Œè°åˆ—è¡¨ä¸ºç©º');
   end;
   HexieMutex.Release;
   //Nofify frmControl that all forms is loaded and can startup Networking
@@ -59,7 +59,7 @@ begin
       HexieMutex.Release;
     end;
   except
-    Application.MessageBox('Êı¾İ±£´æÊ§°Ü¡£','±­¾ßÁË',MB_ICONERROR);
+    Application.MessageBox('æ•°æ®ä¿å­˜å¤±è´¥ã€‚','æ¯å…·äº†',MB_ICONERROR);
   end;
   frmWordList.Hide;
 end;
@@ -93,7 +93,7 @@ begin
       end;
     except
       on E:Exception do begin
-        frmControl.LogEvent('[PCRE] ÕıÔò±í´ïÊ½´íÎó£º'+E.Message);
+        frmControl.LogEvent('[PCRE] æ­£åˆ™è¡¨è¾¾å¼é”™è¯¯ï¼š'+E.Message);
       end;
     end;
   finally
@@ -104,11 +104,11 @@ end;
 procedure TfrmWordList.btnPCRETestClick(Sender: TObject);
 begin
   if Hexied(EditTestSubject.Text) then begin
-    LblTestResult.Caption := '±»ºÓĞ·';
+    LblTestResult.Caption := 'è¢«æ²³èŸ¹';
     LblTestResult.Font.Color := clRed;
   end
   else begin
-    LblTestResult.Caption := 'ºÜºÃºÜºÍĞ³';
+    LblTestResult.Caption := 'å¾ˆå¥½å¾ˆå’Œè°';
     LblTestResult.Font.Color := clGreen;
   end;
 end;

@@ -1,4 +1,4 @@
-unit UpdateThread;
+ï»¿unit UpdateThread;
 
 interface
 
@@ -79,22 +79,22 @@ begin
   ReportLog('[Update] Released Initial Mutex'); }
   // Initial Structures
   with FBlend do begin
-    BlendOp := AC_SRC_OVER;     //°ÑÔ´Í¼Æ¬¸²¸Çµ½Ä¿±êÖ®ÉÏ
+    BlendOp := AC_SRC_OVER;     //æŠŠæºå›¾ç‰‡è¦†ç›–åˆ°ç›®æ ‡ä¹‹ä¸Š
     BlendFlags := 0;
-    AlphaFormat := AC_SRC_ALPHA; //Ã¿¸öÏñËØÓĞ¸÷×ÔµÄalphaÍ¨µÀ
+    AlphaFormat := AC_SRC_ALPHA; //æ¯ä¸ªåƒç´ æœ‰å„è‡ªçš„alphaé€šé“
     SourceConstantAlpha := 255;
   end;
   FormDCPoint := Point(0,0);
   FormOffsetPoint := Point(FRect.Left,FRect.Top);
   WindowSize.cx := FRect.Width;
   WindowSize.cy := FRect.Height;
-  ReportLog('[ÏÔÊ¾] ½øÈëÖ÷Ñ­»·');
+  ReportLog('[æ˜¾ç¤º] è¿›å…¥ä¸»å¾ªç¯');
   // Main Loop
   while True do begin
     if Self.Terminated then begin // Signalled to be terminated
       // Possible clean up
       // Clear Update Queue is done before starting threads
-      {$IFDEF DEBUG}ReportLog('[ÏÔÊ¾] ÍË³ö #1');{$ENDIF}
+      {$IFDEF DEBUG}ReportLog('[æ˜¾ç¤º] é€€å‡º #1');{$ENDIF}
       Exit;
     end;
     UpdateS.Acquire; // Queue is MAYBE not empty

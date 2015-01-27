@@ -1,4 +1,4 @@
-unit UDPHandleThread;
+﻿unit UDPHandleThread;
 
 interface
 
@@ -252,7 +252,7 @@ end;
 procedure TUDPHandleThread.UDPException;
 begin
   Synchronize(procedure begin
-    frmControl.LogEvent(Format('UDP �쳣: %s',[FCurrentException]));
+    frmControl.LogEvent(Format('UDP 异常: %s',[FCurrentException]));
   end);
 end;
 

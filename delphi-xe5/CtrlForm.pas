@@ -1,4 +1,4 @@
-unit CtrlForm;
+ï»¿unit CtrlForm;
 
 interface
 
@@ -19,8 +19,8 @@ const
 
   KEY = 'saf32459090sua0fj23jnroiahfaj23-ir512nmrpaf314';
 
-  L_Console = '¿ØÖÆÌ¨';
-  L_XMLFile = 'ÎÄ¼ş';
+  L_Console = 'æ§åˆ¶å°';
+  L_XMLFile = 'æ–‡ä»¶';
   DET = #9+#9;
   CRLF = #13+#10;
 
@@ -400,9 +400,9 @@ begin
     end;
     SubItems.Add(Format('%s|%.1f|%s|%s',[AComment.Format.FontName,AComment.Format.FontSize,IntToHex(AComment.Format.FontColor,8),IfThen(AComment.Format.FontStyle = 1,'B','R')]));
     case AComment.Effect.Display of
-      Scroll: SubItems.Add('·ÉĞĞ');
-      UpperFixed: SubItems.Add('ÉÏ¹Ì');
-      LowerFixed: SubItems.Add('ÏÂ¹Ì');
+      Scroll: SubItems.Add('é£è¡Œ');
+      UpperFixed: SubItems.Add('ä¸Šå›º');
+      LowerFixed: SubItems.Add('ä¸‹å›º');
     end;
     SubItems.Add(IntToStr(AComment.Effect.RepeatCount));
     SubItems.Add(IntToStr(AComment.Effect.StayTime));
@@ -523,7 +523,7 @@ procedure TfrmControl.CreateCommentWindow;
 var
   hdcTemp,hdcScreen,m_hdcMemory: HDC;
   hBitMap: Winapi.Windows.HBITMAP;
-  blend: BLENDFUNCTION;      //ÕâÖÖ½á¹¹µÄ»ìºÏ¿ØÖÆÍ¨¹ıÖ¸¶¨Ô´ºÍÄ¿±êÎ»Í¼µÄ»ìºÏ¹¦ÄÜ
+  blend: BLENDFUNCTION;      //è¿™ç§ç»“æ„çš„æ··åˆæ§åˆ¶é€šè¿‡æŒ‡å®šæºå’Œç›®æ ‡ä½å›¾çš„æ··åˆåŠŸèƒ½
   ptWinPos,ptSrc: TPoint;
   sizeWindow: SIZE;
 begin
@@ -534,36 +534,36 @@ begin
   CCWinClass.style := CS_DBLCLKS or CS_HREDRAW or CS_VREDRAW; //wndcls.style=CS_DBLCLKS|CS_HREDRAW|CS_VREDRAW;
   CCWinClass.hInstance := hInst; //wndcls.hInstance=hInstance;
   CCWinClass.lpfnWndProc := @DefWindowProc; //wndcls.lpfnWndProc=::DefWindowProc;
-  CCWinClass.cbClsExtra := 0; //ÒÔÏÂÁ½¸öÓòÓÃÓÚÔÚÀà½á¹¹ºÍWindowsÄÚ²¿±£´æµÄ´°¿Ú½á¹¹
-  CCWinClass.cbWndExtra := 0; //ÖĞÔ¤ÁôÒ»Ğ©¶îÍâ¿Õ¼ä.
+  CCWinClass.cbClsExtra := 0; //ä»¥ä¸‹ä¸¤ä¸ªåŸŸç”¨äºåœ¨ç±»ç»“æ„å’ŒWindowså†…éƒ¨ä¿å­˜çš„çª—å£ç»“æ„
+  CCWinClass.cbWndExtra := 0; //ä¸­é¢„ç•™ä¸€äº›é¢å¤–ç©ºé—´.
   CCWinClass.hIcon := 0; // wndcls.hIcon=NULL;
   CCWinClass.hIconsm := 0;
   CCWinClass.hCursor := LoadCursor(0,IDC_Arrow); // wndcls.hCursor=::LoadCursor(NULL,IDC_ARROW);
-  //GetStockObject »ñÈ¡Ò»¸öÍ¼ĞÎ¶ÔÏó,ÔÚÕâÀïÊÇ»ñÈ¡»æÖÆ´°¿Ú±³¾°µÄË¢×Ó,·µ»ØÒ»¸ö°×É«Ë¢  ×ÓµÄ¾ä±ú.
+  //GetStockObject è·å–ä¸€ä¸ªå›¾å½¢å¯¹è±¡,åœ¨è¿™é‡Œæ˜¯è·å–ç»˜åˆ¶çª—å£èƒŒæ™¯çš„åˆ·å­,è¿”å›ä¸€ä¸ªç™½è‰²åˆ·  å­çš„å¥æŸ„.
   CCWinClass.hbrBackground := HBRUSH(COLOR_BTNFACE+1); // wndcls.hbrBackground=(HBRUSH)(COLOR_BTNFACE+1);
   CCWinClass.lpszMenuName := nil; //wndcls.lpszMenuName=NULL;
 
-  //ÏòWindows ×¢²á´°¿ÚÀà.
+  //å‘Windows æ³¨å†Œçª—å£ç±».
   if RegisterClassEx(CCWinClass) = 0 then begin
-    LogEvent('µ¯Ä»´°ÌåÀà×¢²áÊ§°Ü');
+    LogEvent('å¼¹å¹•çª—ä½“ç±»æ³¨å†Œå¤±è´¥');
     Exit;
   end;
 
   CCWnd := CreateWindowEx(
-    WS_EX_TOOLWINDOW or WS_EX_TOPMOST or WS_EX_LAYERED, //À©Õ¹µÄ´°¿Ú·ç¸ñ.
-    CCWinClass.lpszClassName, //ÀàÃû.
-    'Hello Window', //´°¿Ú±êÌâ.
-    WS_POPUP or WS_VISIBLE, //´°¿Ú·ç¸ñ.
-    CCWinPos.Left, //´°¿Ú×óÉÏ½ÇÏà¶ÔÓÚÆÁÄ»×óÉÏ½ÇµÄ³õÊ¼Î»ÖÃx.
-    CCWinPos.Top, //....ÓÒy.
-    CCWinPos.Width, //´°¿Ú¿í¶Èx.
-    CCWinPos.Height, //´°¿Ú¸ß¶Èy.
-    0, //¸¸´°¿Ú¾ä±ú.
-    0, //´°¿Ú²Ëµ¥¾ä±ú.
-    hInst, //³ÌĞòÊµÀı¾ä±ú.
-    nil); //´´½¨²ÎÊıÖ¸Õë.
+    WS_EX_TOOLWINDOW or WS_EX_TOPMOST or WS_EX_LAYERED, //æ‰©å±•çš„çª—å£é£æ ¼.
+    CCWinClass.lpszClassName, //ç±»å.
+    'Hello Window', //çª—å£æ ‡é¢˜.
+    WS_POPUP or WS_VISIBLE, //çª—å£é£æ ¼.
+    CCWinPos.Left, //çª—å£å·¦ä¸Šè§’ç›¸å¯¹äºå±å¹•å·¦ä¸Šè§’çš„åˆå§‹ä½ç½®x.
+    CCWinPos.Top, //....å³y.
+    CCWinPos.Width, //çª—å£å®½åº¦x.
+    CCWinPos.Height, //çª—å£é«˜åº¦y.
+    0, //çˆ¶çª—å£å¥æŸ„.
+    0, //çª—å£èœå•å¥æŸ„.
+    hInst, //ç¨‹åºå®ä¾‹å¥æŸ„.
+    nil); //åˆ›å»ºå‚æ•°æŒ‡é’ˆ.
   if CCWnd = 0 then
-    LogEvent('µ¯Ä»´°Ìå´´½¨Ê§°Ü')
+    LogEvent('å¼¹å¹•çª—ä½“åˆ›å»ºå¤±è´¥')
   else
   begin
     hdcTemp := GetDC(CCWnd);
@@ -571,26 +571,26 @@ begin
     hBitMap := CreateCompatibleBitmap(hdcTemp,CCWinPos.Width,CCWinPos.Height);
     SelectObject(m_hdcMemory,hBitMap);
     with blend do begin
-      BlendOp := AC_SRC_OVER;     //°ÑÔ´Í¼Æ¬¸²¸Çµ½Ä¿±êÖ®ÉÏ
+      BlendOp := AC_SRC_OVER;     //æŠŠæºå›¾ç‰‡è¦†ç›–åˆ°ç›®æ ‡ä¹‹ä¸Š
       BlendFlags := 0;
-      AlphaFormat := AC_SRC_ALPHA;//Ã¿¸öÏñËØÓĞ¸÷×ÔµÄalphaÍ¨µÀ
-      SourceConstantAlpha :=Trunc(100 * 2.55);  //Ô´Í¼Æ¬µÄÍ¸Ã÷¶È
+      AlphaFormat := AC_SRC_ALPHA;//æ¯ä¸ªåƒç´ æœ‰å„è‡ªçš„alphaé€šé“
+      SourceConstantAlpha :=Trunc(100 * 2.55);  //æºå›¾ç‰‡çš„é€æ˜åº¦
     end;
     ptWinPos := Point(0,0);
     sizeWindow.cx := CCWinPos.Width;
     sizeWindow.cy := CCWinPos.Height;
     ptSrc := Point(0,0);
     hdcScreen := GetDC(CCWnd);
-    UpdateLayeredWindow(CCWnd,   //·Ö²ã´°¿ÚµÄ¾ä±ú
-                        hdcScreen,     //ÆÁÄ»µÄDC¾ä±ú
-                        @ptWinPos,     //·Ö²ã´°¿ÚĞÂµÄÆÁÄ»×ø±ê
-                        @sizeWindow,   //·Ö²ã´°¿ÚĞÂµÄ´óĞ¡
-                        m_hdcMemory,   //ÓÃÀ´¶¨Òå·Ö²ã´°¿ÚµÄ±íÃæDC¾ä±ú
-                        @ptSrc,        //·Ö²ã´°¿ÚÔÚÉè±¸ÉÏÏÂÎÄµÄÎ»ÖÃ
-                        0,             //ºÏ³É·Ö²ã´°¿ÚÊ±Ê¹ÓÃÖ¸¶¨ÑÕÉ«¼üÖµ
-                        @blend,        //ÔÚ·Ö²ã´°¿Ú½øĞĞ×éºÏÊ±µÄÍ¸Ã÷¶ÈÖµ
-                        ULW_ALPHA);    //Ê¹ÓÃpblendÎª»ìºÏ¹¦ÄÜ
-    //---------------------¿ªÊ¼£ºÊÍ·ÅºÍÉ¾³ı--------------------------------------
+    UpdateLayeredWindow(CCWnd,   //åˆ†å±‚çª—å£çš„å¥æŸ„
+                        hdcScreen,     //å±å¹•çš„DCå¥æŸ„
+                        @ptWinPos,     //åˆ†å±‚çª—å£æ–°çš„å±å¹•åæ ‡
+                        @sizeWindow,   //åˆ†å±‚çª—å£æ–°çš„å¤§å°
+                        m_hdcMemory,   //ç”¨æ¥å®šä¹‰åˆ†å±‚çª—å£çš„è¡¨é¢DCå¥æŸ„
+                        @ptSrc,        //åˆ†å±‚çª—å£åœ¨è®¾å¤‡ä¸Šä¸‹æ–‡çš„ä½ç½®
+                        0,             //åˆæˆåˆ†å±‚çª—å£æ—¶ä½¿ç”¨æŒ‡å®šé¢œè‰²é”®å€¼
+                        @blend,        //åœ¨åˆ†å±‚çª—å£è¿›è¡Œç»„åˆæ—¶çš„é€æ˜åº¦å€¼
+                        ULW_ALPHA);    //ä½¿ç”¨pblendä¸ºæ··åˆåŠŸèƒ½
+    //---------------------å¼€å§‹ï¼šé‡Šæ”¾å’Œåˆ é™¤--------------------------------------
     ReleaseDC(CCWnd,hdcScreen);
     ReleaseDC(CCWnd,hdcTemp);
     DeleteObject(hBitMap);
@@ -603,7 +603,7 @@ var
   CreateD, CreateR, CreateU: Boolean;
 begin
   if not SysReady then begin
-    LogEvent('Î´¾ÍĞ÷×´Ì¬£¬ÎŞ·¨Æô¶¯Ïß³Ì');
+    LogEvent('æœªå°±ç»ªçŠ¶æ€ï¼Œæ— æ³•å¯åŠ¨çº¿ç¨‹');
     Exit;
   end;
   CreateD := True;
@@ -617,7 +617,7 @@ begin
   end;
   if CreateD then begin
     DThread := TDispatchThread.Create(20000,300,CommentPool,LiveCommentPool);
-    LogEvent('´´½¨µ÷¶ÈÏß³Ì');
+    LogEvent('åˆ›å»ºè°ƒåº¦çº¿ç¨‹');
     DThread.Start;
   end;
   if Assigned(RThread) then begin
@@ -628,7 +628,7 @@ begin
   end;
   if CreateR then begin
     RThread := TRenderThread.Create(CCWnd,CCWinPos.Width,CCWinPos.Height,LiveCommentPool,UpdateQueue);
-    LogEvent('´´½¨»æÖÆÏß³Ì');
+    LogEvent('åˆ›å»ºç»˜åˆ¶çº¿ç¨‹');
     RThread.Start;
   end;
   if Assigned(UThread) then begin
@@ -639,7 +639,7 @@ begin
   end;
   if CreateU then begin
     UThread := TUpdateThread.Create(CCWnd,CCWinPos,UpdateQueue);
-    LogEvent('´´½¨ÏÔÊ¾Ïß³Ì');
+    LogEvent('åˆ›å»ºæ˜¾ç¤ºçº¿ç¨‹');
     UThread.Start;
   end;
 end;
@@ -661,13 +661,13 @@ var
   Shift : TShiftState;
   m_timezone : TIME_ZONE_INFORMATION;
 begin
-  LogEvent('Ö÷´°Ìå¿ªÊ¼¼ÓÔØ');
+  LogEvent('ä¸»çª—ä½“å¼€å§‹åŠ è½½');
   ScreenWidth := GetSystemMetrics(SM_CXSCREEN);
   ScreenHeight := GetSystemMetrics(SM_CYSCREEN);
-  LogEvent(Format('»ñÈ¡ÆÁÄ»´óĞ¡ %u*%u',[ScreenWidth,ScreenHeight]));
+  LogEvent(Format('è·å–å±å¹•å¤§å° %u*%u',[ScreenWidth,ScreenHeight]));
   //Init Interface
   StatusBar.Panels[0].Width := Width - 610;
-  StatusBar.Panels[2].Text := 'ÏÔÊ¾/×Ü¹² 0/0';
+  StatusBar.Panels[2].Text := 'æ˜¾ç¤º/æ€»å…± 0/0';
   {$IFNDEF DEBUG}
   Width := 870;
   Constraints.MaxWidth := 870;
@@ -690,7 +690,7 @@ begin
   //Set Timezone
   GetTimeZoneInformation(m_timezone);
   TimeZoneBias := m_timezone.Bias * 60;
-  LogEvent(Format('»ñÈ¡Ê±ÇøÆ«ÒÆ %d',[TimeZoneBias]));
+  LogEvent(Format('è·å–æ—¶åŒºåç§» %d',[TimeZoneBias]));
   LastHTTPRequest := DateTimeToUnix(Now())+TimeZoneBias;
   //Fetch Font List
   cobNetCFontName.Items.AddStrings(Screen.Fonts);
@@ -698,7 +698,7 @@ begin
   //Load Settings
   APP_DIR := ExtractFilePath(ParamStr(0));
   LoadSetting(); // Call After APP_DIR
-  LogEvent('¶ÁÈ¡ÅäÖÃÎÄ¼ş');
+  LogEvent('è¯»å–é…ç½®æ–‡ä»¶');
   HTTPSharedMutex.Release;
   //Set Path
   SaveDialog.InitialDir := APP_DIR;
@@ -708,9 +708,9 @@ begin
     ShortCutToKey(EditDispatchKey.HotKey,Key,Shift);
     DispatchKey := GlobalAddAtom('RTCCDispatchHotkey');
     RegisterHotKey(handle,DispatchKey,ShiftStateToInt(Shift),Key);
-    LogEvent('×¢²á¿ì½İ¼ü');
+    LogEvent('æ³¨å†Œå¿«æ·é”®');
   except
-    LogEvent('[Òì³£] ¿ì½İ¼üÉèÖÃÊ§°Ü');
+    LogEvent('[å¼‚å¸¸] å¿«æ·é”®è®¾ç½®å¤±è´¥');
   end;
   //Register Tray Icon
   TrayIconData.cbSize := SizeOf(TrayIconData);
@@ -721,7 +721,7 @@ begin
   StrCopy(@TrayIconData.szTip,PChar(Application.Title));
   TrayIconData.uCallbackMessage := NamikoTrayMessage;
   Shell_NotifyIcon(NIM_ADD,@TrayIconData);
-  LogEvent('´´½¨ÍĞÅÌÍ¼±ê');
+  LogEvent('åˆ›å»ºæ‰˜ç›˜å›¾æ ‡');
   //Pools
   CommentPool := TCommentCollection.Create(True);
   CommentPoolMutex.Release;
@@ -730,13 +730,13 @@ begin
   UpdateQueue := TRenderUnitQueue.Create();
   UpdateQueue.Capacity := 256;
   UpdateQueueMutex.Release;
-  LogEvent('´´½¨µ¯Ä»³ØºÍÁÙÊ±¿Õ¼ä');
+  LogEvent('åˆ›å»ºå¼¹å¹•æ± å’Œä¸´æ—¶ç©ºé—´');
   CreateCommentWindow;
   if CCWnd = 0 then begin
-    Application.MessageBox('µ¯Ä»´°Ìå´´½¨Ê§°Ü£¬½«ÎŞ·¨Õı³£¹¤×÷¡£','Æô¶¯Òì³£',MB_ICONERROR);
+    Application.MessageBox('å¼¹å¹•çª—ä½“åˆ›å»ºå¤±è´¥ï¼Œå°†æ— æ³•æ­£å¸¸å·¥ä½œã€‚','å¯åŠ¨å¼‚å¸¸',MB_ICONERROR);
   end
   else begin
-    LogEvent('´´½¨µ¯Ä»´°ÌåÍê³É');
+    LogEvent('åˆ›å»ºå¼¹å¹•çª—ä½“å®Œæˆ');
     SysReady := True;
     // Thread
     StartThreads;
@@ -744,8 +744,8 @@ begin
     SharedConfigurationMutex.Release;
     GraphicSharedMutex.Release;
     //Notify Complete
-    LogEvent('³õÊ¼»¯Íê±Ï');
-    StatusBar.Panels[0].Text := '¿ØÖÆÌ¨³õÊ¼»¯Íê±Ï';
+    LogEvent('åˆå§‹åŒ–å®Œæ¯•');
+    StatusBar.Panels[0].Text := 'æ§åˆ¶å°åˆå§‹åŒ–å®Œæ¯•';
   end;
  end;
 
@@ -776,7 +776,7 @@ procedure TfrmControl.btnCCWorkClick(Sender: TObject);
 begin
   if CCWindowWorking then begin
     CCWindowWorking := false;
-    btnCCWork.Caption := 'Òş²Øµ¯Ä»Ê¾Àı(&W)';
+    btnCCWork.Caption := 'éšè—å¼¹å¹•ç¤ºä¾‹(&W)';
     {with frmComment do begin
       BorderStyle := bsSizeable;
       TransparentColor := False;
@@ -787,7 +787,7 @@ begin
   end
   else begin
     CCWindowWorking := true;
-    btnCCWork.Caption := 'ÏÔÊ¾µ¯Ä»ÑùÀı(&I)';
+    btnCCWork.Caption := 'æ˜¾ç¤ºå¼¹å¹•æ ·ä¾‹(&I)';
     {with frmComment do begin
       BorderStyle := bsNone;
       TransparentColor := True;
@@ -809,11 +809,11 @@ begin
     1,2: if not Freezing then InternalTime := InternalTime + TimerGeneral.Interval / 86400000;
   end;
   if RemoteTime <> 0 then RemoteTime := RemoteTime + TimerGeneral.Interval / 86400000;}
-  StatusBar.Panels[1].Text := Format('µ±Ç°ÏÔÊ¾ %u',[0]);
-  StatusBar.Panels[2].Text := Format('ÒÑÏÔÊ¾/×Ü¹² %u/%u',[0,0]);
-  StatusBar.Panels[3].Text := 'ÄÚ²¿ '+TimeToStr(InternalTime);
-  StatusBar.Panels[4].Text := 'Ô¶³Ì '+Ifthen(Boolean(RemoteTime = 0),'Î´Öª',TimeToStr(RemoteTime));
-  StatusBar.Panels[5].Text := '±¾µØ '+TimeToStr(Time());
+  StatusBar.Panels[1].Text := Format('å½“å‰æ˜¾ç¤º %u',[0]);
+  StatusBar.Panels[2].Text := Format('å·²æ˜¾ç¤º/æ€»å…± %u/%u',[0,0]);
+  StatusBar.Panels[3].Text := 'å†…éƒ¨ '+TimeToStr(InternalTime);
+  StatusBar.Panels[4].Text := 'è¿œç¨‹ '+Ifthen(Boolean(RemoteTime = 0),'æœªçŸ¥',TimeToStr(RemoteTime));
+  StatusBar.Panels[5].Text := 'æœ¬åœ° '+TimeToStr(Time());
 end;
 
 procedure TfrmControl.UpdateCaption;
@@ -867,7 +867,7 @@ end;
 
 procedure TfrmControl.btnAdminClick(Sender: TObject);
 begin
-  if InputBox('¹ÜÀíÄ£Ê½','ÇëÊäÈëÃÜÂë¡¡¡¡','') = 'CT10' then begin
+  if InputBox('ç®¡ç†æ¨¡å¼','è¯·è¾“å…¥å¯†ç ã€€ã€€','') = 'CT10' then begin
     Constraints.MaxWidth := 1180;
     Width := 1180;
     btnAdmin.Visible := False;
@@ -923,7 +923,7 @@ begin
   Content := TrimRight(editOfficialComment.Text);
   if Length(Content) = 0 then Exit;
   {if frmWordList.Hexied(Content) then begin
-    if Application.MessageBox('¼ì²âµ½Ãô¸Ğ´Ê£¬¼ÌĞøÂğ£¿','ºÓĞ·ÒÑ¾­×èÖ¹²»ÁËÄãÁËÃ´',MB_ICONQUESTION + MB_YESNO) = IDNO then begin
+    if Application.MessageBox('æ£€æµ‹åˆ°æ•æ„Ÿè¯ï¼Œç»§ç»­å—ï¼Ÿ','æ²³èŸ¹å·²ç»é˜»æ­¢ä¸äº†ä½ äº†ä¹ˆ',MB_ICONQUESTION + MB_YESNO) = IDNO then begin
       editOfficialComment.Clear;
       editOfficialComment.SetFocus;
       exit;
@@ -991,7 +991,7 @@ begin
         end;
         XMLDoc.SaveToFile(SaveDialog.FileName);
       except
-        LogEvent('ÓĞÒì³£·¢Éú ×ÔĞĞ¼ì²éÊÇ·ñ±£´æ³É¹¦£¨ÍÏ');
+        LogEvent('æœ‰å¼‚å¸¸å‘ç”Ÿ è‡ªè¡Œæ£€æŸ¥æ˜¯å¦ä¿å­˜æˆåŠŸï¼ˆæ‹–');
         DocIntf := nil;
       end;
     finally
@@ -1013,8 +1013,8 @@ var
 begin
   ini := TINIFile.Create(APP_DIR+'Settings.ini');
   // Internet Comment Format
-  cobNetCFontName.ItemIndex := cobNetCFontName.Items.IndexOf(ini.ReadString('NetComment','FontName','Î¢ÈíÑÅºÚ'));
-  NetDefaultFontName := ini.ReadString('NetComment','FontName','Î¢ÈíÑÅºÚ');
+  cobNetCFontName.ItemIndex := cobNetCFontName.Items.IndexOf(ini.ReadString('NetComment','FontName','å¾®è½¯é›…é»‘'));
+  NetDefaultFontName := ini.ReadString('NetComment','FontName','å¾®è½¯é›…é»‘');
   cobNetCFontSize.Text := ini.ReadString('NetComment','FontSize','18');
   NetDefaultFontSize := StrToFloat(cobNetCFontSize.Text);
   cobNetCFontColor.Brush.Color := StringToColor(ini.ReadString('NetComment','FontColor','clWhite'));
@@ -1022,8 +1022,8 @@ begin
   cobNetCFontBold.Checked := ini.ReadBool('NetComment','FontBold',false);
   if cobNetCFontBold.Checked then NetDefaultFontStyle := 1 else NetDefaultFontStyle := 0;
   // Official Comment Format
-  cobOfficialCFontName.ItemIndex := cobOfficialCFontName.Items.IndexOf(ini.ReadString('OfficialComment','FontName','Î¢ÈíÑÅºÚ'));
-  OfficialFontName := ini.ReadString('OfficialComment','FontName','Î¢ÈíÑÅºÚ');
+  cobOfficialCFontName.ItemIndex := cobOfficialCFontName.Items.IndexOf(ini.ReadString('OfficialComment','FontName','å¾®è½¯é›…é»‘'));
+  OfficialFontName := ini.ReadString('OfficialComment','FontName','å¾®è½¯é›…é»‘');
   cobOfficialCFontSize.Text := ini.ReadString('OfficialComment','FontSize','26');
   OfficialFontSize := StrToFloat(cobOfficialCFontSize.Text);
   cobOfficialCFontColor.Brush.Color := StringToColor(ini.ReadString('OfficialComment','FontColor','clBlue'));
@@ -1041,7 +1041,7 @@ begin
   MTitleText := ini.ReadString('Display','TitleText','TEST');
   MTitleTop := ini.ReadInteger('Display','TitleTop',0);
   MTitleLeft := ini.ReadInteger('Display','TitleLeft',ScreenWidth div 2);
-  MTitleFontName := ini.ReadString('Display','TitleFontName','Î¢ÈíÑÅºÚ');
+  MTitleFontName := ini.ReadString('Display','TitleFontName','å¾®è½¯é›…é»‘');
   MTitleFontSize := ini.ReadFloat('Display','TitleFontSize',18.0);
   MTitleFontColor := StringToAlphaColor(ini.ReadString('Display','TitleColor','clTeal'));
   // Network Config
@@ -1062,7 +1062,7 @@ begin
     NetPassword := UncrypKey(ini.ReadString('Connection','Key','BA9FB3809EE62C55BBC2C3CC8AB68EF6'),KEY);
   except
     NetPassword := '233-614-789-998';
-    LogEvent('Í¨ĞÅÃÜÂëÎ´ÉèÖÃ£¡');
+    LogEvent('é€šä¿¡å¯†ç æœªè®¾ç½®ï¼');
   end;
   editNetPassword.Text := NetPassword;
   // Other Parameters
@@ -1174,11 +1174,11 @@ begin
   {$IFDEF PASSWORD_CLOSE}
   if btnAdmin.Visible then begin
     CanClose := false;
-    StatusBar.Panels[0].Text := '¹ØÄãÃÃ';
+    StatusBar.Panels[0].Text := 'å…³ä½ å¦¹';
     exit;
   end;
   {$ENDIF}
-  CanClose := Boolean(Application.MessageBox('È·ÈÏ?','ÍË³ö',MB_ICONQUESTION+MB_YESNO) = IDYES);
+  CanClose := Boolean(Application.MessageBox('ç¡®è®¤?','é€€å‡º',MB_ICONQUESTION+MB_YESNO) = IDYES);
   {$ENDIF}
 end;
 
@@ -1200,7 +1200,7 @@ begin
     DispatchKey := GlobalAddAtom('RTCCDispatchHotkey');
     RegisterHotKey(handle,DispatchKey,ShiftStateToInt(Shift),Key);
   except on E: Exception do
-    LogEvent('[Òì³£] ¿ì½İ¼üÉèÖÃÊ§°Ü: '+E.Message);
+    LogEvent('[å¼‚å¸¸] å¿«æ·é”®è®¾ç½®å¤±è´¥: '+E.Message);
   end;
 end;
 
@@ -1237,7 +1237,7 @@ begin
   Port := StrToIntDef(editNetPort.Text,65536);
   if (Port <= 0) or (Port > 65535) then begin
     editNetPort.Text := '9233';
-    Application.MessageBox('¶Ë¿ÚºÅ·¶Î§£º1-65535¡£','´íÎó',MB_ICONEXCLAMATION);
+    Application.MessageBox('ç«¯å£å·èŒƒå›´ï¼š1-65535ã€‚','é”™è¯¯',MB_ICONEXCLAMATION);
   end;
 end;
 
@@ -1279,7 +1279,7 @@ begin
       radioNetPasv.Enabled := True;
       radioNetPort.Enabled := True;
       Transmit := False;
-      LogEvent('TCP×ª·¢·şÎñÒÑ¹Ø±Õ');
+      LogEvent('TCPè½¬å‘æœåŠ¡å·²å…³é—­');
     end
     else if IdUDPServerCCRecv.Active then begin
       IdUDPServerCCRecv.Active := False;
@@ -1289,7 +1289,7 @@ begin
       radioNetPasv.Enabled := True;
       //radioNetTransmit.Enabled := True;
       editNetPassword.Enabled := True;
-      LogEvent('UDP¼àÌı¹Ø±Õ£¬Í£Ö¹½ÓÊÕÍøÂçµ¯Ä»');
+      LogEvent('UDPç›‘å¬å…³é—­ï¼Œåœæ­¢æ¥æ”¶ç½‘ç»œå¼¹å¹•');
     end
     else begin
       if Assigned(HThread) then HThread.Terminate;
@@ -1298,11 +1298,11 @@ begin
       editNetPassword.Enabled := True;
       editNetHost.Enabled := True;
       CheckboxHTTPLog.Enabled := True;
-      LogEvent('ÕıÔÚ¹Ø±ÕHTTP×¥È¡£¬Í£Ö¹½ÓÊÕÍøÂçµ¯Ä»');
+      LogEvent('æ­£åœ¨å…³é—­HTTPæŠ“å–ï¼Œåœæ­¢æ¥æ”¶ç½‘ç»œå¼¹å¹•');
       RemoteTime := 0;
     end;
     Networking := False;
-    btnNetStart.Caption := '¿ªÊ¼Í¨ĞÅ(&M)';
+    btnNetStart.Caption := 'å¼€å§‹é€šä¿¡(&M)';
   end
   else begin
     if radioNetPasv.Checked then begin
@@ -1326,14 +1326,14 @@ begin
         IdUDPServerCCRecv.ThreadedEvent := True;
         IdUDPServerCCRecv.Active := True;
         Networking := True;
-        btnNetStart.Caption := 'Í£Ö¹Í¨ĞÅ(&M)';
+        btnNetStart.Caption := 'åœæ­¢é€šä¿¡(&M)';
         radioNetPort.Enabled := False;
         radioNetTransmit.Enabled := False;
         editNetPort.Enabled := False;
         editNetPassword.Enabled := False;
-        LogEvent('UDP¼àÌıÆô¶¯ÓÚ¶Ë¿Ú ' + editNetPort.Text);
+        LogEvent('UDPç›‘å¬å¯åŠ¨äºç«¯å£ ' + editNetPort.Text);
       except
-        LogEvent('UDP·şÎñÆ÷³õÊ¼»¯Ê§°Ü£¬¼ì²é·À»ğÇ½»ò¶Ë¿Ú³åÍ»¡£');
+        LogEvent('UDPæœåŠ¡å™¨åˆå§‹åŒ–å¤±è´¥ï¼Œæ£€æŸ¥é˜²ç«å¢™æˆ–ç«¯å£å†²çªã€‚');
       end;
     end
     else if radioNetPort.Checked then begin
@@ -1341,17 +1341,17 @@ begin
         if HThread.Finished then
           HThread.Free
         else begin
-          LogEvent('HTTPÏß³ÌÉĞÎ´ÍË³ö£¬ÎŞ·¨Æô¶¯¡£');
+          LogEvent('HTTPçº¿ç¨‹å°šæœªé€€å‡ºï¼Œæ— æ³•å¯åŠ¨ã€‚');
           Exit;
         end;
       end;
-      LogEvent('´´½¨²¢Æô¶¯HTTPÏß³Ì');
+      LogEvent('åˆ›å»ºå¹¶å¯åŠ¨HTTPçº¿ç¨‹');
       HThread := THTTPWorkerThread.Create(editNetHost.Text,
         NetPassword,TimeZoneBias,
         IfThen(CheckboxHTTPLog.Checked,APP_DIR+'HTTP.log','')); // Auto Start!
     end
     else begin
-      LogEvent('Ôİ²»Ö§³Ö¡£');
+      LogEvent('æš‚ä¸æ”¯æŒã€‚');
     end;
   end;
 end;
@@ -1375,21 +1375,21 @@ begin
       i := Pos('=',Response);
       RemoteTime := Frac(UnixToDateTime(StrToInt(Copy(Response,i+1,Length(Response) - i)) - TimeZoneBias));
       RemoteTimeOffset := RemoteTime - Time();
-      LogEvent('²âÊÔÍê³É ·şÎñÆ÷Ê±¼ä '+TimeToStr(RemoteTime));
+      LogEvent('æµ‹è¯•å®Œæˆ æœåŠ¡å™¨æ—¶é—´ '+TimeToStr(RemoteTime));
       TimerFetch.Enabled := true;
       Networking := true;
-      btnNetStart.Caption := 'Í£Ö¹Í¨ĞÅ(&M)';
+      btnNetStart.Caption := 'åœæ­¢é€šä¿¡(&M)';
       editNetHost.Enabled := false;
       radioNetPasv.Enabled := false;
       radioNetTransmit.Enabled := false;
     end
     else begin
-      LogEvent('Î´Ê¶±ğµÄ·şÎñÆ÷Êı¾İ£¬²âÊÔÊ§°Ü¡£');
+      LogEvent('æœªè¯†åˆ«çš„æœåŠ¡å™¨æ•°æ®ï¼Œæµ‹è¯•å¤±è´¥ã€‚');
     end;
   except
     HTTPClient.IOHandler.Close;
     if HTTPClient.Connected then HTTPClient.Disconnect;
-    LogEvent('Á¬½Ó»ò¶ÁÈ¡³¬Ê±£¬²âÊÔÊ§°Ü¡£');
+    LogEvent('è¿æ¥æˆ–è¯»å–è¶…æ—¶ï¼Œæµ‹è¯•å¤±è´¥ã€‚');
   end;
 end;}
 
@@ -1444,10 +1444,10 @@ begin
       InternalTImeOffset := 0;
     end;
     1 : begin
-      if RemoteTime <> 0 then InternalTimeOffset := RemoteTimeOffset else Application.MessageBox('Ô¶³ÌÊ±¼äÎ´Öª','ERROR',MB_ICONEXCLAMATION);
+      if RemoteTime <> 0 then InternalTimeOffset := RemoteTimeOffset else Application.MessageBox('è¿œç¨‹æ—¶é—´æœªçŸ¥','ERROR',MB_ICONEXCLAMATION);
     end;
     2 : begin
-      InternalTimeOffset := StrToTimeDef(InputBox('¸ü¸ÄÊ±¼äÖá','½«ÄÚ²¿Ê±¼äĞŞ¸ÄÎª£º   ',TimeToStr(Time())),Time())-Time();
+      InternalTimeOffset := StrToTimeDef(InputBox('æ›´æ”¹æ—¶é—´è½´','å°†å†…éƒ¨æ—¶é—´ä¿®æ”¹ä¸ºï¼š   ',TimeToStr(Time())),Time())-Time();
     end;
   end;
 end;
@@ -1494,7 +1494,7 @@ var
   CommentID: Integer;
 begin
   if (Key = VK_Delete) and (ListComments.SelCount > 0) then begin
-    ListComments.Selected.SubItems.Strings[T_TEXT] := '(ÒÑÉ¾³ı)';
+    ListComments.Selected.SubItems.Strings[T_TEXT] := '(å·²åˆ é™¤)';
     ListComments.Selected.Caption := 'R';
     CommentID := StrToInt(ListComments.Selected.SubItems.Strings[T_ID]);
     CommentPoolMutex.Acquire;
