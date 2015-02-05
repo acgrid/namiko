@@ -51,7 +51,7 @@ const
   DEFAULT_NETCOMMENT_DURATION = 5000;
   DEFAULT_NETCOMMENT_MAXDURATION = 8000;
 
-  DEFAULT_UPDATE_INTERVAL = 20;
+  DEFAULT_UPDATE_INTERVAL = 20; // less than 50fps
   DEFAULT_MAX_SCROLL_SPEED = 100;
 
   DEFAULT_BORDER_WIDTH = 2;
@@ -291,7 +291,6 @@ type
     message NamikoTrayMessage;
     procedure WMHotKey(var Msg : TWMHotKey); message WM_HOTKEY;
 
-    function GetCommentCount(): Integer;
     procedure CreateCommentWindow();
     procedure StartThreads();
     procedure TerminateThreads();
@@ -401,8 +400,8 @@ begin
     SubItems.Add(Format('%s|%.1f|%s|%s',[AComment.Format.FontName,AComment.Format.FontSize,IntToHex(AComment.Format.FontColor,8),IfThen(AComment.Format.FontStyle = 1,'B','R')]));
     case AComment.Effect.Display of
       Scroll: SubItems.Add('飞行');
-      UpperFixed: SubItems.Add('上固');
-      LowerFixed: SubItems.Add('下固');
+      UpperFixed: SubItems.Add('顶部');
+      LowerFixed: SubItems.Add('底部');
     end;
     SubItems.Add(IntToStr(AComment.Effect.RepeatCount));
     SubItems.Add(IntToStr(AComment.Effect.StayTime));
@@ -497,7 +496,7 @@ procedure TfrmControl.AppendLocalComment(LTime: TTime; RTime: TTime; AContent: s
 var
   ThisComment: TComment;
 begin
-
+  // TODO
   AppendComment(ThisComment);
 end;
 
@@ -574,7 +573,7 @@ begin
       BlendOp := AC_SRC_OVER;     //把源图片覆盖到目标之上
       BlendFlags := 0;
       AlphaFormat := AC_SRC_ALPHA;//每个像素有各自的alpha通道
-      SourceConstantAlpha :=Trunc(100 * 2.55);  //源图片的透明度
+      SourceConstantAlpha := Trunc(100 * 2.55);  //源图片的透明度
     end;
     ptWinPos := Point(0,0);
     sizeWindow.cx := CCWinPos.Width;
@@ -1421,11 +1420,6 @@ end;
 procedure TfrmControl.cobOfficialCFontBoldClick(Sender: TObject);
 begin
   OfficialFontStyle := IfThen(cobOfficialCFontBold.Checked,1,0);
-end;
-
-function TfrmControl.GetCommentCount(): Integer;
-begin
-  result := ListComments.Items.Count + ClearedItemCount;
 end;
 
 procedure TfrmControl.grpSpecialEffectsClick(Sender: TObject);

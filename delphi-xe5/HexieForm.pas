@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, PerlRegEx, ThreadTimer;
+  Dialogs, StdCtrls, PerlRegEx;
 
 type
   TfrmWordList = class(TForm)
@@ -23,7 +23,7 @@ type
     Hexier: TPerlRegEx;
   public
     { Public declarations }
-    function Hexied(Content: WideString): Boolean;
+    function Hexied(Content: string): Boolean;
   end;
 
 var
@@ -75,7 +75,7 @@ begin
   btnDone.Left := (Self.Width - btnDone.Width) div 2;
 end;
 
-function TfrmWordList.Hexied(Content: WideString): Boolean;
+function TfrmWordList.Hexied(Content: string): Boolean;
 var
   i : Integer;
 begin

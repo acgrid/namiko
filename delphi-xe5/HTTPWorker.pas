@@ -4,7 +4,7 @@ interface
 
 uses
   System.Classes, System.SysUtils, System.SyncObjs, System.DateUtils,
-  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, Data.DBXJSON, PerlRegEx;
+  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, System.JSON, PerlRegEx;
 
 type
   THTTPWorkerThread = class(TThread)
@@ -33,11 +33,11 @@ uses
 
 const
   HTTP_RETRY_DELAY = 1000;
-{ 
+{
   Important: Methods and properties of objects in visual components can only be
   used in a method called using Synchronize, for example,
 
-      Synchronize(UpdateCaption);  
+      Synchronize(UpdateCaption);
 
   and UpdateCaption could look like,
 

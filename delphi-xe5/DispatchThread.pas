@@ -80,6 +80,7 @@ var
 begin
   {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('[调度] 调度 %u - %u 弹幕池共有%u',[From,Till,FMainPool.Count]));{$ENDIF}
   TimeNow := Now();
+  AComment := nil;
   with FMainPool do begin
     for i := From to Till do begin
       CommentPoolMutex.Acquire;
@@ -88,7 +89,7 @@ begin
       finally
         CommentPoolMutex.Release;
       end;
-      if (AComment.Status = Created) or (AComment.Status = Pending) then begin
+      if Assigned(AComment) and ((AComment.Status = Created) or (AComment.Status = Pending)) then begin
         // Subject to be dispatched
         {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('[调度] 调度 %u 创建或待定状态',[i]));{$ENDIF}
         if TimeNow > AComment.Time then begin
@@ -167,7 +168,7 @@ var
 begin
   {$IFDEF DEBUG}NameThreadForDebugging('Dispatch');{$ENDIF}
   { Place thread code here }
-
+  NewFrontier := 0;
   while True do begin
     if Terminated then begin
       {$IFDEF DEBUG}ReportLog('[调度] 退出 #1');{$ENDIF}

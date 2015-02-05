@@ -18,7 +18,7 @@ begin
   SetWindowLong(Application.Handle,GWL_EXSTYLE,WS_EX_TOOLWINDOW);
   {$IFDEF DEBUG}ReportMemoryLeaksOnShutdown := DebugHook<>0;{$ENDIF}
   Application.Initialize;
-  Application.Title := 'NamikoÊµÊ±µ¯Ä»';
+  Application.Title := 'Namiko Danmaku Client';
   Application.CreateForm(TfrmControl, frmControl);
   Application.CreateForm(TFormDimSet, FormDimSet);
   Application.CreateForm(TfrmWordList, frmWordList);

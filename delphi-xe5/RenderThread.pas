@@ -211,6 +211,7 @@ var
   TheComment: TLiveComment;
   I, PoolCount: Integer;
 begin
+  TheComment := nil;
   LiveCommentPoolMutex.Acquire;
   try
     PoolCount := FRenderList.Count;
@@ -356,7 +357,7 @@ begin
               end;
               else begin // #1 Fly-Fly
                 //if LeftStr(AComment.Body.Content,1) = '@' then Exit;
-                Result := true;
+                Result := True;
                 if TestComment.Left + TestComment.Width < FWidth then begin
                   CheckTime := Min(CurrFlyTime,PervFlyTime);
                   if TestComment.Left + TestComment.Width - TestComment.Body.Effect.Speed * CheckTime <= AComment.Left - AComment.Body.Effect.Speed * CheckTime then Result := False;

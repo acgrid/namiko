@@ -4,7 +4,7 @@ interface
 
 uses
   System.SysUtils, System.DateUtils, System.UIConsts,
-  IdUDPServer, IdGlobal, Data.DBXJSON;
+  IdUDPServer, IdGlobal, System.JSON;
 
 type
   TUDPHandleThread = class(TIdUDPListenerThread)
