@@ -3,7 +3,7 @@
 interface
 
 uses
-  System.Classes, System.SysUtils, System.SyncObjs, System.DateUtils,
+  System.Classes, System.SysUtils, System.SyncObjs, System.DateUtils, System.Diagnostics,
   IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, System.JSON, PerlRegEx,
   NamikoTypes, LogForm, CfgForm;
 
@@ -22,12 +22,22 @@ type
     FPoolCount: Cardinal;
     Hexie: TStringList;
     FHexie: TPerlRegEx;
+    FStopwatch: TStopwatch;
+
+    FReqCount, FReqConnTCCount, FReqReadTCCount, FReqClosedCount, FReqErrCount, FReqTotalMS, FReqLastMS: Int64;
     procedure Execute; override;
     procedure ReportLog(Info: string; Level: TLogType = logInfo);
     procedure ReadLines(var AResponse: string; var NextID: Int64);
     procedure ReadSharedConfiguration();
   public
     property HexieList: TStringList read Hexie;
+    property ReqCount: Int64 read FReqCount;
+    property ReqConnTCCount: Int64 read FReqConnTCCount;
+    property ReqReadTCCount: Int64 read FReqReadTCCount;
+    property ReqClosedCount: Int64 read FReqClosedCount;
+    property ReqErrCount: Int64 read FReqErrCount;
+    property ReqTotalMS: Int64 read FReqTotalMS;
+    property ReqLastMS: Int64 read FReqLastMS;
   end;
 
 implementation
@@ -90,7 +100,16 @@ begin
     HexieMutex.Release;
   end;
   FHexie := TPerlRegEx.Create();
+  FStopwatch := TStopwatch.Create();
+  FReqCount := 0;
+  FReqConnTCCount := 0;
+  FReqReadTCCount := 0;
+  FReqClosedCount := 0;
+  FReqErrCount := 0;
+  FReqTotalMS := 0;
+  FReqLastMS := 0;
   inherited Create(False); // Start upon created;
+  Priority := tpHigher;
 end;
 
 destructor THTTPWorkerThread.Destroy;
@@ -99,12 +118,13 @@ begin
   FreeAndNil(Logger);
   FreeAndNil(Hexie);
   FreeAndNil(FHexie);
+  FreeAndNil(FStopwatch);
   inherited Destroy();
 end;
 
 procedure THTTPWorkerThread.Execute;
 var
-  RequestID: Int64;
+  RequestID, ElaspedMS: Int64;
   RemoteTimeOffset: Integer;
   Response: string;
   LJSONObject: TJSONObject;
@@ -189,36 +209,53 @@ begin
       end;
       // Reload Configuration
       ReadSharedConfiguration();
+      Inc(FReqCount);
+      FStopwatch.Start;
       try
-        Response := Worker.Get(Format('%s?action=fetch&key=%s&fromID=%u&totalc=%u',[FURL,FKey,RequestID,FPoolCount]));
-        if (Worker.ResponseCode = 200) and (Length(Response) > 0) then begin
-          try
-            ReadLines(Response, RequestID);
-          except
-            on E: Exception do ReportLog(Format('循环JSON异常：[%s] %s',[E.ClassName,E.Message]));
+        try
+          Response := Worker.Get(Format('%s?action=fetch&key=%s&fromID=%u&totalc=%u',[FURL,FKey,RequestID,FPoolCount]));
+          FStopwatch.Stop;
+          ElaspedMS := FStopwatch.ElapsedMilliseconds;
+          FReqLastMS := ElaspedMS;
+          FReqTotalMS := FReqTotalMS + ElaspedMS;
+          if Assigned(Worker) and (Worker.ResponseCode = 200) and (Length(Response) > 0) then begin
+            try
+              ReadLines(Response, RequestID);
+            except
+              on E: Exception do ReportLog(Format('循环JSON异常：[%s] %s',[E.ClassName,E.Message]));
+            end;
+          end
+          else begin
+            ReportLog(Format('循环错误：HTTP返回值%u 返回长度 %u',[Worker.ResponseCode,Length(Response)]));
+            Sleep(FRetryDelay);
+            Continue;
           end;
-        end
-        else begin
-          ReportLog(Format('循环错误：HTTP返回值%u 返回长度 %u',[Worker.ResponseCode,Length(Response)]));
-          Sleep(FRetryDelay);
-          Continue;
+        except
+          on EIdConnectTimeout do begin
+            Inc(FReqConnTCCount);
+            Sleep(FRetryDelay);
+            Continue;
+          end;
+          on EIdReadTimeout do begin
+            Inc(FReqReadTCCount);
+            Sleep(FRetryDelay);
+            Continue;
+          end;
+          on EIdClosedSocket do begin
+            Inc(FReqClosedCount);
+            Sleep(FRetryDelay);
+            Continue;
+          end;
+          on E: Exception do begin
+            ReportLog(Format('其他异常：[%s] %s',[E.ClassName,E.Message]));
+            Inc(FReqErrCount);
+            Sleep(FRetryDelay);
+            Continue;
+          end;
         end;
-      except
-        on EIdConnectTimeout do begin
-          ReportLog('连接超时');
-          Sleep(FRetryDelay);
-          Continue;
-        end;
-        on EIdReadTimeout do begin
-          ReportLog('接收超时');
-          Sleep(FRetryDelay);
-          Continue;
-        end;
-        on E: Exception do begin
-          ReportLog(Format('循环异常：[%s] %s',[E.ClassName,E.Message]));
-          Sleep(FRetryDelay);
-          Continue;
-        end;
+      finally
+        FStopwatch.Stop;
+        FStopwatch.Reset;
       end;
     end;
   except

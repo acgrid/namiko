@@ -301,7 +301,7 @@ begin
   MyConfig.Add(TIntegerConfiguration.Create('HTTP','RecvTimeout','HTTP接收超时(ms)',3000,500,10000,100));
   MyConfig.Add(TIntegerConfiguration.Create('HTTP','RetryDelay','HTTP超时重试间隔(ms)',5000,500,60000,100));
   MyConfig.Add(TIntegerConfiguration.Create('Pool','DispatchSince','允许调度已过期弹幕秒数(s)',5,0,600,1));
-  MyConfig.Add(TIntegerConfiguration.Create('Pool','NetDelay','网络弹幕延迟显示秒数(s)',3,0,30,1));
+  MyConfig.Add(TIntegerConfiguration.Create('Pool','NetDelay','网络弹幕延迟显示时间(ms)',4000,0,10000,1000));
   MyConfig.Add(TIntegerConfiguration.Create('Display','WorkWindowLeft','弹幕窗口顶点X坐标',0,0,99999,10));
   MyConfig.Add(TIntegerConfiguration.Create('Display','WorkWindowTop','弹幕窗口顶点Y坐标',0,0,99999,10));
   MyConfig.Add(TIntegerConfiguration.Create('Display','WorkWindowWidth','弹幕窗口宽度',1024,50,99999,10));

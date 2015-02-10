@@ -98,7 +98,7 @@ begin
         if TimeNow > AComment.Time then begin
           // TOO OLD
           if TimeNow - AComment.Time > MDiscardBefore / 86400000 then begin
-            {$IFDEF DEBUG}ReportLog(Format('调度 %u 超时删除',[i]));{$ENDIF}
+            ReportLog(Format('调度 %u 超时删除',[i]));
             CommentPoolMutex.Acquire;
             try
               AComment.Status := Removed;
@@ -109,20 +109,20 @@ begin
             Continue;
           end
           else begin
-            {$IFDEF DEBUG}ReportLog(Format('迟调度 %u ',[i]));{$ENDIF}
+            {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('迟调度 %u ',[i]));{$ENDIF}
             DoDispatch(AComment);
             Continue;
           end;
         end
         else begin // FUTURE TIME
           if AComment.Time - TimeNow < MAcceptAfter / 86400000 then begin
-            {$IFDEF DEBUG}ReportLog(Format('早调度 %u ',[i]));{$ENDIF}
+            {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('早调度 %u ',[i]));{$ENDIF}
             DoDispatch(AComment);
             Continue;
           end;
         end;
         if AComment.Status = Created then begin
-          {$IFDEF DEBUG}ReportLog(Format('过早调度 %u ',[i]));{$ENDIF}
+          {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('过早调度 %u ',[i]));{$ENDIF}
           CommentPoolMutex.Acquire;
           try
             AComment.Status := Pending;

@@ -77,6 +77,7 @@ begin
     FMaxInterval := IntegerItems['Display.MaxInterval'];
   end;
   FCriticalInterval := 1000 div FRefFPS;
+  ReportLog(Format('帧间隔 %u ms',[FCriticalInterval]));
   FStopwatch := TStopwatch.Create;
   if FStopwatch.IsHighResolution then ReportLog(Format('支持高精度计时，精度：%u',[FStopwatch.Frequency]));
   FSCount := 0;
@@ -85,6 +86,7 @@ begin
   FWOverMin := 0;
   FWOverMax := 0;
   inherited Create(True);
+  Priority := tpTimeCritical;
 end;
 
 destructor TUpdateThread.Destroy;
@@ -130,10 +132,10 @@ begin
       {$IFDEF DEBUG}ReportLog('退出 #1');{$ENDIF}
       Exit;
     end;
-    Inc(FSCount);
     FStopwatch.Stop;
     UpdateS.Acquire; // Queue is MAYBE not empty
     FStopwatch.Start;
+    Inc(FSCount);
     CurrentRenderUnit.hDC := 0; // Default value to marked as unsuccessful
     UpdateQueueMutex.Acquire;
     if FQueue.Count > 0 then CurrentRenderUnit := FQueue.Dequeue; // Confirm REALLY there is anything

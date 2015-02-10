@@ -8,12 +8,12 @@ object frmControl: TfrmControl
     'Namiko Danmaku Client [Unicode GDI+ UDP/HTTP PCRE Multi-threaded' +
     ']'
   ClientHeight = 517
-  ClientWidth = 1053
+  ClientWidth = 1054
   Color = clBtnFace
   Constraints.MaxHeight = 555
-  Constraints.MaxWidth = 1180
+  Constraints.MaxWidth = 1070
   Constraints.MinHeight = 530
-  Constraints.MinWidth = 870
+  Constraints.MinWidth = 1070
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
   Font.Height = -12
@@ -160,19 +160,6 @@ object frmControl: TfrmControl
       Text = '3000'
       OnChange = editStdShowTimeChange
     end
-    object EditStdShowTimeUpDown: TUpDown
-      Left = 120
-      Top = 48
-      Width = 17
-      Height = 25
-      Associate = editStdShowTime
-      Min = 1000
-      Max = 8000
-      Increment = 200
-      Position = 3000
-      TabOrder = 4
-      Thousands = False
-    end
     object EdtNetDelay: TLabeledEdit
       Left = 226
       Top = 48
@@ -183,7 +170,7 @@ object frmControl: TfrmControl
       EditLabel.Caption = #24378#21046#24310#26102'(ms)'
       LabelPosition = lpLeft
       NumbersOnly = True
-      TabOrder = 5
+      TabOrder = 4
       Text = '2000'
       OnChange = EdtNetDelayChange
     end
@@ -324,19 +311,7 @@ object frmControl: TfrmControl
       NumbersOnly = True
       TabOrder = 2
       Text = '3000'
-    end
-    object editOfficialCommentDurationUpDown: TUpDown
-      Left = 97
-      Top = 51
-      Width = 17
-      Height = 25
-      Associate = editOfficialCommentDuration
-      Min = 1000
-      Max = 10000
-      Increment = 100
-      Position = 3000
-      TabOrder = 10
-      Thousands = False
+      OnChange = editOfficialCommentDurationChange
     end
     object btnSetFixedLabel: TButton
       Left = 170
@@ -366,7 +341,7 @@ object frmControl: TfrmControl
   object Statusbar: TStatusBar
     Left = 0
     Top = 498
-    Width = 1053
+    Width = 1054
     Height = 19
     Panels = <
       item
@@ -387,6 +362,7 @@ object frmControl: TfrmControl
       item
         Width = 100
       end>
+    ExplicitWidth = 1053
   end
   object ListComments: TListView
     Left = 292

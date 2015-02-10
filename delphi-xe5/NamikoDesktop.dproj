@@ -3,7 +3,7 @@
         <ProjectGuid>{1157FCEE-3C78-4D35-A311-EA9AA8372B9E}</ProjectGuid>
         <MainSource>NamikoDesktop.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Application</AppType>
         <FrameworkType>VCL</FrameworkType>

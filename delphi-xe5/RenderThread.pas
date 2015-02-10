@@ -5,6 +5,7 @@ interface
 uses
   System.Classes, System.Types, System.SysUtils, System.UITypes, System.UIConsts,
   IGDIPlusEmbedded, Winapi.Windows, SyncObjs, System.Generics.Collections,
+  System.Diagnostics,
   Math, LogForm, NamikoTypes;
 
 type
@@ -42,7 +43,8 @@ type
     destructor Destroy(); override;
   protected
     // Cycle Counter
-    FCounter: Int64;
+    FCounter, FRenderMS, FOverheadMS: Int64;
+    FStopwatch: TStopwatch;
     // GUI Variables
     FMainHandle: HWND;
     FWidth: Integer;
@@ -75,6 +77,10 @@ type
     procedure RequestChannel(var AComment: TLiveComment);
     procedure Update(ALiveComment: TLiveComment);
     procedure NotifyStatusChanged(CommentID: Integer);
+  public
+    property FramesCount: Int64 read FCounter;
+    property RenderMS: Int64 read FRenderMS;
+    property OverheadMS: Int64 read FOverheadMS;
   end;
 
 implementation
@@ -117,6 +123,9 @@ uses
 
 constructor TRenderThread.Create(Handle: HWND; Width: Integer; Height: Integer; var RenderList: TLiveCommentCollection; var UpdateQueue: TRenderUnitQueue);
 begin
+  FCounter := 0;
+  FRenderMS := 0;
+  FStopwatch := TStopwatch.Create;
   FMainHandle := Handle;
   FWidth := Width;
   FHeight := Height;
@@ -145,6 +154,7 @@ begin
   MTitleFontColor := frmControl.MTitleFontColor;
   MDoUpdate := True;
   inherited Create(True);
+  Priority := tpLowest;
 end;
 
 destructor TRenderThread.Destroy;
@@ -153,6 +163,7 @@ var
   SP: GpBrush;
 begin
   inherited Destroy();
+  FreeAndNil(FStopwatch);
   GdipDeleteGraphics(FPGraphic);
   GdipDeleteStringFormat(FPSTRINGFORMAT);
   GdipDeletePen(FPPen);
@@ -180,7 +191,7 @@ begin
       Height := AHeight;
       case Body.Effect.Display of
         Scroll: begin
-          Left := FWidth{$IFDEF DEBUG} - AWidth{$ENDIF}; // For inspect
+          Left := FWidth - 1; // For inspect
           Speed := (AWidth + FWidth) div (Body.Effect.StayTime div FRefInterval);
           if Speed > FMaxMovement then begin
             Body.Effect.Speed := FMaxMovement;
@@ -411,13 +422,12 @@ begin
     // The thread loop
     ReportLog('进入主循环');
     while True do begin
-      Inc(FCounter);
+      FStopwatch.Start;
       SleepThisCycle := False;
       if Self.Terminated then begin // Signalled to be terminated
         {$IFDEF DEBUG}ReportLog('退出 #1');{$ENDIF}
         Exit;
       end;
-
       // Check for multi-threaded destinataion pool is full?
       UpdateQueueMutex.Acquire;
       try
@@ -452,6 +462,10 @@ begin
       end;
       if LivePoolCount > 0 then DoUpdatePool(); // Iteration to local data structure and do update/delete
 
+      FStopwatch.Stop;
+      FOverheadMS := FStopwatch.ElapsedMilliseconds;
+      FStopwatch.Reset;
+
       if Self.Terminated then begin // Signalled to be terminated
         {$IFDEF DEBUG}ReportLog('退出 #4');{$ENDIF}
         Exit;
@@ -459,6 +473,8 @@ begin
 
       if (FRenderBuffer.Count > 0) or (LastCycleUnitCount > 0) or MDoUpdate then begin
         MDoUpdate := False;
+        Inc(FCounter);
+        FStopwatch.Start;
         // New hDC Interface and associated handle
         MainDC := GetDC(FMainHandle);
         if MainDC = 0 then raise Exception.Create('Cannot obtain HDC from HWND.');
@@ -473,6 +489,9 @@ begin
         ThisRenderUnit.hBitmap := CurrentBitmap;
         // Do Draw
         DoDrawHDC(ThisRenderUnit);
+        FStopwatch.Stop;
+        FRenderMS := FRenderMS + FStopwatch.ElapsedMilliseconds;
+        FStopwatch.Reset;
         // Enqueuing protected by mutex
         UpdateQueueMutex.Acquire;
         try
@@ -485,7 +504,7 @@ begin
       end
       else begin
         // Nothing to do. Idle for a while
-        Sleep(100);
+        Sleep(1);
         Continue;
       end;
     end;
@@ -502,7 +521,7 @@ var
 begin
   GdipCreateFromHDC(ARenderUnit.hDC,PGraphic);
   GdipSetSmoothingMode(PGraphic,SmoothingModeAntiAlias);
-  GdipSetInterpolationMode(PGraphic,InterpolationModeHighQualityBicubic);
+  //GdipSetInterpolationMode(PGraphic,InterpolationModeHighQualityBicubic);
   GdipResetPath(FPPath);
   for ACommentUnit in FRenderBuffer.Values do begin
     if ACommentUnit.Length = 0 then Continue;
@@ -512,7 +531,7 @@ begin
     StrRect.Height := 0;
     GdipAddPathStringI(FPPath, ACommentUnit.PString, ACommentUnit.Length,
       ACommentUnit.PFontFamily, ACommentUnit.FontStyle, ACommentUnit.FontSize, @StrRect, FPStringFormat);
-    GdipDrawPath(PGraphic, FPPen, FPPath);
+    //GdipDrawPath(PGraphic, FPPen, FPPath);
     GdipFillPath(PGraphic, GetSolidBrush(ACommentUnit.FillColor), FPPath);
     GdipResetPath(FPPath);
   end;
@@ -531,7 +550,7 @@ begin
   finally
     GraphicSharedMutex.Release;
   end;
-  {$IFDEF DEBUG}GdipDrawLine(PGraphic, FPPen, 0,0,FWidth,FHeight);{$ENDIF}
+  {$IFDEF DEBUG_DIM}GdipDrawLine(PGraphic, FPPen, 0,0,FWidth,FHeight);{$ENDIF}
   GdipDeleteGraphics(PGraphic);
 end;
 
@@ -658,9 +677,9 @@ end;
 
 procedure TRenderThread.NotifyStatusChanged(CommentID: Integer);
 begin
-  Synchronize(procedure begin
+  {Synchronize(procedure begin
     if Assigned(frmControl) then frmControl.UpdateListView(CommentID);
-  end);
+  end);}
 end;
 
 end.

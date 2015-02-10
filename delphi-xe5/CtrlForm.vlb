@@ -16,12 +16,6 @@ Coordinates=1180,10,70,58
 [IdUDPServerCCRecv]
 Coordinates=927,133,137,36
 
-[EditStdShowTimeUpDown]
-Coordinates=10,680,165,36
-
-[editOfficialCommentDurationUpDown]
-Coordinates=875,634,228,36
-
 [btnOpenFilter]
 Coordinates=99,566,93,58
 
@@ -141,5 +135,5 @@ Coordinates=543,430,179,58
 Coordinates=10,430,97,58
 
 []
-Coordinates=185,680,113,36
+Coordinates=10,680,165,36
 

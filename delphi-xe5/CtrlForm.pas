@@ -94,11 +94,9 @@ type
     btnSetFixedLabel: TButton;
     editOfficialCommentParaUpDown: TUpDown;
     editStdShowTime: TLabeledEdit;
-    EditStdShowTimeUpDown: TUpDown;
     editOfficialCommentDuration: TLabeledEdit;
     ChkAutoStartNet: TCheckBox;
     btnClearList: TButton;
-    editOfficialCommentDurationUpDown: TUpDown;
     BtnFreezing: TButton;
     DelayProgBar: TProgressBar;
     EdtNetDelay: TLabeledEdit;
@@ -157,6 +155,7 @@ type
     procedure BtnConfigClick(Sender: TObject);
     procedure RadioGroupModesClick(Sender: TObject);
     procedure BtnReloadCfgClick(Sender: TObject);
+    procedure editOfficialCommentDurationChange(Sender: TObject);
 
   private
     { Private declarations }
@@ -328,7 +327,7 @@ var
   ThisComment: TComment;
 begin
   ThisComment := TComment.Create;
-  ThisComment.Time := LTime + NetDelayDuration / 86400000; // TODO
+  ThisComment.Time := LTime + (NetDelayDuration + Random(3000)) / 86400000; // TODO
   ThisComment.Content := AContent;
   ThisComment.Author := Author;
   ThisComment.Format := AFormat;
@@ -537,10 +536,6 @@ begin
   //Init Interface
   StatusBar.Panels[0].Width := Width - 610;
   StatusBar.Panels[2].Text := '显示/总共 0/0';
-  {$IFNDEF DEBUG}
-  Width := 870;
-  Constraints.MaxWidth := 870;
-  {$ENDIF}
   //Set Variable & UI
   CCWindowShow := False;
   CCWindowWorking := False;
@@ -594,7 +589,7 @@ begin
   LiveCommentPool := TLiveCommentCollection.Create(True);
   LiveCommentPoolMutex.Release;
   UpdateQueue := TRenderUnitQueue.Create();
-  UpdateQueue.Capacity := 256;
+  UpdateQueue.Capacity := 1024;
   UpdateQueueMutex.Release;
   LogEvent('创建弹幕池和临时空间');
   CreateCommentWindow;
@@ -614,12 +609,6 @@ begin
     LogEvent('初始化完毕');
     StatusBar.Panels[0].Text := '控制台初始化完毕';
   end;
-  // STAT
-  StatValueList.InsertRow('已显示帧','-',True);
-  StatValueList.InsertRow('平均帧率','-',True);
-  StatValueList.InsertRow('帧率过高','0',True);
-  StatValueList.InsertRow('更新下限','0',True);
-  StatValueList.InsertRow('更新上限','0',True);
   //StatValueList.InsertRow('','0',True);
   Self.Show;
   if AutoStart then begin
@@ -680,11 +669,30 @@ begin
   StatusBar.Panels[4].Text := '远程 '+Ifthen(Boolean(RemoteTime = 0),'未知',TimeToStr(RemoteTime));
   StatusBar.Panels[5].Text := '本地 '+TimeToStr(Time());
   // STAT
+  if Assigned(HThread) and HThread.Started and (HThread.ReqCount > 0) then begin
+    with HThread do begin
+      StatValueList.Values['HTTP已请求'] := IntToStr(ReqCount);
+      StatValueList.Values['HTTP连超时'] := IntToStr(ReqConnTCCount);
+      StatValueList.Values['HTTP读超时'] := IntToStr(ReqReadTCCount);
+      StatValueList.Values['HTTP被关闭'] := IntToStr(ReqClosedCount);
+      StatValueList.Values['HTTP错误'] := IntToStr(ReqErrCount);
+      StatValueList.Values['HTTP平均T'] := Format('%.2f s',[ReqTotalMS / 1000 / ReqCount]);
+      StatValueList.Values['HTTP上次T'] := Format('%.2f s',[ReqLastMS / 1000]);
+    end;
+  end;
+  if Assigned(RThread) and RThread.Started then begin
+    with RThread do begin
+      StatValueList.Values['已绘制帧'] := IntToStr(FramesCount);
+      StatValueList.Values['已绘制秒'] := Format('%.2f',[RenderMS / 1000]);
+      StatValueList.Values['绘制帧率'] := Format('%.3ffps',[FramesCount / (RenderMS / 1000)]);
+      StatValueList.Values['绘制开销'] := IntToStr(OverheadMS);
+    end;
+  end;
   if Assigned(UThread) and UThread.Started then begin
     with UThread do begin
       StatValueList.Values['已显示帧'] := IntToStr(SCount);
       StatValueList.Values['已显示秒'] := Format('%.2f',[SElaspedMS / 1000]);
-      StatValueList.Values['平均帧率'] := Format('%.3ffps',[SCount / (SElaspedMS / 1000)]);
+      StatValueList.Values['显示帧率'] := Format('%.3ffps',[SCount / (SElaspedMS / 1000)]);
       StatValueList.Values['帧率过高'] := IntToStr(WOverFPS);
       StatValueList.Values['更新下限'] := IntToStr(WOverMin);
       StatValueList.Values['更新上限'] := IntToStr(WOverMax);
@@ -797,7 +805,7 @@ begin
     1: Effect.Display := UpperFixed;
     2: Effect.Display := LowerFixed;
   end;
-  Effect.StayTime := StrToInt(editOfficialCommentDuration.Text);
+  Effect.StayTime := OfficialDuration;
   Effect.RepeatCount := IfThen(Boolean(Effect.Display = Scroll),StrToInt(editOfficialCommentPara.Text),1);
 
   Format.DefaultName := False;
@@ -896,6 +904,7 @@ begin
     NetDefaultFontStyle := IntegerItems['NetComment.FontStyle'];
     NetDefaultDuration := IntegerItems['NetComment.Duration'];
     NetDefaultOpacity := IntegerItems['NetComment.Opacity'];
+    NetDelayDuration := IntegerItems['Pool.NetDelay'];
 
     OfficialFontName := StringItems['OfficialComment.FontName'];
     OfficialFontSize := IntegerItems['OfficialComment.FontSize'].ToDouble;
@@ -942,6 +951,7 @@ begin
   else
     cobNetCFontBold.Checked := False;
   editStdShowTime.Text := IntToStr(NetDefaultDuration);
+  edtNetDelay.Text := IntToStr(NetDelayDuration);
 
   cobOfficialCFontName.ItemIndex := cobOfficialCFontName.Items.IndexOf(OfficialFontName);
   cobOfficialCFontSize.Text := FloatToStr(OfficialFontSize);
@@ -967,6 +977,7 @@ begin
     StringItems['NetComment.FontColor'] := AlphaColorToString(NetDefaultFontColor);
     IntegerItems['NetComment.FontStyle'] := NetDefaultFontStyle;
     IntegerItems['NetComment.Duration'] := NetDefaultDuration;
+    IntegerItems['Pool.NetDelay'] := NetDelayDuration;
 
     StringItems['OfficialComment.FontName'] := OfficialFontName;
     IntegerItems['OfficialComment.FontSize'] := Floor(OfficialFontSize);
@@ -1129,6 +1140,11 @@ begin
   end
   else
     CommUDPPort := Port;
+end;
+
+procedure TfrmControl.editOfficialCommentDurationChange(Sender: TObject);
+begin
+  OfficialDuration := StrToIntDef(editOfficialCommentDuration.Text, 5000);
 end;
 
 procedure TfrmControl.cobNetCFontSizeKeyPress(Sender: TObject;
@@ -1410,7 +1426,7 @@ initialization
   LiveCommentPoolMutex := TMutex.Create(@DefaultSA,True,'live_pool_m');
   UpdateQueueMutex := TMutex.Create(@DefaultSA,True,'render_queue_m');
   DispatchS := TSemaphore.Create(@DefaultSA,0,1024,'dispatch_s',False);
-  UpdateS := TSemaphore.Create(@DefaultSA,0,512,'update_s',False);
+  UpdateS := TSemaphore.Create(@DefaultSA,0,1024,'update_s',False);
 
 finalization
   CommentPoolMutex.Free();
