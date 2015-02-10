@@ -1,7 +1,7 @@
 object frmWordList: TfrmWordList
   Left = 306
   Top = 239
-  Caption = #27827#34809#12398#35302#25163
+  Caption = #25935#24863#35789
   ClientHeight = 402
   ClientWidth = 314
   Color = clBtnFace
@@ -42,7 +42,7 @@ object frmWordList: TfrmWordList
     Width = 89
     Height = 25
     Hint = #20445#23384#20851#38190#23383#21015#34920#12290
-    Caption = #20928#21270#23436#20102'(&D)'
+    Caption = #23436#20102'(&D)'
     ParentShowHint = False
     ShowHint = True
     TabOrder = 1

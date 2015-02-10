@@ -3,23 +3,35 @@
 interface
 
 uses
-  System.Classes, Winapi.Windows, System.SysUtils, System.Types,
-  CtrlForm;
+  System.Classes, Winapi.Windows, System.SysUtils, System.Types, System.Diagnostics,
+  NamikoTypes, LogForm, CfgForm;
 
 type
   TUpdateThread = class(TThread)
     constructor Create(Handle: HWND; CCRect: TRect; var Queue: TRenderUnitQueue);
+    destructor Destroy();
   protected
     FHandle: HWND;
     FRect: TRect;
     FBlend: BLENDFUNCTION;
     FQueue: PRenderUnitQueue;
+    FRefFPS, FCriticalInterval, FMinInterval, FMaxInterval: Integer;
+    FStopwatch: TStopwatch;
+    FSCount, FSElaspedMS, FWOverFPS, FWOverMin, FWOverMax: Int64;
     procedure Execute; override;
-    procedure ReportLog(Info: string);
+    procedure ReportLog(Info: string; Level: TLogType = logInfo);
+  public
+    property SCount: Int64 read FSCount;
+    property SElaspedMS: Int64 read FSElaspedMS;
+    property WOverFPS: Int64 read FWOverFPS;
+    property WOverMin: Int64 read FWOverMin;
+    property WOverMax: Int64 read FWOverMax;
   end;
 
 implementation
 
+uses
+  CtrlForm;
 {
   Important: Methods and properties of objects in visual components can only be
   used in a method called using Synchronize, for example,
@@ -59,7 +71,26 @@ begin
   FRect := CCRect;
   if not Assigned(Queue) then raise Exception.Create('Render unit queue is not initialized.');
   FQueue := @Queue;
+  with frmConfig do begin
+    FRefFPS := IntegerItems['Display.ReferenceFPS'];
+    FMinInterval := IntegerItems['Display.MinInterval'];
+    FMaxInterval := IntegerItems['Display.MaxInterval'];
+  end;
+  FCriticalInterval := 1000 div FRefFPS;
+  FStopwatch := TStopwatch.Create;
+  if FStopwatch.IsHighResolution then ReportLog(Format('支持高精度计时，精度：%u',[FStopwatch.Frequency]));
+  FSCount := 0;
+  FSElaspedMS := 0;
+  FWOverFPS := 0;
+  FWOverMin := 0;
+  FWOverMax := 0;
   inherited Create(True);
+end;
+
+destructor TUpdateThread.Destroy;
+begin
+  FStopwatch.Stop;
+  FreeAndNil(FStopwatch);
 end;
 
 procedure TUpdateThread.Execute;
@@ -68,6 +99,7 @@ var
   CurrentRenderUnit: TRenderUnit;
   WindowSize: SIZE;
   ScreenHDC: HDC;
+  RenderElasped, RenderDelay: Int64;
 begin
   NameThreadForDebugging('Update');
   { Place thread code here }
@@ -88,16 +120,20 @@ begin
   FormOffsetPoint := Point(FRect.Left,FRect.Top);
   WindowSize.cx := FRect.Width;
   WindowSize.cy := FRect.Height;
-  ReportLog('[显示] 进入主循环');
+  ReportLog('进入主循环');
   // Main Loop
+  FStopwatch.Start;
   while True do begin
     if Self.Terminated then begin // Signalled to be terminated
       // Possible clean up
       // Clear Update Queue is done before starting threads
-      {$IFDEF DEBUG}ReportLog('[显示] 退出 #1');{$ENDIF}
+      {$IFDEF DEBUG}ReportLog('退出 #1');{$ENDIF}
       Exit;
     end;
+    Inc(FSCount);
+    FStopwatch.Stop;
     UpdateS.Acquire; // Queue is MAYBE not empty
+    FStopwatch.Start;
     CurrentRenderUnit.hDC := 0; // Default value to marked as unsuccessful
     UpdateQueueMutex.Acquire;
     if FQueue.Count > 0 then CurrentRenderUnit := FQueue.Dequeue; // Confirm REALLY there is anything
@@ -112,15 +148,35 @@ begin
       DeleteObject(CurrentRenderUnit.hBitmap);
       DeleteDC(CurrentRenderUnit.hDC);
     end;
-    Sleep(DEFAULT_UPDATE_INTERVAL);
+    FStopwatch.Stop;
+    RenderElasped := FStopwatch.ElapsedMilliseconds;
+    FStopwatch.Reset;
+    FStopwatch.Start;
+    FSElaspedMS := FSElaspedMS + RenderElasped;
+    RenderElasped := FSElaspedMS div FSCount; // Averaged time used
+    if RenderElasped > FCriticalInterval then begin
+      // FPS too high to meet
+      Inc(FWOverFPS);
+    end
+    else begin
+      RenderDelay := FCriticalInterval - RenderElasped;
+      if RenderDelay > FMaxInterval then begin
+        RenderDelay := FMaxInterval;
+        Inc(FWOverMax);
+      end
+      else
+      if RenderDelay < FMinInterval then begin
+        RenderDelay := FMinInterval;
+        Inc(FWOverMin);
+      end;
+      Sleep(RenderDelay);
+    end;
   end;
 end;
 
-procedure TUpdateThread.ReportLog(Info: string);
+procedure TUpdateThread.ReportLog(Info: string; Level: TLogType = logInfo);
 begin
-  Synchronize(procedure begin
-    if Assigned(frmControl) then frmControl.LogEvent(Info);
-  end);
+  frmLog.LogAdd(Info, '更新', Level);
 end;
 
 end.

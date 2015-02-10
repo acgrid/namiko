@@ -4,16 +4,19 @@ interface
 
 uses
   System.SysUtils, System.DateUtils, System.UIConsts,
-  IdUDPServer, IdGlobal, System.JSON;
+  IdUDPServer, IdGlobal, IdSocketHandle, System.JSON, NamikoTypes, LogForm;
 
 type
   TUDPHandleThread = class(TIdUDPListenerThread)
   protected
+    FNetPassword: string;
     procedure Run; override; // REMIND: UDPRead & UDPException is not marked override-able so you have to override the upper procedure
   public
     procedure UDPRead;
     procedure UDPException;
     procedure UDPResponse(AResponse: TJSONObject);
+    procedure ReportLog(Info: string; Level: TLogType = logInfo);
+    constructor Create(AOwner: TIdUDPServer; ABinding: TIdSocketHandle);
 end;
 
 implementation
@@ -80,6 +83,12 @@ begin
   end
   else
     Result.DefaultStyle := True;
+end;
+
+constructor TUDPHandleThread.Create(AOwner: TIdUDPServer; ABinding: TIdSocketHandle);
+begin
+  inherited Create(AOwner, ABinding);
+  FNetPassword := frmControl.NetPassword;
 end;
 
 procedure TUDPHandleThread.Run;
@@ -155,16 +164,11 @@ begin
         else if Request = 'Data' then begin
           JAuth := LJSONObject.Get('Auth');
           if Assigned(JAuth) then begin // Check Auth Key
-            SharedConfigurationMutex.Acquire; // frmControl.NetPassword
-            try
-              if JAuth.JsonValue.Value() <> frmControl.NetPassword then begin
-                RJSONObject.AddPair('Result','Rejected');
-                RJSONObject.AddPair('Reason','Key dismatch');
-                UDPResponse(RJSONObject);
-                Exit;
-              end;
-            finally
-              SharedConfigurationMutex.Release;
+            if JAuth.JsonValue.Value() <> FNetPassword then begin
+              RJSONObject.AddPair('Result','Rejected');
+              RJSONObject.AddPair('Reason','Key dismatch');
+              UDPResponse(RJSONObject);
+              Exit;
             end;
           end
           else begin
@@ -251,9 +255,12 @@ end;
 
 procedure TUDPHandleThread.UDPException;
 begin
-  Synchronize(procedure begin
-    frmControl.LogEvent(Format('UDP 异常: %s',[FCurrentException]));
-  end);
+  ReportLog(Format('UDP 异常: %s',[FCurrentException]), logException);
+end;
+
+procedure TUDPHandleThread.ReportLog(Info: string; Level: TLogType = logInfo);
+begin
+  frmLog.LogAdd(Info, 'UDP', Level);
 end;
 
 procedure TUDPHandleThread.UDPResponse(AResponse: TJSONObject);

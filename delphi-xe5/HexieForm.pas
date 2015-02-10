@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, PerlRegEx;
+  Dialogs, StdCtrls, PerlRegEx, LogForm;
 
 type
   TfrmWordList = class(TForm)
@@ -21,6 +21,7 @@ type
   private
     { Private declarations }
     Hexier: TPerlRegEx;
+    procedure ReportLog(Info: string; Level: TLogType = logInfo);
   public
     { Public declarations }
     function Hexied(Content: string): Boolean;
@@ -28,38 +29,41 @@ type
 
 var
   frmWordList: TfrmWordList;
-  HexieBuffer: string;
 
 implementation
 
 {$R *.dfm}
 uses
-  CtrlForm;
+  CtrlForm, HTTPWorker;
 
 procedure TfrmWordList.FormCreate(Sender: TObject);
 begin
   try
-    HexieList.Lines.LoadFromFile(APP_DIR+'HexieList.txt');
-    HexieBuffer := HexieList.Lines.Text;
+    HexieList.Lines.LoadFromFile(APP_DIR + 'HexieList.txt');
+    ReportLog('读取和谐列表');
   except
-    frmControl.LogEvent('[PCRE] 和谐列表为空');
+    ReportLog('和谐列表为空');
   end;
   HexieMutex.Release;
-  //Nofify frmControl that all forms is loaded and can startup Networking
 end;
 
 procedure TfrmWordList.btnDoneClick(Sender: TObject);
 begin
   try
     HexieList.Lines.SaveToFile(APP_DIR+'HexieList.txt');
-    HexieMutex.Acquire;
-    try
-      HexieBuffer := HexieList.Lines.Text;
-    finally
-      HexieMutex.Release;
+    if Assigned(frmControl.HThread) then begin
+      HexieMutex.Acquire;
+      try
+        frmControl.HThread.HexieList.Text := HexieList.Lines.Text;
+      finally
+        HexieMutex.Release;
+      end;
     end;
   except
-    Application.MessageBox('数据保存失败。','杯具了',MB_ICONERROR);
+    on E: Exception do begin
+      ReportLog('和谐列表保存异常: ' + E.Message, logException);
+      Application.MessageBox('数据保存失败。','杯具了',MB_ICONERROR);
+    end;
   end;
   frmWordList.Hide;
 end;
@@ -92,8 +96,8 @@ begin
         end;
       end;
     except
-      on E:Exception do begin
-        frmControl.LogEvent('[PCRE] 正则表达式错误：'+E.Message);
+      on E: Exception do begin
+        ReportLog('正则表达式错误：' + E.Message, logException);
       end;
     end;
   finally
@@ -104,13 +108,20 @@ end;
 procedure TfrmWordList.btnPCRETestClick(Sender: TObject);
 begin
   if Hexied(EditTestSubject.Text) then begin
-    LblTestResult.Caption := '被河蟹';
+    LblTestResult.Caption := '不和谐';
     LblTestResult.Font.Color := clRed;
   end
   else begin
-    LblTestResult.Caption := '很好很和谐';
+    LblTestResult.Caption := '很和谐';
     LblTestResult.Font.Color := clGreen;
   end;
 end;
+
+
+procedure TfrmWordList.ReportLog(Info: string; Level: TLogType = logInfo);
+begin
+  frmLog.LogAdd(Info, '和谐', Level);
+end;
+
 
 end.

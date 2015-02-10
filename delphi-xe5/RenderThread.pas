@@ -3,9 +3,9 @@
 interface
 
 uses
-  System.Classes, System.Types, System.SysUtils, System.UITypes,
+  System.Classes, System.Types, System.SysUtils, System.UITypes, System.UIConsts,
   IGDIPlusEmbedded, Winapi.Windows, SyncObjs, System.Generics.Collections,
-  Math, CtrlForm;
+  Math, LogForm, NamikoTypes;
 
 type
   TCommentUnit = record // Use to render
@@ -47,7 +47,9 @@ type
     FMainHandle: HWND;
     FWidth: Integer;
     FHeight: Integer;
+    FBorderWidth: Single;
     MinFS: Integer;
+    FRefInterval, FMaxMovement: Integer;
     // Collections
     FUpdateQueue: PRenderUnitQueue;
     FRenderList: PLiveCommentCollection;
@@ -69,13 +71,16 @@ type
     function GetSolidBrush(AColor: TAlphaColor): GpBrush;
     procedure GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; var OHeight: Integer);
     procedure Remove(ALiveComment: TLiveComment);
-    procedure ReportLog(Info: string);
+    procedure ReportLog(Info: string; Level: TLogType = logInfo);
     procedure RequestChannel(var AComment: TLiveComment);
     procedure Update(ALiveComment: TLiveComment);
     procedure NotifyStatusChanged(CommentID: Integer);
   end;
 
 implementation
+
+uses
+  CtrlForm, CfgForm;
 
 { 
   Important: Methods and properties of objects in visual components can only be
@@ -115,13 +120,15 @@ begin
   FMainHandle := Handle;
   FWidth := Width;
   FHeight := Height;
+  FRefInterval := 1000 div frmConfig.IntegerItems['Display.ReferenceFPS'];
+  FMaxMovement := frmConfig.IntegerItems['Display.MaxMovement'];
   FFFDict := TFontFamilyDict.Create();
   FSBDict := TBrushDict.Create();
 
   GdipCreateFromHWND(FMainHandle,FPGraphic);
   GdipCreateStringFormat(0,LANG_NEUTRAL,FPStringFormat);
   GdipCreatePath(FillModeAlternate,FPPath);
-  GdipCreatePen1(DEFAULT_BORDER_COLOR, DEFAULT_BORDER_WIDTH, UnitWorld, FPPen);
+  GdipCreatePen1(StringToAlphaColor(frmConfig.StringItems['Display.BorderColor']), frmConfig.IntegerItems['Display.BorderWidth'].ToSingle, UnitWorld, FPPen);
 
   MinFS := 65535;
   if not Assigned(RenderList) then raise Exception.Create('TLiveComment render list is not initialized.');
@@ -174,14 +181,14 @@ begin
       case Body.Effect.Display of
         Scroll: begin
           Left := FWidth{$IFDEF DEBUG} - AWidth{$ENDIF}; // For inspect
-          Speed := (AWidth + FWidth) div (Body.Effect.StayTime div DEFAULT_UPDATE_INTERVAL);
-          if Speed > DEFAULT_MAX_SCROLL_SPEED then begin
-            Body.Effect.Speed := DEFAULT_MAX_SCROLL_SPEED;
-            Body.Effect.StayTime := (AWidth + FWidth) * DEFAULT_MAX_SCROLL_SPEED div DEFAULT_UPDATE_INTERVAL;
+          Speed := (AWidth + FWidth) div (Body.Effect.StayTime div FRefInterval);
+          if Speed > FMaxMovement then begin
+            Body.Effect.Speed := FMaxMovement;
+            Body.Effect.StayTime := (AWidth + FWidth) * FMaxMovement div FRefInterval;
           end
           else
             Body.Effect.Speed := Speed;
-          {$IFDEF DEBUG}ReportLog(Format('[绘制] 计算速度 %u 路径总长 %u 时间 %u',[Speed,AWidth + FWidth,Body.Effect.StayTime]));{$ENDIF}
+          {$IFDEF DEBUG}ReportLog(Format('计算速度 %u 路径总长 %u 时间 %u',[Speed,AWidth + FWidth,Body.Effect.StayTime]));{$ENDIF}
         end;
         UpperFixed, LowerFixed: begin
           Left := (FWidth - AWidth) div 2;
@@ -260,7 +267,7 @@ begin
           n := n + MinFS; //inc(n); // TODO: Consider Use n := n + fs;
           m := m + MinFS; //inc(m); // TODO: Consider Use m := m + fs;
         until m >= FHeight;
-        if not Done then inc(Layer);
+        if not Done then Inc(Layer);
       until Done;
     end;
     LowerFixed: begin
@@ -275,11 +282,11 @@ begin
           n := n - MinFS; //inc(n); // TODO: Consider Use n := n + fs;
           m := m - MinFS; //inc(m); // TODO: Consider Use m := m + fs;
         until n <= 0;
-        if not Done then inc(Layer);
+        if not Done then Inc(Layer);
       until Done;
     end;
   end;
-  {$IFDEF DEBUG}ReportLog(Format('[绘制] 分配通道 %d 层 %d到%d',[Layer,n,m]));{$ENDIF}
+  {$IFDEF DEBUG}ReportLog(Format('分配通道 %d 层 %d到%d',[Layer,n,m]));{$ENDIF}
   AComment.ChannelLayer := Layer;
   AComment.ChannelFrom := n;
   AComment.Top := n;
@@ -300,7 +307,7 @@ begin
     if (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) then begin Result.Add(Index); Continue; end;
     if (TestComment.ChannelTo >= FromPos) and (TestComment.ChannelTo <= ToPos) then begin Result.Add(Index); Continue; end;
   end;
-  {$IFDEF DEBUG}ReportLog(Format('[绘制] 冲突检测 %u 层 %u-%u 可疑数量%u',[Layer,FromPos,ToPos,Result.Count]));{$ENDIF}
+  {$IFDEF DEBUG}ReportLog(Format('冲突检测 %u 层 %u-%u 可疑数量%u',[Layer,FromPos,ToPos,Result.Count]));{$ENDIF}
 end;
 
 function TRenderThread.ConflictTest(AComment: TLiveComment; FromPos: Integer; ToPos: Integer; Layer: Integer=0): Boolean;
@@ -324,30 +331,30 @@ begin
     for Index in PossibleConflicts do begin
       TestComment := FRenderList.Items[Index];
       if (Layer > 0) and (TestComment.ChannelLayer <> Layer) then Continue;
-      {$IFDEF DEBUG}ReportLog(Format('[绘制] 冲突检测 位置0',[]));{$ENDIF}
+      {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置0',[]));{$ENDIF}
       if TestComment.Status <> LMoving then Continue;
       if(TestComment.ChannelFrom >= FromPos) and (TestComment.ChannelFrom <= ToPos) or
         (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) or
         (TestComment.ChannelTo >= FromPos) then begin
-        {$IFDEF DEBUG}ReportLog(Format('[绘制] 冲突检测 位置2',[]));{$ENDIF}
+        {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置2',[]));{$ENDIF}
         case AComment.Body.Effect.Display of
           UpperFixed: begin
-            {$IFDEF DEBUG}ReportLog(Format('[绘制] 冲突检测 位置3-A',[]));{$ENDIF}
+            {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置3-A',[]));{$ENDIF}
             case TestComment.Body.Effect.Display of
               UpperFixed: begin // #4 Up-Up: Always Conflict
-                {$IFDEF DEBUG}ReportLog(Format('[绘制] 冲突检测 位置4-A',[]));{$ENDIF}
+                {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置4-A',[]));{$ENDIF}
                 Result := True;
                 Exit;
               end;
               else begin // #3 ReqUp-PervFly
-                {$IFDEF DEBUG}ReportLog(Format('[绘制] 冲突检测 位置4-B',[]));{$ENDIF}
+                {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置4-B',[]));{$ENDIF}
                 Result := Boolean(TestComment.Left + TestComment.Width > AComment.Left);
                 if Result then Exit;
               end;
             end;
           end;
           else begin
-            {$IFDEF DEBUG}ReportLog(Format('[绘制] 冲突检测 位置3-B',[]));{$ENDIF}
+            {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置3-B',[]));{$ENDIF}
             CurrFlyTime := (AComment.Left + AComment.Width) / AComment.Body.Effect.Speed;
             PervFlyTime := (TestComment.Left + TestComment.Width) / TestComment.Body.Effect.Speed;
             case TestComment.Body.Effect.Display of
@@ -399,15 +406,15 @@ begin
   { Place thread code here }
 
   FRenderBuffer := TCommentUnits.Create();
-  {$IFDEF DEBUG}ReportLog('[绘制] 完成初始化');{$ENDIF}
+  {$IFDEF DEBUG}ReportLog('完成初始化');{$ENDIF}
   try
     // The thread loop
-    ReportLog('[绘制] 进入主循环');
+    ReportLog('进入主循环');
     while True do begin
       Inc(FCounter);
       SleepThisCycle := False;
       if Self.Terminated then begin // Signalled to be terminated
-        {$IFDEF DEBUG}ReportLog('[绘制] 退出 #1');{$ENDIF}
+        {$IFDEF DEBUG}ReportLog('退出 #1');{$ENDIF}
         Exit;
       end;
 
@@ -415,11 +422,11 @@ begin
       UpdateQueueMutex.Acquire;
       try
         if Self.Terminated then begin // Signalled to be terminated
-          {$IFDEF DEBUG}ReportLog('[绘制] 退出 #2');{$ENDIF}
+          {$IFDEF DEBUG}ReportLog('退出 #2');{$ENDIF}
           Exit;
         end;
         if FUpdateQueue.Count >= FUpdateQueue.Capacity then begin
-          //{$IFDEF DEBUG}ReportLog('[绘制] 显示队列满');{$ENDIF}
+          //{$IFDEF DEBUG}ReportLog('显示队列满');{$ENDIF}
           SleepThisCycle := True;
         end;
       finally
@@ -433,20 +440,20 @@ begin
       LastCycleUnitCount := FRenderBuffer.Count;
       LiveCommentPoolMutex.Acquire;
       try
-        //{$IFDEF DEBUG}ReportLog(Format('[绘制] 已请求运行时弹幕池',[]));{$ENDIF}
+        //{$IFDEF DEBUG}ReportLog(Format('已请求运行时弹幕池',[]));{$ENDIF}
         if Self.Terminated then begin // Signalled to be terminated
-          {$IFDEF DEBUG}ReportLog('[绘制] 退出 #3');{$ENDIF}
+          {$IFDEF DEBUG}ReportLog('退出 #3');{$ENDIF}
           Exit;
         end;
         LivePoolCount := FRenderList.Count;
       finally
         LiveCommentPoolMutex.Release;
-        //{$IFDEF DEBUG}ReportLog(Format('[绘制] 已释放运行时弹幕池',[]));{$ENDIF}
+        //{$IFDEF DEBUG}ReportLog(Format('已释放运行时弹幕池',[]));{$ENDIF}
       end;
       if LivePoolCount > 0 then DoUpdatePool(); // Iteration to local data structure and do update/delete
 
       if Self.Terminated then begin // Signalled to be terminated
-        {$IFDEF DEBUG}ReportLog('[绘制] 退出 #4');{$ENDIF}
+        {$IFDEF DEBUG}ReportLog('退出 #4');{$ENDIF}
         Exit;
       end;
 
@@ -492,7 +499,6 @@ var
   PGraphic: GpGraphics;
   StrRect: TIGPRect;
   ACommentUnit: TCommentUnit;
-  //Test: WideString;
 begin
   GdipCreateFromHDC(ARenderUnit.hDC,PGraphic);
   GdipSetSmoothingMode(PGraphic,SmoothingModeAntiAlias);
@@ -605,11 +611,9 @@ begin
   FRenderBuffer.Remove(ID); // Internal CommentUnits Buffer
 end;
 
-procedure TRenderThread.ReportLog(Info: string);
+procedure TRenderThread.ReportLog(Info: string; Level: TLogType = logInfo);
 begin
-  Synchronize(procedure begin
-    frmControl.LogEvent(Info);
-  end);
+  frmLog.LogAdd(Info, '绘制', Level);
 end;
 
 procedure TRenderThread.Update(ALiveComment: TLiveComment);
@@ -637,7 +641,7 @@ begin
       end;
       ACommentUnit.Left := ALiveComment.Left;
       FRenderBuffer.AddOrSetValue(ALiveComment.Body.ID,ACommentUnit);
-      //{$IFDEF DEBUG}ReportLog(Format('[绘制] 飞行弹幕 %u更新到%d',[ALiveComment.Body.ID,ACommentUnit.Left]));{$ENDIF}
+      //{$IFDEF DEBUG}ReportLog(Format('飞行弹幕 %u更新到%d',[ALiveComment.Body.ID,ACommentUnit.Left]));{$ENDIF}
     end
     else begin // Static
       if ALiveComment.Body.Effect.StayTime <= 0 then begin
@@ -645,7 +649,7 @@ begin
         ALiveComment.Body.Status := Removing;
       end
       else
-        ALiveComment.Body.Effect.StayTime := ALiveComment.Body.Effect.StayTime - DEFAULT_UPDATE_INTERVAL;
+        ALiveComment.Body.Effect.StayTime := ALiveComment.Body.Effect.StayTime - FRefInterval;
     end;
   finally
     LiveCommentPoolMutex.Release;

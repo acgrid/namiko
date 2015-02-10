@@ -4,7 +4,7 @@ interface
 
 uses
   System.Classes, System.SysUtils, System.SyncObjs, Math,
-  CtrlForm;
+  NamikoTypes, LogForm;
 
 type
   TDispatchThread = class(TThread)
@@ -20,11 +20,14 @@ type
     procedure CheckPool(From: Integer; Till: Integer);
     procedure DoDispatch(AComment: TComment);
     procedure Execute; override;
-    procedure ReportLog(Info: string);
+    procedure ReportLog(Info: string; Level: TLogType = logInfo);
     procedure NotifyStatusChanged(CommentID: Integer);
   end;
 
 implementation
+
+uses
+  CtrlForm;
 
 { 
   Important: Methods and properties of objects in visual components can only be
@@ -91,11 +94,11 @@ begin
       end;
       if Assigned(AComment) and ((AComment.Status = Created) or (AComment.Status = Pending)) then begin
         // Subject to be dispatched
-        {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('[调度] 调度 %u 创建或待定状态',[i]));{$ENDIF}
+        {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('调度 %u 创建或待定状态',[i]));{$ENDIF}
         if TimeNow > AComment.Time then begin
           // TOO OLD
           if TimeNow - AComment.Time > MDiscardBefore / 86400000 then begin
-            {$IFDEF DEBUG}ReportLog(Format('[调度] 调度 %u 超时删除',[i]));{$ENDIF}
+            {$IFDEF DEBUG}ReportLog(Format('调度 %u 超时删除',[i]));{$ENDIF}
             CommentPoolMutex.Acquire;
             try
               AComment.Status := Removed;
@@ -106,20 +109,20 @@ begin
             Continue;
           end
           else begin
-            {$IFDEF DEBUG}ReportLog(Format('[调度] 迟调度 %u ',[i]));{$ENDIF}
+            {$IFDEF DEBUG}ReportLog(Format('迟调度 %u ',[i]));{$ENDIF}
             DoDispatch(AComment);
             Continue;
           end;
         end
         else begin // FUTURE TIME
           if AComment.Time - TimeNow < MAcceptAfter / 86400000 then begin
-            {$IFDEF DEBUG}ReportLog(Format('[调度] 早调度 %u ',[i]));{$ENDIF}
+            {$IFDEF DEBUG}ReportLog(Format('早调度 %u ',[i]));{$ENDIF}
             DoDispatch(AComment);
             Continue;
           end;
         end;
         if AComment.Status = Created then begin
-          {$IFDEF DEBUG}ReportLog(Format('[调度] 过早调度 %u ',[i]));{$ENDIF}
+          {$IFDEF DEBUG}ReportLog(Format('过早调度 %u ',[i]));{$ENDIF}
           CommentPoolMutex.Acquire;
           try
             AComment.Status := Pending;
@@ -150,14 +153,14 @@ begin
   end;
   ALiveComment := TLiveComment.Create();
   ALiveComment.Body := AComment;
-  {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('[调度] 初始化运行时弹幕 %u',[ALiveComment.Body.ID]));{$ENDIF}
+  {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('初始化运行时弹幕 %u',[ALiveComment.Body.ID]));{$ENDIF}
   LiveCommentPoolMutex.Acquire;
   try
-    {$IFDEF DEBUG_VERBOSE2}ReportLog(Format('[调度] 已请求运行时弹幕池',[]));{$ENDIF}
+    {$IFDEF DEBUG_VERBOSE2}ReportLog(Format('已请求运行时弹幕池',[]));{$ENDIF}
     FLivePool.Add(ALiveComment);
   finally
     LiveCommentPoolMutex.Release;
-    {$IFDEF DEBUG_VERBOSE2}ReportLog(Format('[调度] 已释放运行时弹幕池',[]));{$ENDIF}
+    {$IFDEF DEBUG_VERBOSE2}ReportLog(Format('已释放运行时弹幕池',[]));{$ENDIF}
   end;
 end;
 
@@ -171,12 +174,12 @@ begin
   NewFrontier := 0;
   while True do begin
     if Terminated then begin
-      {$IFDEF DEBUG}ReportLog('[调度] 退出 #1');{$ENDIF}
+      {$IFDEF DEBUG}ReportLog('退出 #1');{$ENDIF}
       Exit;
     end;
     WaitResult := DispatchS.WaitFor(1000);
     if Terminated then begin
-      {$IFDEF DEBUG}ReportLog('[调度] 退出 #2');{$ENDIF}
+      {$IFDEF DEBUG}ReportLog('退出 #2');{$ENDIF}
       Exit;
     end;
     CommentPoolMutex.Acquire;
@@ -198,18 +201,16 @@ begin
   end;
 end;
 
-procedure TDispatchThread.ReportLog(Info: string);
+procedure TDispatchThread.ReportLog(Info: string; Level: TLogType = logInfo);
 begin
-  Synchronize(procedure begin
-    frmControl.LogEvent(Info);
-  end);
+  frmLog.LogAdd(Info, '调度', Level);
 end;
 
 procedure TDispatchThread.NotifyStatusChanged(CommentID: Integer);
 begin
-  Synchronize(procedure begin
+  {Synchronize(procedure begin
     if Assigned(frmControl) then frmControl.UpdateListView(CommentID);
-  end);
+  end);}
 end;
 
 end.

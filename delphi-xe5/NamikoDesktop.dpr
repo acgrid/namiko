@@ -9,8 +9,11 @@ uses
   UpdateThread in 'UpdateThread.pas',
   DispatchThread in 'DispatchThread.pas',
   HTTPWorker in 'HTTPWorker.pas',
-  SetupForm in 'SetupForm.pas' {FormDimSet},
-  HexieForm in 'HexieForm.pas' {frmWordList};
+  HexieForm in 'HexieForm.pas' {frmWordList},
+  LogForm in 'LogForm.pas' {frmLog},
+  CfgForm in 'CfgForm.pas' {frmConfig},
+  DemoForm in 'DemoForm.pas' {frmDemo},
+  NamikoTypes in 'NamikoTypes.pas';
 
 {$R *.res}
 
@@ -19,8 +22,10 @@ begin
   {$IFDEF DEBUG}ReportMemoryLeaksOnShutdown := DebugHook<>0;{$ENDIF}
   Application.Initialize;
   Application.Title := 'Namiko Danmaku Client';
-  Application.CreateForm(TfrmControl, frmControl);
-  Application.CreateForm(TFormDimSet, FormDimSet);
+  Application.CreateForm(TfrmLog, frmLog);
+  Application.CreateForm(TfrmConfig, frmConfig);
   Application.CreateForm(TfrmWordList, frmWordList);
+  Application.CreateForm(TfrmDemo, frmDemo);
+  Application.CreateForm(TfrmControl, frmControl);
   Application.Run;
 end.

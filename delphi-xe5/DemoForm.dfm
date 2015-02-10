@@ -1,15 +1,17 @@
-object frmComment: TfrmComment
+object frmDemo: TfrmDemo
   Left = 0
   Top = 0
   HorzScrollBar.Visible = False
   VertScrollBar.Visible = False
   BorderIcons = [biSystemMenu, biMaximize]
-  Caption = #24377#24149#31383#21475
+  Caption = #27979#35797#31383#21475
   ClientHeight = 378
   ClientWidth = 822
   Color = clSilver
+  TransparentColor = True
   TransparentColorValue = clSilver
   DockSite = True
+  DoubleBuffered = True
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
@@ -17,11 +19,12 @@ object frmComment: TfrmComment
   Font.Style = []
   FormStyle = fsStayOnTop
   OldCreateOrder = False
-  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
+  OnHide = FormHide
   OnMouseDown = FormMouseDown
   OnMouseMove = FormMouseMove
   OnMouseUp = FormMouseUp
+  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object NetCDemo: TLabel

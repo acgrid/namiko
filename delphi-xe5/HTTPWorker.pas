@@ -4,7 +4,8 @@ interface
 
 uses
   System.Classes, System.SysUtils, System.SyncObjs, System.DateUtils,
-  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, System.JSON, PerlRegEx;
+  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, System.JSON, PerlRegEx,
+  NamikoTypes, LogForm, CfgForm;
 
 type
   THTTPWorkerThread = class(TThread)
@@ -16,14 +17,17 @@ type
     FURL: string;
     FTimeOffset: Integer;
     FKey: string;
-    FTimeout: Integer;
     FInterval: Integer;
+    FRetryDelay: Integer;
     FPoolCount: Cardinal;
+    Hexie: TStringList;
     FHexie: TPerlRegEx;
     procedure Execute; override;
-    procedure ReportLog(Info: string);
-    procedure ReadLines(var AResponse: string);
+    procedure ReportLog(Info: string; Level: TLogType = logInfo);
+    procedure ReadLines(var AResponse: string; var NextID: Int64);
     procedure ReadSharedConfiguration();
+  public
+    property HexieList: TStringList read Hexie;
   end;
 
 implementation
@@ -31,8 +35,6 @@ implementation
 uses
   CtrlForm, HexieForm;
 
-const
-  HTTP_RETRY_DELAY = 1000;
 {
   Important: Methods and properties of objects in visual components can only be
   used in a method called using Synchronize, for example,
@@ -80,53 +82,57 @@ begin
     Logger.Active := True;
     Worker.Intercept := Logger;
   end;
+  Hexie := TStringList.Create();
+  HexieMutex.Acquire;
+  try
+    Hexie.Text := frmWordList.HexieList.Lines.Text;
+  finally
+    HexieMutex.Release;
+  end;
   FHexie := TPerlRegEx.Create();
   inherited Create(False); // Start upon created;
 end;
 
 destructor THTTPWorkerThread.Destroy;
 begin
-  Worker.Free;
-  Logger.Free;
-  FHexie.Free;
+  FreeAndNil(Worker);
+  FreeAndNil(Logger);
+  FreeAndNil(Hexie);
+  FreeAndNil(FHexie);
   inherited Destroy();
 end;
 
 procedure THTTPWorkerThread.Execute;
 var
-  RequestTimestamp: Int64;
+  RequestID: Int64;
   RemoteTimeOffset: Integer;
   Response: string;
   LJSONObject: TJSONObject;
-  JResult, JTimestamp: TJSONPair;
+  JResult, JTimestamp, JLastID: TJSONPair;
 begin
   NameThreadForDebugging('HTTP');
   { Place thread code here }
   try
   // Test HTTP Connection
     ReadSharedConfiguration();
-    Worker.ConnectTimeout := FTimeout;
-    Worker.ReadTimeout := FTimeout;
     try
       Response := Worker.Get(Format('%s?action=init&key=%s',[FURL,FKey]));
-      if (Worker.ResponseCode = 200) and (Length(Response) > 0) then begin
+      if Assigned(Worker) and (Worker.ResponseCode = 200) and (Length(Response) > 0) then begin
         LJSONObject := TJsonObject.Create;
         try
           try
             LJSONObject.Parse(TEncoding.ASCII.GetBytes(Response),0);
             JResult := LJSONObject.Get('Result');
             JTimestamp := LJSONObject.Get('Timestamp');
-            if Assigned(JTimestamp) then begin
-              RequestTimestamp := StrToInt64(JTimestamp.JsonValue.Value());
-              RemoteTimeOffset := DateTimeToUnix(Now()) - (RequestTimestamp - FTimeOffset); // DateTimeToUnix is local timestamp - (PHP's UTC timestamp - offset of local to UTC)
+            JLastID := LJSONObject.Get('FrontID');
+            if Assigned(JTimestamp) and Assigned(JLastID) then begin
+              RequestID := StrToInt64(JLastID.JsonValue.Value);
+              RemoteTimeOffset := DateTimeToUnix(Now()) - (StrToInt64(JTimestamp.JsonValue.Value()) - FTimeOffset); // DateTimeToUnix is local timestamp - (PHP's UTC timestamp - offset of local to UTC)
               ReportLog(Format('[HTTP] 测试成功，本地-远程时间差%d秒 开始接收网络弹幕',[RemoteTimeOffset]));
               Synchronize(procedure begin
                 with frmControl do begin
-                  CheckboxHTTPLog.Enabled := False;
                   Networking := True;
-                  radioNetPasv.Enabled := False;
-                  radioNetTransmit.Enabled := False;
-                  radioNetPasv.Enabled := False;
+                  RadioGroupModes.Enabled := False;
                   editNetPassword.Enabled := False;
                   editNetHost.Enabled := False;
                   btnNetStart.Caption := '停止通信(&M)';
@@ -134,15 +140,15 @@ begin
               end);
             end
             else if Assigned(JResult) then begin
-              ReportLog(Format('[HTTP] 测试错误：服务器状态 %s',[JResult.JsonValue.Value()]));
+              ReportLog(Format('测试错误：服务器状态 %s',[JResult.JsonValue.Value()]));
               Exit;
             end
             else begin
-              ReportLog('[HTTP] 测试错误：服务器未返回状态');
+              ReportLog('测试错误：服务器未返回状态');
               Exit;
             end;
           except
-            ReportLog('[HTTP] 测试错误：不合法的JSON格式');
+            ReportLog('测试错误：不合法的JSON格式');
             {$IFDEF DEBUG}ReportLog(Response);{$ENDIF}
             Exit;
           end;
@@ -151,90 +157,88 @@ begin
         end;
       end
       else begin
-        ReportLog(Format('[HTTP] 测试错误：HTTP返回值%u 返回长度 %u',[Worker.ResponseCode,Length(Response)]));
+        ReportLog(Format('测试错误：HTTP返回值%u 返回长度 %u',[Worker.ResponseCode,Length(Response)]));
         Exit;
       end;
     except
       on EIdConnectTimeout do begin
-        ReportLog('[HTTP] 测试错误：连接超时');
+        ReportLog('测试错误：连接超时');
         Exit;
       end;
       on EIdReadTimeout do begin
-        ReportLog('[HTTP] 测试错误：接收超时');
+        ReportLog('测试错误：接收超时');
         Exit;
       end;
       on E: Exception do begin
-        ReportLog(Format('[HTTP] 测试错误：[%s] %s',[E.ClassName,E.Message]));
+        ReportLog(Format('测试错误：[%s] %s',[E.ClassName,E.Message]));
         Exit;
       end;
     end;
     // Main Loop
-    {$IFDEF DEBUG}ReportLog('[HTTP] 进入主循环');{$ENDIF}
+    {$IFDEF DEBUG}ReportLog('进入主循环');{$ENDIF}
     while True do begin
       if Terminated then begin
-        {$IFDEF DEBUG}ReportLog('[HTTP] 退出 #1');{$ENDIF}
+        {$IFDEF DEBUG}ReportLog('退出 #1');{$ENDIF}
+        Exit;
+      end
+      else
+        Sleep(FInterval);
+      if Terminated then begin
+        {$IFDEF DEBUG}ReportLog('退出 #2');{$ENDIF}
         Exit;
       end;
       // Reload Configuration
       ReadSharedConfiguration();
-      Worker.ConnectTimeout := FTimeout;
-      Worker.ReadTimeout := FTimeout;
       try
-        Response := Worker.Get(Format('%s?action=fetch&key=%s&from=%u&totalc=%u',[FURL,FKey,RequestTimestamp,FPoolCount]));
+        Response := Worker.Get(Format('%s?action=fetch&key=%s&fromID=%u&totalc=%u',[FURL,FKey,RequestID,FPoolCount]));
         if (Worker.ResponseCode = 200) and (Length(Response) > 0) then begin
           try
-            ReadLines(Response);
-            RequestTimestamp := DateTimeToUnix(Now()) + FTimeOffset;
+            ReadLines(Response, RequestID);
           except
-            on E: Exception do ReportLog(Format('[HTTP] 循环JSON异常：[%s] %s',[E.ClassName,E.Message]));
+            on E: Exception do ReportLog(Format('循环JSON异常：[%s] %s',[E.ClassName,E.Message]));
           end;
         end
         else begin
-          ReportLog(Format('[HTTP] 循环错误：HTTP返回值%u 返回长度 %u',[Worker.ResponseCode,Length(Response)]));
-          Sleep(HTTP_RETRY_DELAY);
+          ReportLog(Format('循环错误：HTTP返回值%u 返回长度 %u',[Worker.ResponseCode,Length(Response)]));
+          Sleep(FRetryDelay);
           Continue;
         end;
       except
         on EIdConnectTimeout do begin
-          ReportLog('[HTTP] 连接超时');
-          Sleep(HTTP_RETRY_DELAY);
+          ReportLog('连接超时');
+          Sleep(FRetryDelay);
           Continue;
         end;
         on EIdReadTimeout do begin
-          ReportLog('[HTTP] 接收超时');
-          Sleep(HTTP_RETRY_DELAY);
+          ReportLog('接收超时');
+          Sleep(FRetryDelay);
           Continue;
         end;
         on E: Exception do begin
-          ReportLog(Format('[HTTP] 循环异常：[%s] %s',[E.ClassName,E.Message]));
-          Sleep(HTTP_RETRY_DELAY);
+          ReportLog(Format('循环异常：[%s] %s',[E.ClassName,E.Message]));
+          Sleep(FRetryDelay);
           Continue;
         end;
       end;
-      if Terminated then begin
-        {$IFDEF DEBUG}ReportLog('[HTTP] 退出 #2');{$ENDIF}
-        Exit;
-      end;
-      Sleep(FInterval);
     end;
   except
     on E: Exception do begin
-      {$IFDEF DEBUG}ReportLog(Format('[HTTP] 异常%s "%s"',[E.ClassName,E.Message]));{$ENDIF}
+      {$IFDEF DEBUG}ReportLog(Format('异常%s "%s"',[E.ClassName,E.Message]));{$ENDIF}
       Sleep(FInterval);
     end;
   end;
 end;
 
-procedure THTTPWorkerThread.ReadLines(var AResponse: string);
+procedure THTTPWorkerThread.ReadLines(var AResponse: string; var NextID: Int64);
 var
   LJsonArr: TJSONArray;
   LJsonValue: TJSONValue;
   LItem: TJSONValue;
+  ThisID: Int64;
   RTime, LTime: TDateTime;
   ThisAuthor: TCommentAuthor;
   ThisFormat: TCommentFormat;
   Content, HexieString: string;
-  Hexie: TStringList;
   HexieIndex: Integer;
   TimeFound, IPFound, ContentFound: Boolean;
 begin
@@ -251,6 +255,10 @@ begin
         IPFound := False;
         ContentFound := False;
         for LItem in TJSONArray(LJsonValue) do begin
+          if TJSONPair(LItem).JsonString.Value = 'ID' then begin
+            ThisID := StrToInt64(TJSONPair(LItem).JsonValue.Value());
+            if ThisID > NextID then NextID := ThisID;
+          end;
           if TJSONPair(LItem).JsonString.Value = 'Timestamp' then begin
             RTime := UnixToDateTime(StrToInt64(TJSONPair(LItem).JsonValue.Value()) - FTimeOffset);
             TimeFound := True;
@@ -267,13 +275,6 @@ begin
         end;
         HexieMutex.Acquire;
         try
-          HexieString := HexieForm.HexieBuffer;
-        finally
-          HexieMutex.Release;
-        end;
-        Hexie := TStringList.Create();
-        try
-          Hexie.Text := HexieString;
           try
             FHexie.Subject := Content;
             for HexieIndex := 0 to Hexie.Count - 1 do begin
@@ -289,7 +290,7 @@ begin
             end;
           end;
         finally
-          Hexie.Free;
+          HexieMutex.Release;
         end;
         if TimeFound and IPFound and ContentFound then begin
           Synchronize(procedure begin
@@ -302,29 +303,33 @@ begin
       end;
     except
       on E: Exception do begin
-      {$IFDEF DEBUG}ReportLog(Format('[HTTP] JSON 解析异常 %s "%s"',[E.ClassName,E.Message]));{$ENDIF}
+      {$IFDEF DEBUG}ReportLog(Format('JSON 解析异常 %s "%s"',[E.ClassName,E.Message]));{$ENDIF}
       Sleep(FInterval);
       end;
     end;
 end;
 
-procedure THTTPWorkerThread.ReportLog(Info: string);
+procedure THTTPWorkerThread.ReportLog(Info: string; Level: TLogType = logInfo);
 begin
-  Synchronize(procedure begin
-    if Assigned(frmControl) then frmControl.LogEvent(Info);
-  end);
+  frmLog.LogAdd(Info, 'HTTP', Level);
 end;
 
 procedure THTTPWorkerThread.ReadSharedConfiguration;
 begin
-  HTTPSharedMutex.Acquire;
-  try
-    FTimeout := frmControl.HTTPTimeout;
-    FInterval := frmControl.HTTPInterval;
-    FPoolCount := frmControl.CommentPool.Count;
-  finally
-    HTTPSharedMutex.Release;
+  {HTTPSharedMutex.Acquire;
+  try}
+  with frmConfig do begin
+    FInterval := IntegerItems['HTTP.Interval'];
+
+    Worker.ConnectTimeout := IntegerItems['HTTP.ConnTimeout'];
+    Worker.ReadTimeout := IntegerItems['HTTP.RecvTimeout'];
+
+    FRetryDelay := IntegerItems['HTTP.RetryDelay'];
   end;
+  FPoolCount := frmControl.CommentPool.Count;
+  {finally
+    HTTPSharedMutex.Release;
+  end;}
 end;
 
 end.

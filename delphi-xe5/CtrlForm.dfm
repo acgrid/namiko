@@ -8,7 +8,7 @@ object frmControl: TfrmControl
     'Namiko Danmaku Client [Unicode GDI+ UDP/HTTP PCRE Multi-threaded' +
     ']'
   ClientHeight = 517
-  ClientWidth = 1164
+  ClientWidth = 1053
   Color = clBtnFace
   Constraints.MaxHeight = 555
   Constraints.MaxWidth = 1180
@@ -27,20 +27,6 @@ object frmControl: TfrmControl
   OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 17
-  object DelayLabel: TLabel
-    Left = 1032
-    Top = 8
-    Width = 18
-    Height = 17
-    Caption = 'XD'
-    Font.Charset = ANSI_CHARSET
-    Font.Color = clRed
-    Font.Height = -12
-    Font.Name = #24494#36719#38597#40657
-    Font.Style = [fsBold]
-    ParentFont = False
-    Visible = False
-  end
   object grpCCWindow: TGroupBox
     Left = 8
     Top = 0
@@ -56,53 +42,34 @@ object frmControl: TfrmControl
       Caption = #25511#21046#21488#21484#21796#38190
     end
     object btnCCWork: TButton
-      Left = 84
-      Top = 21
-      Width = 121
+      Left = 7
+      Top = 24
+      Width = 107
       Height = 25
-      Caption = #38544#34255#24377#24149#31034#20363'(&W)'
-      Enabled = False
+      Caption = #27979#35797#31383#21475'(&W)'
       TabOrder = 0
       OnClick = btnCCWorkClick
-    end
-    object btnCCShow: TButton
-      Left = 5
-      Top = 21
-      Width = 75
-      Height = 25
-      Caption = #21464#26356'(&G)'
-      TabOrder = 1
-      OnClick = btnCCShowClick
-    end
-    object btnAdmin: TButton
-      Left = 210
-      Top = 21
-      Width = 57
-      Height = 25
-      Caption = '&Admin'
-      TabOrder = 2
-      OnClick = btnAdminClick
     end
     object EditDispatchKey: THotKey
       Left = 85
       Top = 54
-      Width = 121
+      Width = 111
       Height = 24
       Cursor = crIBeam
       Hint = #38544#34255#21518#20351#29992#36825#20010#24555#25463#38190#21484#21796#25105#12290
       HotKey = 8314
       InvalidKeys = [hcNone, hcShift, hcAlt]
       Modifiers = [hkShift]
-      TabOrder = 3
+      TabOrder = 1
       OnChange = EditDispatchKeyChange
     end
     object btnHideCtrl: TButton
-      Left = 210
+      Left = 202
       Top = 53
-      Width = 57
+      Width = 76
       Height = 25
       Caption = #38544#34255'(&D)'
-      TabOrder = 4
+      TabOrder = 2
       OnClick = btnHideCtrlClick
     end
   end
@@ -382,8 +349,8 @@ object frmControl: TfrmControl
     end
   end
   object grpTiming: TRadioGroup
-    Left = 856
-    Top = 8
+    Left = 879
+    Top = 411
     Width = 169
     Height = 81
     Caption = #26102#38388#36724#27169#24335
@@ -399,7 +366,7 @@ object frmControl: TfrmControl
   object Statusbar: TStatusBar
     Left = 0
     Top = 498
-    Width = 1164
+    Width = 1053
     Height = 19
     Panels = <
       item
@@ -422,10 +389,10 @@ object frmControl: TfrmControl
       end>
   end
   object ListComments: TListView
-    Left = 295
+    Left = 292
     Top = 8
-    Width = 553
-    Height = 453
+    Width = 577
+    Height = 427
     Columns = <
       item
         Caption = 'Q'
@@ -477,31 +444,11 @@ object frmControl: TfrmControl
   end
   object grpComm: TGroupBox
     Left = 8
-    Top = 366
+    Top = 360
     Width = 281
-    Height = 129
+    Height = 135
     Caption = #36890#20449#35774#23450
     TabOrder = 6
-    object radioNetPasv: TRadioButton
-      Left = 8
-      Top = 20
-      Width = 73
-      Height = 17
-      Caption = 'UDP'#34987#21160
-      Checked = True
-      TabOrder = 0
-      TabStop = True
-      OnClick = radioNetPasvClick
-    end
-    object radioNetPort: TRadioButton
-      Left = 8
-      Top = 43
-      Width = 73
-      Height = 17
-      Caption = 'HTTP'#20027#21160
-      TabOrder = 1
-      OnClick = radioNetPortClick
-    end
     object editNetPassword: TLabeledEdit
       Left = 144
       Top = 75
@@ -512,7 +459,7 @@ object frmControl: TfrmControl
       EditLabel.Caption = #23494#30721'(&B)'
       LabelPosition = lpLeft
       PasswordChar = '*'
-      TabOrder = 2
+      TabOrder = 0
       OnChange = editNetPasswordChange
     end
     object editNetPort: TLabeledEdit
@@ -526,7 +473,7 @@ object frmControl: TfrmControl
       ImeMode = imClose
       LabelPosition = lpLeft
       NumbersOnly = True
-      TabOrder = 3
+      TabOrder = 1
       OnChange = editNetPortChange
     end
     object editNetHost: TLabeledEdit
@@ -539,7 +486,7 @@ object frmControl: TfrmControl
       EditLabel.Caption = #22320#22336'(&U)'
       ImeMode = imClose
       LabelPosition = lpLeft
-      TabOrder = 4
+      TabOrder = 2
     end
     object ChkAutoStartNet: TCheckBox
       Left = 145
@@ -547,32 +494,39 @@ object frmControl: TfrmControl
       Width = 129
       Height = 17
       Caption = #21551#21160#21518#24320#22987#36890#20449'(&C)'
-      TabOrder = 5
-    end
-    object radioNetTransmit: TRadioButton
-      Left = 8
-      Top = 66
-      Width = 73
-      Height = 17
-      Caption = 'TCP'#20013#32487
-      Enabled = False
-      TabOrder = 6
-      OnClick = radioNetTransmitClick
+      TabOrder = 3
     end
     object btnNetStart: TButton
       Left = 8
-      Top = 97
+      Top = 102
       Width = 89
       Height = 24
       Caption = #24320#22987#36890#20449'(&M)'
-      TabOrder = 7
+      TabOrder = 4
       OnClick = btnNetStartClick
+    end
+    object RadioGroupModes: TRadioGroup
+      Left = 7
+      Top = 18
+      Width = 88
+      Height = 81
+      Margins.Left = 0
+      Margins.Top = 0
+      Margins.Right = 0
+      Margins.Bottom = 0
+      Caption = #27169#24335
+      Items.Strings = (
+        'U&DP'#30417#21548
+        'HTTP'#36718#35810
+        'TCP'#36716#21457)
+      TabOrder = 5
+      OnClick = RadioGroupModesClick
     end
   end
   object btnOpenFilter: TButton
-    Left = 635
+    Left = 376
     Top = 467
-    Width = 89
+    Width = 81
     Height = 25
     Caption = #36807#28388#21015#34920'(&X)'
     TabOrder = 7
@@ -580,7 +534,7 @@ object frmControl: TfrmControl
   end
   object btnSaveComment: TButton
     Left = 295
-    Top = 467
+    Top = 441
     Width = 75
     Height = 25
     Caption = #20445#23384#24377#24149'(&Y)'
@@ -589,7 +543,7 @@ object frmControl: TfrmControl
     OnClick = btnSaveCommentClick
   end
   object btnLoadComment: TButton
-    Left = 372
+    Left = 295
     Top = 467
     Width = 75
     Height = 25
@@ -598,169 +552,18 @@ object frmControl: TfrmControl
     TabOrder = 9
     OnClick = btnLoadCommentClick
   end
-  object grpDebug: TGroupBox
-    Left = 855
-    Top = 371
-    Width = 297
-    Height = 121
-    Caption = 'Debug Tools (Be Careful)'
-    TabOrder = 10
-    object editTimingInv: TLabeledEdit
-      Left = 249
-      Top = 20
-      Width = 25
-      Height = 25
-      EditLabel.Width = 72
-      EditLabel.Height = 17
-      EditLabel.Caption = #39134#34892#31227#21160#38388#38548
-      LabelPosition = lpLeft
-      NumbersOnly = True
-      TabOrder = 0
-      Text = '50'
-      OnChange = editTimingInvChange
-    end
-    object editTimingInvUpDown: TUpDown
-      Left = 274
-      Top = 20
-      Width = 16
-      Height = 25
-      Associate = editTimingInv
-      Increment = 5
-      Position = 50
-      TabOrder = 1
-    end
-    object EditHTTPInterval: TLabeledEdit
-      Left = 232
-      Top = 85
-      Width = 41
-      Height = 25
-      EditLabel.Width = 78
-      EditLabel.Height = 17
-      EditLabel.Caption = 'HTTP'#26816#27979#38388#38548
-      LabelPosition = lpLeft
-      NumbersOnly = True
-      TabOrder = 2
-      Text = '5000'
-      OnChange = EditHTTPIntervalChange
-    end
-    object UpDownHTTPInterval: TUpDown
-      Left = 273
-      Top = 85
-      Width = 17
-      Height = 25
-      Associate = EditHTTPInterval
-      Min = 1000
-      Max = 60000
-      Increment = 100
-      Position = 5000
-      TabOrder = 3
-      Thousands = False
-    end
-    object CheckBoxHTTPLog: TCheckBox
-      Left = 8
-      Top = 24
-      Width = 137
-      Height = 17
-      Caption = #35760#24405'HTTP'#36890#35759#26085#24535'(&I)'
-      Checked = True
-      Enabled = False
-      State = cbChecked
-      TabOrder = 4
-    end
-    object EditTimespanDiscarded: TLabeledEdit
-      Left = 263
-      Top = 54
-      Width = 27
-      Height = 25
-      EditLabel.Width = 86
-      EditLabel.Height = 17
-      EditLabel.Caption = #20002#24323#36807#26399#24377#24149'(s)'
-      LabelPosition = lpLeft
-      NumbersOnly = True
-      TabOrder = 5
-      Text = '30'
-    end
-    object ButtonTerminateThread: TButton
-      Left = 5
-      Top = 54
-      Width = 75
-      Height = 25
-      Caption = #20572#27490#32447#31243
-      TabOrder = 6
-      OnClick = ButtonTerminateThreadClick
-    end
-    object ButtonStartThreads: TButton
-      Left = 86
-      Top = 54
-      Width = 75
-      Height = 25
-      Caption = #21551#21160#32447#31243
-      TabOrder = 7
-      OnClick = ButtonStartThreadsClick
-    end
-    object EditHTTPTimeout: TLabeledEdit
-      Left = 88
-      Top = 85
-      Width = 41
-      Height = 25
-      EditLabel.Width = 78
-      EditLabel.Height = 17
-      EditLabel.Caption = 'HTTP'#36229#26102#26102#38388
-      LabelPosition = lpLeft
-      NumbersOnly = True
-      TabOrder = 8
-      Text = '3000'
-      OnChange = EditHTTPTimeoutChange
-    end
-    object EditDiscardSeconds: TLabeledEdit
-      Left = 263
-      Top = 54
-      Width = 27
-      Height = 25
-      EditLabel.Width = 86
-      EditLabel.Height = 17
-      EditLabel.Caption = #20002#24323#36807#26399#24377#24149'(s)'
-      Enabled = False
-      LabelPosition = lpLeft
-      NumbersOnly = True
-      TabOrder = 9
-      Text = '30'
-    end
-    object UpDownHTTPTimeout: TUpDown
-      Left = 129
-      Top = 85
-      Width = 16
-      Height = 25
-      Associate = EditHTTPTimeout
-      Min = 100
-      Max = 10000
-      Increment = 100
-      Position = 3000
-      TabOrder = 10
-      Thousands = False
-    end
-  end
-  object Log: TMemo
-    Left = 856
-    Top = 96
-    Width = 297
-    Height = 269
-    ReadOnly = True
-    ScrollBars = ssVertical
-    TabOrder = 11
-  end
   object btnExit: TButton
-    Left = 776
+    Left = 808
     Top = 467
     Width = 65
     Height = 25
     Caption = #36864#20986'(&E)'
-    TabOrder = 12
+    TabOrder = 10
     OnClick = btnExitClick
   end
   object btnEscAll: TButton
-    Left = 453
-    Top = 467
+    Left = 376
+    Top = 441
     Width = 81
     Height = 25
     Caption = #32039#24613#27827#34809'(&N)'
@@ -770,38 +573,101 @@ object frmControl: TfrmControl
     Font.Name = #24494#36719#38597#40657
     Font.Style = []
     ParentFont = False
-    TabOrder = 13
+    TabOrder = 11
   end
   object BtnFreezing: TButton
-    Left = 1032
-    Top = 64
-    Width = 121
+    Left = 967
+    Top = 388
+    Width = 80
     Height = 25
     Hint = #24314#35758#20808#35774#23450#33258#23450#20041#26102#38388'0:0:0'#20877#24405#21046#12290
     Caption = #20923#32467#24320#20851'(&V)'
     Enabled = False
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 14
+    TabOrder = 12
     OnClick = BtnFreezingClick
   end
   object DelayProgBar: TProgressBar
-    Left = 1032
-    Top = 32
-    Width = 121
+    Left = 879
+    Top = 392
+    Width = 81
     Height = 17
     BorderWidth = 1
     Smooth = True
-    TabOrder = 15
+    TabOrder = 13
   end
   object btnClearList: TButton
-    Left = 540
-    Top = 467
-    Width = 89
+    Left = 463
+    Top = 441
+    Width = 82
     Height = 25
     Caption = #28165#31354#21015#34920'(&J)'
-    TabOrder = 16
+    TabOrder = 14
     OnClick = btnClearListClick
+  end
+  object ButtonStartThreads: TButton
+    Left = 129
+    Top = 24
+    Width = 75
+    Height = 25
+    Caption = #21551#21160#32447#31243
+    TabOrder = 15
+    OnClick = ButtonStartThreadsClick
+  end
+  object ButtonTerminateThread: TButton
+    Left = 210
+    Top = 24
+    Width = 75
+    Height = 25
+    Caption = #20572#27490#32447#31243
+    TabOrder = 16
+    OnClick = ButtonTerminateThreadClick
+  end
+  object BtnLogShow: TButton
+    Left = 463
+    Top = 467
+    Width = 82
+    Height = 25
+    Caption = #26174#31034#26085#24535'(&R)'
+    TabOrder = 17
+    OnClick = BtnLogShowClick
+  end
+  object BtnConfig: TButton
+    Left = 551
+    Top = 467
+    Width = 82
+    Height = 25
+    Caption = #20462#25913#37197#32622
+    TabOrder = 18
+    OnClick = BtnConfigClick
+  end
+  object BtnReloadCfg: TButton
+    Left = 551
+    Top = 441
+    Width = 82
+    Height = 25
+    Caption = #37325#36733#37197#32622
+    TabOrder = 19
+    OnClick = BtnReloadCfgClick
+  end
+  object StatValueList: TValueListEditor
+    Left = 879
+    Top = 8
+    Width = 166
+    Height = 374
+    DisplayOptions = [doColumnTitles]
+    DoubleBuffered = True
+    KeyOptions = [keyUnique]
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goRowSelect, goThumbTracking]
+    ParentDoubleBuffered = False
+    TabOrder = 20
+    TitleCaptions.Strings = (
+      #32479#35745#39033
+      #20540)
+    ColWidths = (
+      96
+      64)
   end
   object TimerGeneral: TTimer
     Interval = 500
