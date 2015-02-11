@@ -16,9 +16,10 @@ type
     FBlend: BLENDFUNCTION;
     FQueue: PRenderUnitQueue;
     FRefFPS, FCriticalInterval, FMinInterval, FMaxInterval: Integer;
-    FStopwatch: TStopwatch;
+    FStopwatch, FSleepwatch: TStopwatch;
     FSCount, FSElaspedMS, FWOverFPS, FWOverMin, FWOverMax: Int64;
     procedure Execute; override;
+    procedure AccurateSleep(Millisecond: Cardinal);
     procedure ReportLog(Info: string; Level: TLogType = logInfo);
   public
     property SCount: Int64 read FSCount;
@@ -36,17 +37,17 @@ uses
   Important: Methods and properties of objects in visual components can only be
   used in a method called using Synchronize, for example,
 
-      Synchronize(UpdateCaption);  
+      Synchronize(UpdateCaption);
 
   and UpdateCaption could look like,
 
     procedure TUpdateThread.UpdateCaption;
     begin
       Form1.Caption := 'Updated in a thread';
-    end; 
-    
-    or 
-    
+    end;
+
+    or
+
     Synchronize( 
       procedure 
       begin
@@ -80,6 +81,7 @@ begin
   ReportLog(Format('帧间隔 %u ms',[FCriticalInterval]));
   FStopwatch := TStopwatch.Create;
   if FStopwatch.IsHighResolution then ReportLog(Format('支持高精度计时，精度：%u',[FStopwatch.Frequency]));
+  FSleepwatch := TStopwatch.Create;
   FSCount := 0;
   FSElaspedMS := 0;
   FWOverFPS := 0;
@@ -93,6 +95,8 @@ destructor TUpdateThread.Destroy;
 begin
   FStopwatch.Stop;
   FreeAndNil(FStopwatch);
+  FSleepwatch.Stop;
+  FreeAndNil(FSleepwatch);
 end;
 
 procedure TUpdateThread.Execute;
@@ -101,7 +105,7 @@ var
   CurrentRenderUnit: TRenderUnit;
   WindowSize: SIZE;
   ScreenHDC: HDC;
-  RenderElasped, RenderDelay: Int64;
+  BeforeRender, RenderElasped, RenderDelay: Int64;
 begin
   NameThreadForDebugging('Update');
   { Place thread code here }
@@ -133,6 +137,7 @@ begin
       Exit;
     end;
     FStopwatch.Stop;
+    BeforeRender := FStopwatch.ElapsedMilliseconds;
     UpdateS.Acquire; // Queue is MAYBE not empty
     FStopwatch.Start;
     Inc(FSCount);
@@ -155,7 +160,7 @@ begin
     FStopwatch.Reset;
     FStopwatch.Start;
     FSElaspedMS := FSElaspedMS + RenderElasped;
-    RenderElasped := FSElaspedMS div FSCount; // Averaged time used
+    RenderElasped := (RenderElasped - BeforeRender) + (SElaspedMS div FSCount - FCriticalInterval); // This time +- Average offset
     if RenderElasped > FCriticalInterval then begin
       // FPS too high to meet
       Inc(FWOverFPS);
@@ -171,8 +176,22 @@ begin
         RenderDelay := FMinInterval;
         Inc(FWOverMin);
       end;
-      Sleep(RenderDelay);
+      AccurateSleep(RenderDelay);
     end;
+  end;
+end;
+
+procedure TUpdateThread.AccurateSleep(Millisecond: Cardinal);
+begin
+  try
+    repeat
+      FSleepwatch.Start;
+      Sleep(1);
+      FSleepwatch.Stop;
+    until (FSleepwatch.ElapsedMilliseconds >= Millisecond);
+  finally
+    FSleepwatch.Stop;
+    FSleepwatch.Reset;
   end;
 end;
 

@@ -30,6 +30,8 @@ type
 type
   TBrushDict = TDictionary<TAlphaColor,GpBrush>;
 type
+  TFontDict = TDictionary<string, GPFont>;
+type
   TCommentIndexList = TList<Integer>;
 type
   TRenderThread = class(TThread)
@@ -43,12 +45,13 @@ type
     destructor Destroy(); override;
   protected
     // Cycle Counter
-    FCounter, FRenderMS, FOverheadMS: Int64;
+    FCounter, FRenderMS, FOverheadMS, FQueueFull: Int64;
     FStopwatch: TStopwatch;
     // GUI Variables
     FMainHandle: HWND;
     FWidth: Integer;
     FHeight: Integer;
+    FHeightZoom: Single;
     FBorderWidth: Single;
     MinFS: Integer;
     FRefInterval, FMaxMovement: Integer;
@@ -59,6 +62,7 @@ type
     // Reuseable GDI+ Resource
     FFFDict: TFontFamilyDict;
     FSBDict: TBrushDict;
+    FFPDict: TFontDict;
     FPGraphic: GpGraphics;
     FPStringFormat: GPSTRINGFORMAT;
     FPPath: GPPATH;
@@ -70,6 +74,7 @@ type
     procedure Execute; override;
     function GetPossibleConflicts(FromPos, ToPos: Integer; Layer: Integer = 0): TCommentIndexList;
     function GetFontFamily(AFontName: WideString): GpFontFamily;
+    function GetFont(AFontName: WideString; AFontSize: Single; AFontStyle: Integer): GpFont;
     function GetSolidBrush(AColor: TAlphaColor): GpBrush;
     procedure GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; var OHeight: Integer);
     procedure Remove(ALiveComment: TLiveComment);
@@ -79,6 +84,7 @@ type
     procedure NotifyStatusChanged(CommentID: Integer);
   public
     property FramesCount: Int64 read FCounter;
+    property QueueFullCount: Int64 read FQueueFull;
     property RenderMS: Int64 read FRenderMS;
     property OverheadMS: Int64 read FOverheadMS;
   end;
@@ -125,19 +131,22 @@ constructor TRenderThread.Create(Handle: HWND; Width: Integer; Height: Integer; 
 begin
   FCounter := 0;
   FRenderMS := 0;
+  FQueueFull := 0;
   FStopwatch := TStopwatch.Create;
   FMainHandle := Handle;
   FWidth := Width;
   FHeight := Height;
   FRefInterval := 1000 div frmConfig.IntegerItems['Display.ReferenceFPS'];
   FMaxMovement := frmConfig.IntegerItems['Display.MaxMovement'];
+  FHeightZoom := frmConfig.IntegerItems['Display.HeightZoom'] / 100;
   FFFDict := TFontFamilyDict.Create();
   FSBDict := TBrushDict.Create();
+  FFPDict := TFontDict.Create();
 
   GdipCreateFromHWND(FMainHandle,FPGraphic);
-  GdipCreateStringFormat(0,LANG_NEUTRAL,FPStringFormat);
+  GdipStringFormatGetGenericTypographic(FPStringFormat);
   GdipCreatePath(FillModeAlternate,FPPath);
-  GdipCreatePen1(StringToAlphaColor(frmConfig.StringItems['Display.BorderColor']), frmConfig.IntegerItems['Display.BorderWidth'].ToSingle, UnitWorld, FPPen);
+  if frmConfig.IntegerItems['Display.BorderWidth'] > 0 then GdipCreatePen1(StringToAlphaColor(frmConfig.StringItems['Display.BorderColor']), frmConfig.IntegerItems['Display.BorderWidth'].ToSingle, UnitWorld, FPPen);
 
   MinFS := 65535;
   if not Assigned(RenderList) then raise Exception.Create('TLiveComment render list is not initialized.');
@@ -160,18 +169,21 @@ end;
 destructor TRenderThread.Destroy;
 var
   P: GpFontFamily;
+  FP: GpFont;
   SP: GpBrush;
 begin
   inherited Destroy();
   FreeAndNil(FStopwatch);
   GdipDeleteGraphics(FPGraphic);
-  GdipDeleteStringFormat(FPSTRINGFORMAT);
-  GdipDeletePen(FPPen);
+  GdipDeleteStringFormat(FPStringFormat);
+  if Assigned(FPPen) then GdipDeletePen(FPPen);
   GdipDeletePath(FPPath);
   for P in FFFDict.Values do begin
     GdipDeleteFontFamily(P);
   end;
   FFFDict.Free;
+  for FP in FFPDict.Values do GdipDeleteFont(FP);
+  FFPDict.Free;
   for SP in FSBDict.Values do GdipDeleteBrush(SP);
   FSBDict.Free;
 end;
@@ -436,13 +448,13 @@ begin
           Exit;
         end;
         if FUpdateQueue.Count >= FUpdateQueue.Capacity then begin
-          //{$IFDEF DEBUG}ReportLog('显示队列满');{$ENDIF}
           SleepThisCycle := True;
         end;
       finally
         UpdateQueueMutex.Release;
       end;
       if SleepThisCycle then begin
+        Inc(FQueueFull);
         Sleep(10);
         Continue;
       end;
@@ -463,7 +475,7 @@ begin
       if LivePoolCount > 0 then DoUpdatePool(); // Iteration to local data structure and do update/delete
 
       FStopwatch.Stop;
-      FOverheadMS := FStopwatch.ElapsedMilliseconds;
+      FOverheadMS := FOverheadMS + FStopwatch.ElapsedMilliseconds;
       FStopwatch.Reset;
 
       if Self.Terminated then begin // Signalled to be terminated
@@ -521,7 +533,7 @@ var
 begin
   GdipCreateFromHDC(ARenderUnit.hDC,PGraphic);
   GdipSetSmoothingMode(PGraphic,SmoothingModeAntiAlias);
-  //GdipSetInterpolationMode(PGraphic,InterpolationModeHighQualityBicubic);
+  GdipSetInterpolationMode(PGraphic,InterpolationModeHighQualityBicubic);
   GdipResetPath(FPPath);
   for ACommentUnit in FRenderBuffer.Values do begin
     if ACommentUnit.Length = 0 then Continue;
@@ -531,12 +543,12 @@ begin
     StrRect.Height := 0;
     GdipAddPathStringI(FPPath, ACommentUnit.PString, ACommentUnit.Length,
       ACommentUnit.PFontFamily, ACommentUnit.FontStyle, ACommentUnit.FontSize, @StrRect, FPStringFormat);
-    //GdipDrawPath(PGraphic, FPPen, FPPath);
+    if Assigned(FPPen) then GdipDrawPath(PGraphic, FPPen, FPPath);
     GdipFillPath(PGraphic, GetSolidBrush(ACommentUnit.FillColor), FPPath);
     GdipResetPath(FPPath);
   end;
-  GraphicSharedMutex.Acquire;
-  try
+  {GraphicSharedMutex.Acquire;
+  try}
     if Length(MTitleText) > 0 then begin // Display the Title
       StrRect.X := MTitleLeft;
       StrRect.Y := MTitleTop;
@@ -547,9 +559,9 @@ begin
       GdipDrawPath(PGraphic, FPPen, FPPath);
       GdipFillPath(PGraphic, GetSolidBrush(MTitleFontColor), FPPath);
     end;
-  finally
+  {finally
     GraphicSharedMutex.Release;
-  end;
+  end;}
   {$IFDEF DEBUG_DIM}GdipDrawLine(PGraphic, FPPen, 0,0,FWidth,FHeight);{$ENDIF}
   GdipDeleteGraphics(PGraphic);
 end;
@@ -564,6 +576,21 @@ begin
     GdipCreateFontFamilyFromName(PWideChar(AFontName),nil,PFontFamily);
     FFFDict.Add(AFontName,PFontFamily);
     Result := PFontFamily;
+  end;
+end;
+
+function TRenderThread.GetFont(AFontName: WideString; AFontSize: Single; AFontStyle: Integer): GpFont;
+var
+  Key: string;
+  PFont: GpFont;
+begin
+  Key := Format('%s:%.1f:%u', [AFontName, AFontSize, AFontStyle]);
+  if FFPDict.ContainsKey(Key) then
+    Result := FFPDict.Items[Key]
+  else begin
+    GdipCreateFont(GetFontFamily(AFontName),AFontSize,AFontStyle,0,PFont);
+    FFPDict.Add(Key,PFont);
+    Result := PFont;
   end;
 end;
 
@@ -583,30 +610,28 @@ end;
 procedure TRenderThread.GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; var OHeight: Integer);
 var
   Rect, ResultRect: TIGPRectF;
-  PFont: GPFONT;
 begin
-  GdipCreateFont(GetFontFamily(AFormat.FontName),AFormat.FontSize,AFormat.FontStyle,0,PFont);
   Rect.X := 0;
   Rect.Y := 0;
   Rect.Width := 0;
   Rect.Height := 0;
-  try
-    GdipMeasureString(
-        FPGraphic,
-        PWideChar(AStr),
-        Length(AStr),
-        PFont,
-        @Rect,
-        nil,
-        @ResultRect,
-        nil,
-        nil
-    );
-  finally
-    GdipDeleteFont(PFont);
-  end;
+  GdipMeasureString(
+      FPGraphic,
+      PWideChar(AStr),
+      Length(AStr),
+      GetFont(AFormat.FontName, AFormat.FontSize, AFormat.FontStyle),
+      @Rect,
+      FPStringFormat,
+      @ResultRect,
+      nil,
+      nil
+  );
   OWidth := Round(ResultRect.Width);
-  OHeight := Round(ResultRect.Height);
+  if FHeightZoom > 0.1 then
+    OHeight := Round(ResultRect.Height)
+  else
+    OHeight := Round(FHeightZoom * AFormat.FontSize);
+  {$IFDEF DEBUG_HEIGHT}ReportLog(Format('测量大小 %s %u * %u',[AStr, OWidth, OHeight]), logDebug);{$ENDIF}
 end;
 
 procedure TRenderThread.Remove(ALiveComment: TLiveComment);

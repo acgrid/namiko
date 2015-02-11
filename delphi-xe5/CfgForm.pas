@@ -310,6 +310,7 @@ begin
   MyConfig.Add(TIntegerConfiguration.Create('Display','MinInterval','最小刷新间隔(ms)',5,1,1000,5));
   MyConfig.Add(TIntegerConfiguration.Create('Display','MaxInterval','最大刷新间隔(ms)',100,1,1000,5));
   MyConfig.Add(TIntegerConfiguration.Create('Display','MaxMovement','最大移动长度(px)',100,1,1000,5));
+  MyConfig.Add(TIntegerConfiguration.Create('Display','HeightZoom','弹幕高度/字号比例(%)，0为自动测量',0,0,150,10));
   MyConfig.Add(TIntegerConfiguration.Create('Display','BorderWidth','弹幕描边大小',2,0,5,1));
   MyConfig.Add(TStringConfiguration.Create('Display','BorderColor','弹幕描边颜色','#FF000000'));
   MyConfig.Add(TStringConfiguration.Create('Title','Text','官方标题内容',''));

@@ -16,6 +16,7 @@ type
     Logger: TIdLogFile;
     FURL: string;
     FTimeOffset: Integer;
+    FRemoteTimeOffset: Integer;
     FKey: string;
     FInterval: Integer;
     FRetryDelay: Integer;
@@ -38,6 +39,7 @@ type
     property ReqErrCount: Int64 read FReqErrCount;
     property ReqTotalMS: Int64 read FReqTotalMS;
     property ReqLastMS: Int64 read FReqLastMS;
+    property ServerTimeOffset: Integer read FTimeOffset;
   end;
 
 implementation
@@ -125,7 +127,6 @@ end;
 procedure THTTPWorkerThread.Execute;
 var
   RequestID, ElaspedMS: Int64;
-  RemoteTimeOffset: Integer;
   Response: string;
   LJSONObject: TJSONObject;
   JResult, JTimestamp, JLastID: TJSONPair;
@@ -147,8 +148,8 @@ begin
             JLastID := LJSONObject.Get('FrontID');
             if Assigned(JTimestamp) and Assigned(JLastID) then begin
               RequestID := StrToInt64(JLastID.JsonValue.Value);
-              RemoteTimeOffset := DateTimeToUnix(Now()) - (StrToInt64(JTimestamp.JsonValue.Value()) - FTimeOffset); // DateTimeToUnix is local timestamp - (PHP's UTC timestamp - offset of local to UTC)
-              ReportLog(Format('[HTTP] 测试成功，本地-远程时间差%d秒 开始接收网络弹幕',[RemoteTimeOffset]));
+              FRemoteTimeOffset := DateTimeToUnix(Now()) - (StrToInt64(JTimestamp.JsonValue.Value()) - FTimeOffset); // DateTimeToUnix is local timestamp - (PHP's UTC timestamp - offset of local to UTC)
+              ReportLog(Format('测试成功，本地-远程时间差%d秒 开始接收网络弹幕',[FRemoteTimeOffset]));
               Synchronize(procedure begin
                 with frmControl do begin
                   Networking := True;
@@ -297,7 +298,7 @@ begin
             if ThisID > NextID then NextID := ThisID;
           end;
           if TJSONPair(LItem).JsonString.Value = 'Timestamp' then begin
-            RTime := UnixToDateTime(StrToInt64(TJSONPair(LItem).JsonValue.Value()) - FTimeOffset);
+            RTime := UnixToDateTime(StrToInt64(TJSONPair(LItem).JsonValue.Value()) - FTimeOffset + FRemoteTimeOffset);
             TimeFound := True;
           end;
           if TJSONPair(LItem).JsonString.Value = 'IP' then begin

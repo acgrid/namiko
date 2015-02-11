@@ -657,27 +657,37 @@ begin
 end;
 
 procedure TfrmControl.TimerGeneralTimer(Sender: TObject);
+var
+  TimeNow: TTime;
 begin
   {case grpTiming.ItemIndex of
     0: InternalTime := Time();
     1,2: if not Freezing then InternalTime := InternalTime + TimerGeneral.Interval / 86400000;
   end;
   if RemoteTime <> 0 then RemoteTime := RemoteTime + TimerGeneral.Interval / 86400000;}
-  StatusBar.Panels[1].Text := Format('当前显示 %u',[0]);
-  StatusBar.Panels[2].Text := Format('已显示/总共 %u/%u',[0,0]);
-  StatusBar.Panels[3].Text := '内部 '+TimeToStr(InternalTime);
-  StatusBar.Panels[4].Text := '远程 '+Ifthen(Boolean(RemoteTime = 0),'未知',TimeToStr(RemoteTime));
-  StatusBar.Panels[5].Text := '本地 '+TimeToStr(Time());
+  TimeNow := Time();
+  if CommentPool.Count > 0 then begin
+    StatusBar.Panels[1].Text := Format('弹幕数 %u',[CommentPool.Last.ID]);
+    StatusBar.Panels[2].Text := Format('最近弹幕 %s',[TimeToStr(CommentPool.Last.Time)]);
+  end
+  else begin
+    StatusBar.Panels[1].Text := '无弹幕';
+    StatusBar.Panels[2].Text := '-';
+  end;
+
+  StatusBar.Panels[3].Text := '调度 '+TimeToStr(TimeNow);
+  StatusBar.Panels[5].Text := '本地 '+TimeToStr(TimeNow);
   // STAT
   if Assigned(HThread) and HThread.Started and (HThread.ReqCount > 0) then begin
     with HThread do begin
+      StatusBar.Panels[4].Text := '远程 ' + TimeToStr(TimeNow - ServerTimeOffset / 86400000);
       StatValueList.Values['HTTP已请求'] := IntToStr(ReqCount);
       StatValueList.Values['HTTP连超时'] := IntToStr(ReqConnTCCount);
       StatValueList.Values['HTTP读超时'] := IntToStr(ReqReadTCCount);
       StatValueList.Values['HTTP被关闭'] := IntToStr(ReqClosedCount);
       StatValueList.Values['HTTP错误'] := IntToStr(ReqErrCount);
-      StatValueList.Values['HTTP平均T'] := Format('%.2f s',[ReqTotalMS / 1000 / ReqCount]);
-      StatValueList.Values['HTTP上次T'] := Format('%.2f s',[ReqLastMS / 1000]);
+      StatValueList.Values['HTTP平均耗时'] := Format('%.2f s',[ReqTotalMS / 1000 / ReqCount]);
+      StatValueList.Values['HTTP上次耗时'] := Format('%.2f s',[ReqLastMS / 1000]);
     end;
   end;
   if Assigned(RThread) and RThread.Started then begin
@@ -686,6 +696,7 @@ begin
       StatValueList.Values['已绘制秒'] := Format('%.2f',[RenderMS / 1000]);
       StatValueList.Values['绘制帧率'] := Format('%.3ffps',[FramesCount / (RenderMS / 1000)]);
       StatValueList.Values['绘制开销'] := IntToStr(OverheadMS);
+      StatValueList.Values['绘制队列满'] := IntToStr(QueueFullCount);
     end;
   end;
   if Assigned(UThread) and UThread.Started then begin
