@@ -276,7 +276,7 @@ var
   RTime, LTime: TDateTime;
   ThisAuthor: TCommentAuthor;
   ThisFormat: TCommentFormat;
-  Content, HexieString: string;
+  Content: string;
   HexieIndex: Integer;
   TimeFound, IPFound, ContentFound: Boolean;
 begin

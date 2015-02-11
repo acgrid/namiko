@@ -32,7 +32,7 @@ object frmControl: TfrmControl
     Top = 0
     Width = 281
     Height = 86
-    Caption = #31383#21475#25511#21046
+    Caption = #25511#21046
     TabOrder = 0
     object lblCallConsole: TLabel
       Left = 7
@@ -43,8 +43,8 @@ object frmControl: TfrmControl
     end
     object btnCCWork: TButton
       Left = 7
-      Top = 24
-      Width = 107
+      Top = 23
+      Width = 90
       Height = 25
       Caption = #27979#35797#31383#21475'(&W)'
       TabOrder = 0
@@ -423,7 +423,7 @@ object frmControl: TfrmControl
     Top = 360
     Width = 281
     Height = 135
-    Caption = #36890#20449#35774#23450
+    Caption = #36890#20449
     TabOrder = 6
     object editNetPassword: TLabeledEdit
       Left = 144
@@ -457,9 +457,9 @@ object frmControl: TfrmControl
       Top = 44
       Width = 129
       Height = 25
-      EditLabel.Width = 41
+      EditLabel.Width = 42
       EditLabel.Height = 17
-      EditLabel.Caption = #22320#22336'(&U)'
+      EditLabel.Caption = #22320#22336'(&Q)'
       ImeMode = imClose
       LabelPosition = lpLeft
       TabOrder = 2
@@ -469,7 +469,7 @@ object frmControl: TfrmControl
       Top = 105
       Width = 129
       Height = 17
-      Caption = #21551#21160#21518#24320#22987#36890#20449'(&C)'
+      Caption = #21551#21160#21518#24320#22987#36890#20449
       TabOrder = 3
     end
     object btnNetStart: TButton
@@ -485,16 +485,16 @@ object frmControl: TfrmControl
       Left = 7
       Top = 18
       Width = 88
-      Height = 81
+      Height = 80
       Margins.Left = 0
       Margins.Top = 0
       Margins.Right = 0
       Margins.Bottom = 0
       Caption = #27169#24335
       Items.Strings = (
-        'U&DP'#30417#21548
-        'HTTP'#36718#35810
-        'TCP'#36716#21457)
+        '&UDP'#30417#21548
+        '&HTTP'#36718#35810
+        'T&CP'#36716#21457)
       TabOrder = 5
       OnClick = RadioGroupModesClick
     end
@@ -550,10 +550,11 @@ object frmControl: TfrmControl
     Font.Style = []
     ParentFont = False
     TabOrder = 11
+    OnClick = btnEscAllClick
   end
   object BtnFreezing: TButton
-    Left = 967
-    Top = 388
+    Left = 702
+    Top = 441
     Width = 80
     Height = 25
     Hint = #24314#35758#20808#35774#23450#33258#23450#20041#26102#38388'0:0:0'#20877#24405#21046#12290
@@ -565,8 +566,8 @@ object frmControl: TfrmControl
     OnClick = BtnFreezingClick
   end
   object DelayProgBar: TProgressBar
-    Left = 879
-    Top = 392
+    Left = 788
+    Top = 444
     Width = 81
     Height = 17
     BorderWidth = 1
@@ -584,19 +585,19 @@ object frmControl: TfrmControl
   end
   object ButtonStartThreads: TButton
     Left = 129
-    Top = 24
+    Top = 23
     Width = 75
     Height = 25
-    Caption = #21551#21160#32447#31243
+    Caption = #21551#21160'(&S)'
     TabOrder = 15
     OnClick = ButtonStartThreadsClick
   end
   object ButtonTerminateThread: TButton
     Left = 210
-    Top = 24
+    Top = 23
     Width = 75
     Height = 25
-    Caption = #20572#27490#32447#31243
+    Caption = #20572#27490'(&T)'
     TabOrder = 16
     OnClick = ButtonTerminateThreadClick
   end
@@ -605,7 +606,7 @@ object frmControl: TfrmControl
     Top = 467
     Width = 82
     Height = 25
-    Caption = #26174#31034#26085#24535'(&R)'
+    Caption = #26174#31034#26085#24535'(&O)'
     TabOrder = 17
     OnClick = BtnLogShowClick
   end
@@ -614,7 +615,7 @@ object frmControl: TfrmControl
     Top = 467
     Width = 82
     Height = 25
-    Caption = #20462#25913#37197#32622
+    Caption = #20462#25913#37197#32622'(&I)'
     TabOrder = 18
     OnClick = BtnConfigClick
   end
@@ -623,7 +624,7 @@ object frmControl: TfrmControl
     Top = 441
     Width = 82
     Height = 25
-    Caption = #37325#36733#37197#32622
+    Caption = #37325#36733#37197#32622'(&A)'
     TabOrder = 19
     OnClick = BtnReloadCfgClick
   end
@@ -631,7 +632,7 @@ object frmControl: TfrmControl
     Left = 879
     Top = 8
     Width = 166
-    Height = 374
+    Height = 397
     DisplayOptions = [doColumnTitles]
     DoubleBuffered = True
     KeyOptions = [keyUnique]

@@ -4,7 +4,7 @@ interface
 
 uses
   System.Classes, System.Types, System.SysUtils, System.UITypes, System.UIConsts,
-  IGDIPlusEmbedded, Winapi.Windows, SyncObjs, System.Generics.Collections,
+  IGDIPlusEmbedded, Winapi.Windows, SyncObjs, System.Generics.Collections, System.StrUtils,
   System.Diagnostics,
   Math, LogForm, NamikoTypes;
 
@@ -41,17 +41,19 @@ type
     MTitleFontSize: Single;
     MTitleFontColor: TAlphaColor;
     MDoUpdate: Boolean;
+    MDoEsc: Boolean;
     constructor Create(Handle: HWND; Width: Integer; Height: Integer; var RenderList: TLiveCommentCollection; var UpdateQueue: TRenderUnitQueue);
     destructor Destroy(); override;
   protected
     // Cycle Counter
-    FCounter, FRenderMS, FOverheadMS, FQueueFull: Int64;
+    FCounter, FRenderMS, FOverheadMS, FQueueFull, FScreenFull: Int64;
     FStopwatch: TStopwatch;
     // GUI Variables
     FMainHandle: HWND;
     FWidth: Integer;
     FHeight: Integer;
     FHeightZoom: Single;
+    FOverlayLimit: Integer;
     FBorderWidth: Single;
     MinFS: Integer;
     FRefInterval, FMaxMovement: Integer;
@@ -87,6 +89,7 @@ type
     property QueueFullCount: Int64 read FQueueFull;
     property RenderMS: Int64 read FRenderMS;
     property OverheadMS: Int64 read FOverheadMS;
+    property ScreenFullCount: Int64 read FScreenFull;
   end;
 
 implementation
@@ -139,6 +142,7 @@ begin
   FRefInterval := 1000 div frmConfig.IntegerItems['Display.ReferenceFPS'];
   FMaxMovement := frmConfig.IntegerItems['Display.MaxMovement'];
   FHeightZoom := frmConfig.IntegerItems['Display.HeightZoom'] / 100;
+  FOverlayLimit := frmConfig.IntegerItems['Display.OverlayLimit'];
   FFFDict := TFontFamilyDict.Create();
   FSBDict := TBrushDict.Create();
   FFPDict := TFontDict.Create();
@@ -162,8 +166,9 @@ begin
   MTitleFontSize := frmControl.MTitleFontSize;
   MTitleFontColor := frmControl.MTitleFontColor;
   MDoUpdate := True;
+  MDoEsc := False;
   inherited Create(True);
-  Priority := tpLowest;
+  Priority := tpHigher;
 end;
 
 destructor TRenderThread.Destroy;
@@ -191,7 +196,6 @@ end;
 procedure TRenderThread.Calculate(ALiveComment: TLiveComment);
 var
   AWidth, AHeight, Speed: Integer;
-  ACommentUnit: TCommentUnit;
 begin
   LiveCommentPoolMutex.Acquire;
   try
@@ -218,22 +222,10 @@ begin
         end;
       end;
     end;
-    RequestChannel(ALiveComment);
-    with ACommentUnit do begin
-      PString := PWideChar(ALiveComment.Body.Content);
-      Length := System.Length(ALiveComment.Body.Content);
-      Left := ALiveComment.Left;
-      Top := ALiveComment.Top;
-      PFontFamily := GetFontFamily(ALiveComment.Body.Format.FontName);
-      FillColor := ALiveComment.Body.Format.FontColor;
-      FontSize := ALiveComment.Body.Format.FontSize;
-      FontStyle := ALiveComment.Body.Format.FontStyle;
-    end;
-    FRenderBuffer.Add(ALiveComment.Body.ID,ACommentUnit);
-    ALiveComment.Status := LMoving;
   finally
     LiveCommentPoolMutex.Release;
   end;
+  RequestChannel(ALiveComment);
 end;
 
 procedure TRenderThread.DoUpdatePool();
@@ -258,7 +250,7 @@ begin
     if Assigned(TheComment) then begin
       case TheComment.Status of
         LCreated: Calculate(TheComment); // SET: LWait or LMoving
-        LWait: Calculate(TheComment); // SET: LMoving or none
+        LWait: RequestChannel(TheComment); // SET: LMoving or none
         LMoving: Update(TheComment); // SET: LDelete
         LDelete: Remove(TheComment);
       end;
@@ -268,52 +260,77 @@ end;
 
 procedure TRenderThread.RequestChannel(var AComment: TLiveComment);
 var
-  n,m,fs,Layer : Integer;
+  FromCh, TillCh, Height, Layer: Integer;
   Done : Boolean;
+  ACommentUnit: TCommentUnit;
 begin
-  Done := false;
+  Done := False;
   Layer := 1;
-  m := -1; //Uninit
-  n := -1; //Uninit
-  fs := AComment.Height; // TODO: Consider Use Comment.Control.Height
-  if fs < MinFS then MinFS := fs div 2; // Escape too long spaces
+  TillCh := -1; //Initialize FOverlayLimit
+  FromCh := -1; //Initialize
+  Height := AComment.Height; // TODO: Consider Use Comment.Control.Height
+  if Height < MinFS then MinFS := Height div 2; // Escape too long spaces
   case AComment.Body.Effect.Display of
     Scroll, UpperFixed: begin // Flying and Upper
       repeat
-        n := 0;
-        m := n + fs - 1;
+        FromCh := 0;
+        TillCh := FromCh + Height - 1;
         repeat
-          if not ConflictTest(AComment,n,m,Layer) then begin
-            Done := true;
-            break;
+          if not ConflictTest(AComment,FromCh,TillCh,Layer) then begin
+            Done := True;
+            Break;
           end;
-          n := n + MinFS; //inc(n); // TODO: Consider Use n := n + fs;
-          m := m + MinFS; //inc(m); // TODO: Consider Use m := m + fs;
-        until m >= FHeight;
-        if not Done then Inc(Layer);
-      until Done;
+          FromCh := FromCh + MinFS; //inc(n); // TODO: Consider Use n := n + fs;
+          TillCh := TillCh + MinFS; //inc(m); // TODO: Consider Use m := m + fs;
+        until TillCh >= FHeight;
+        if not Done and (Layer < FOverlayLimit) then Inc(Layer);
+      until Done or (Layer >= FOverlayLimit);
     end;
     LowerFixed: begin
       repeat
-        m := FHeight;
-        n := m - fs + 1;
+        TillCh := FHeight;
+        FromCh := TillCh - Height + 1;
         repeat
-          if not ConflictTest(AComment,n,m,Layer) then begin
-            Done := true;
-            break;
+          if not ConflictTest(AComment,FromCh,TillCh,Layer) then begin
+            Done := True;
+            Break;
           end;
-          n := n - MinFS; //inc(n); // TODO: Consider Use n := n + fs;
-          m := m - MinFS; //inc(m); // TODO: Consider Use m := m + fs;
-        until n <= 0;
-        if not Done then Inc(Layer);
-      until Done;
+          FromCh := FromCh - MinFS; //inc(n); // TODO: Consider Use n := n + fs;
+          TillCh := TillCh - MinFS; //inc(m); // TODO: Consider Use m := m + fs;
+        until FromCh <= 0;
+        if not Done and (Layer < FOverlayLimit) then Inc(Layer);
+      until Done or (Layer >= FOverlayLimit);
     end;
   end;
-  {$IFDEF DEBUG}ReportLog(Format('分配通道 %d 层 %d到%d',[Layer,n,m]));{$ENDIF}
-  AComment.ChannelLayer := Layer;
-  AComment.ChannelFrom := n;
-  AComment.Top := n;
-  AComment.ChannelTo := m;
+  if Done then begin
+    {$IFDEF DEBUG}ReportLog(Format('分配通道 %d 层 %d到%d',[Layer,n,m]));{$ENDIF}
+    LiveCommentPoolMutex.Acquire;
+    try
+      AComment.ChannelLayer := Layer;
+      AComment.ChannelFrom := FromCh;
+      AComment.Top := FromCh;
+      AComment.ChannelTo := TillCh;
+      AComment.Status := LMoving;
+    finally
+      LiveCommentPoolMutex.Release;
+    end;
+
+    with ACommentUnit do begin
+      PString := PWideChar(AComment.Body.Content);
+      Length := System.Length(AComment.Body.Content);
+      Left := AComment.Left;
+      Top := AComment.Top;
+      PFontFamily := GetFontFamily(AComment.Body.Format.FontName);
+      FillColor := AComment.Body.Format.FontColor;
+      FontSize := AComment.Body.Format.FontSize;
+      FontStyle := AComment.Body.Format.FontStyle;
+    end;
+    FRenderBuffer.Add(AComment.Body.ID,ACommentUnit);
+  end
+  else begin
+    AComment.Status := LWait;
+    Inc(FScreenFull);
+  end;
 end;
 
 function TRenderThread.GetPossibleConflicts(FromPos, ToPos: Integer; Layer: Integer = 0): TCommentIndexList;
@@ -325,7 +342,7 @@ begin
   for Index := 0 to FRenderList.Count - 1 do begin
     TestComment := FRenderList.Items[Index];
     if (Layer > 0) and (TestComment.ChannelLayer <> Layer) then Continue;
-    if TestComment.Status = LCreated then Continue;
+    if TestComment.Status <> LMoving then Continue;
     if (TestComment.ChannelFrom >= FromPos) and (TestComment.ChannelFrom <= ToPos) then begin Result.Add(Index); Continue; end;
     if (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) then begin Result.Add(Index); Continue; end;
     if (TestComment.ChannelTo >= FromPos) and (TestComment.ChannelTo <= ToPos) then begin Result.Add(Index); Continue; end;
@@ -333,7 +350,7 @@ begin
   {$IFDEF DEBUG}ReportLog(Format('冲突检测 %u 层 %u-%u 可疑数量%u',[Layer,FromPos,ToPos,Result.Count]));{$ENDIF}
 end;
 
-function TRenderThread.ConflictTest(AComment: TLiveComment; FromPos: Integer; ToPos: Integer; Layer: Integer=0): Boolean;
+function TRenderThread.ConflictTest(AComment: TLiveComment; FromPos: Integer; ToPos: Integer; Layer: Integer = 0): Boolean;
 var
   TestComment: TLiveComment;
   PossibleConflicts: TCommentIndexList;
@@ -353,58 +370,51 @@ begin
     end;
     for Index in PossibleConflicts do begin
       TestComment := FRenderList.Items[Index];
-      if (Layer > 0) and (TestComment.ChannelLayer <> Layer) then Continue;
       {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置0',[]));{$ENDIF}
-      if TestComment.Status <> LMoving then Continue;
-      if(TestComment.ChannelFrom >= FromPos) and (TestComment.ChannelFrom <= ToPos) or
-        (TestComment.ChannelFrom <= FromPos) and (TestComment.ChannelTo >= ToPos) or
-        (TestComment.ChannelTo >= FromPos) then begin
-        {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置2',[]));{$ENDIF}
-        case AComment.Body.Effect.Display of
-          UpperFixed: begin
-            {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置3-A',[]));{$ENDIF}
-            case TestComment.Body.Effect.Display of
-              UpperFixed: begin // #4 Up-Up: Always Conflict
-                {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置4-A',[]));{$ENDIF}
-                Result := True;
-                Exit;
-              end;
-              else begin // #3 ReqUp-PervFly
-                {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置4-B',[]));{$ENDIF}
-                Result := Boolean(TestComment.Left + TestComment.Width > AComment.Left);
-                if Result then Exit;
-              end;
+      case AComment.Body.Effect.Display of
+        UpperFixed: begin
+          {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置3-A',[]));{$ENDIF}
+          case TestComment.Body.Effect.Display of
+            UpperFixed: begin // #4 Up-Up: Always Conflict
+              {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置4-A',[]));{$ENDIF}
+              Result := True;
+              Exit;
+            end;
+            else begin // #3 ReqUp-PervFly
+              {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置4-B',[]));{$ENDIF}
+              Result := Boolean(TestComment.Left + TestComment.Width > AComment.Left);
+              if Result then Exit;
             end;
           end;
-          else begin
-            {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置3-B',[]));{$ENDIF}
-            CurrFlyTime := (AComment.Left + AComment.Width) / AComment.Body.Effect.Speed;
-            PervFlyTime := (TestComment.Left + TestComment.Width) / TestComment.Body.Effect.Speed;
-            case TestComment.Body.Effect.Display of
-              UpperFixed: begin // #2 ReqFly-PervUp
-                Result := Boolean(FWidth - (AComment.Left + AComment.Width) div AComment.Body.Effect.StayTime * TestComment.Body.Effect.StayTime >= TestComment.Left + TestComment.Width);
-                if Result then Exit;
+        end;
+        else begin
+          {$IFDEF DEBUG}ReportLog(Format('冲突检测 位置3-B',[]));{$ENDIF}
+          CurrFlyTime := (AComment.Left + AComment.Width) / AComment.Body.Effect.Speed;
+          PervFlyTime := (TestComment.Left + TestComment.Width) / TestComment.Body.Effect.Speed;
+          case TestComment.Body.Effect.Display of
+            UpperFixed: begin // #2 ReqFly-PervUp
+              Result := Boolean(FWidth - (AComment.Left + AComment.Width) div AComment.Body.Effect.StayTime * TestComment.Body.Effect.StayTime >= TestComment.Left + TestComment.Width);
+              if Result then Exit;
+            end;
+            else begin // #1 Fly-Fly
+              if LeftStr(AComment.Body.Content,1) = '@' then Exit;
+              Result := True;
+              if TestComment.Left + TestComment.Width < FWidth then begin
+                CheckTime := Min(CurrFlyTime,PervFlyTime);
+                if TestComment.Left + TestComment.Width - TestComment.Body.Effect.Speed * CheckTime <= AComment.Left - AComment.Body.Effect.Speed * CheckTime then Result := False;
               end;
-              else begin // #1 Fly-Fly
-                //if LeftStr(AComment.Body.Content,1) = '@' then Exit;
+              {if (CurrFlyTime > PervFlyTime) and (TestComment.Left + TestComment.Width < AComment.Left) then begin
+                Result := False;
+              end
+              else begin
                 Result := True;
-                if TestComment.Left + TestComment.Width < FWidth then begin
-                  CheckTime := Min(CurrFlyTime,PervFlyTime);
-                  if TestComment.Left + TestComment.Width - TestComment.Body.Effect.Speed * CheckTime <= AComment.Left - AComment.Body.Effect.Speed * CheckTime then Result := False;
-                end;
-                {if (CurrFlyTime > PervFlyTime) and (TestComment.Left + TestComment.Width < AComment.Left) then begin
-                  Result := False;
-                end
-                else begin
-                  Result := True;
-                  Exit;
-                end;}
-                {Result := False;
-                if (TestComment.Left > FWidth div 3 * 2) and (TestComment.Width < FWidth div 2) then begin
-                  Result := True;
-                  Exit;
-                end;}
-              end;
+                Exit;
+              end;}
+              {Result := False;
+              if (TestComment.Left > FWidth div 3 * 2) and (TestComment.Width < FWidth div 2) then begin
+                Result := True;
+                Exit;
+              end;}
             end;
           end;
         end;
@@ -483,7 +493,7 @@ begin
         Exit;
       end;
 
-      if (FRenderBuffer.Count > 0) or (LastCycleUnitCount > 0) or MDoUpdate then begin
+      if (FRenderBuffer.Count > 0) or (LastCycleUnitCount > 0) or MDoUpdate or MDoEsc then begin
         MDoUpdate := False;
         Inc(FCounter);
         FStopwatch.Start;
@@ -535,6 +545,16 @@ begin
   GdipSetSmoothingMode(PGraphic,SmoothingModeAntiAlias);
   GdipSetInterpolationMode(PGraphic,InterpolationModeHighQualityBicubic);
   GdipResetPath(FPPath);
+  if MDoEsc then begin
+    FRenderBuffer.Clear;
+    MDoEsc := False;
+    LiveCommentPoolMutex.Acquire;
+    try
+      FRenderList.Clear;
+    finally
+      LiveCommentPoolMutex.Release;
+    end;
+  end;
   for ACommentUnit in FRenderBuffer.Values do begin
     if ACommentUnit.Length = 0 then Continue;
     StrRect.X := ACommentUnit.Left;
