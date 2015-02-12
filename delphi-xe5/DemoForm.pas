@@ -36,7 +36,7 @@ type
     procedure LogEvent(Info: string; Level: TLogType = logInfo);
   public
     { Public declarations }
-    procedure Update();
+    procedure UpdateControls();
   end;
 
 var
@@ -89,7 +89,7 @@ end;
 
 procedure TfrmDemo.FormShow(Sender: TObject);
 begin
-  Update;
+  UpdateControls;
 end;
 
 procedure TfrmDemo.FormMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -135,7 +135,7 @@ begin
   MovingLabel := False;
 end;
 
-procedure TfrmDemo.Update;
+procedure TfrmDemo.UpdateControls;
 begin
   with frmControl do begin
     Self.Width := CCWinPos.Width;

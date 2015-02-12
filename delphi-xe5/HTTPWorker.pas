@@ -349,7 +349,7 @@ end;
 
 procedure THTTPWorkerThread.ReportLog(Info: string; Level: TLogType = logInfo);
 begin
-  frmLog.LogAdd(Info, 'HTTP', Level);
+  if Assigned(frmLog) then frmLog.LogAdd(Info, 'HTTP', Level);
 end;
 
 procedure THTTPWorkerThread.ReadSharedConfiguration;

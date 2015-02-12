@@ -16,7 +16,7 @@ type
     procedure UDPException;
     procedure UDPResponse(AResponse: TJSONObject);
     procedure ReportLog(Info: string; Level: TLogType = logInfo);
-    constructor Create(AOwner: TIdUDPServer; ABinding: TIdSocketHandle);
+    constructor Create(AOwner: TIdUDPServer; ABinding: TIdSocketHandle); override;
 end;
 
 implementation

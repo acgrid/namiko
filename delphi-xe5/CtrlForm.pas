@@ -644,6 +644,7 @@ procedure TfrmControl.btnCCWorkClick(Sender: TObject);
 begin
   if frmDemo.Visible then begin
     frmDemo.Hide;
+    UpdateCaption;
     btnCCWork.Caption := '测试窗口(&W)';
   end
   else begin
@@ -694,8 +695,8 @@ begin
       StatValueList.Values['HTTP读超时'] := IntToStr(ReqReadTCCount);
       StatValueList.Values['HTTP被关闭'] := IntToStr(ReqClosedCount);
       StatValueList.Values['HTTP错误'] := IntToStr(ReqErrCount);
-      StatValueList.Values['HTTP平均耗时'] := Format('%.2f s',[ReqTotalMS / 1000 / ReqCount]);
-      StatValueList.Values['HTTP上次耗时'] := Format('%.2f s',[ReqLastMS / 1000]);
+      StatValueList.Values['HTTP平均耗时'] := Format('%.3f s',[ReqTotalMS / 1000 / ReqCount]);
+      StatValueList.Values['HTTP上次耗时'] := Format('%.3f s',[ReqLastMS / 1000]);
     end;
   end;
   if Assigned(DThread) and DThread.Started and not DThread.Finished then begin
@@ -705,19 +706,20 @@ begin
     RRunning := True;
     with RThread do begin
       StatValueList.Values['已绘制帧'] := IntToStr(FramesCount);
-      StatValueList.Values['已绘制秒'] := Format('%.2f',[RenderMS / 1000]);
-      StatValueList.Values['绘制帧率'] := Format('%.3ffps',[FramesCount / (RenderMS / 1000)]);
+      StatValueList.Values['已绘制秒'] := Format('%.3f',[RenderMS / 1000]);
+      StatValueList.Values['绘制帧率'] := Format('%.3fFPS',[FramesCount / (RenderMS / 1000)]);
       StatValueList.Values['绘制开销'] := IntToStr(OverheadMS);
       StatValueList.Values['绘制队列满'] := IntToStr(QueueFullCount);
       StatValueList.Values['满屏限制'] := IntToStr(ScreenFullCount);
+      StatValueList.Values['MAX列表长度'] := IntToStr(MaxBufferCount);
     end;
   end;
   if Assigned(UThread) and UThread.Started and not UThread.Finished then begin
     URunning := True;
     with UThread do begin
       StatValueList.Values['已显示帧'] := IntToStr(SCount);
-      StatValueList.Values['已显示秒'] := Format('%.2f',[SElaspedMS / 1000]);
-      StatValueList.Values['显示帧率'] := Format('%.3ffps',[SCount / (SElaspedMS / 1000)]);
+      StatValueList.Values['已显示秒'] := Format('%.3f',[SElaspedMS / 1000]);
+      StatValueList.Values['显示帧率'] := Format('%.3fFPS',[SCount / (SElaspedMS / 1000)]);
       StatValueList.Values['帧率过高'] := IntToStr(WOverFPS);
       StatValueList.Values['更新下限'] := IntToStr(WOverMin);
       StatValueList.Values['更新上限'] := IntToStr(WOverMax);
@@ -772,6 +774,7 @@ end;
 
 procedure TfrmControl.ButtonTerminateThreadClick(Sender: TObject);
 begin
+  if Networking then btnNetStart.Click;
   TerminateThreads;
 end;
 
@@ -794,7 +797,7 @@ end;
 procedure TfrmControl.btnExitClick(Sender: TObject);
 begin
   // Unloading
-  frmControl.Close;
+  Self.Close;
 end;
 
 procedure TfrmControl.cobNetCFontColorMouseDown(Sender: TObject;
@@ -1105,13 +1108,6 @@ procedure TfrmControl.FormCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 begin
   {$IFNDEF DEBUG}
-  {$IFDEF PASSWORD_CLOSE}
-  if btnAdmin.Visible then begin
-    CanClose := false;
-    StatusBar.Panels[0].Text := '关你妹';
-    exit;
-  end;
-  {$ENDIF}
   CanClose := Boolean(Application.MessageBox('确认?','退出',MB_ICONQUESTION + MB_YESNO) = IDYES);
   {$ENDIF}
 end;

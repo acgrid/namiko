@@ -46,7 +46,7 @@ type
     destructor Destroy(); override;
   protected
     // Cycle Counter
-    FCounter, FRenderMS, FOverheadMS, FQueueFull, FScreenFull: Int64;
+    FCounter, FRenderMS, FOverheadMS, FQueueFull, FScreenFull, FMaxBufferCount: Int64;
     FStopwatch: TStopwatch;
     // GUI Variables
     FMainHandle: HWND;
@@ -90,6 +90,7 @@ type
     property RenderMS: Int64 read FRenderMS;
     property OverheadMS: Int64 read FOverheadMS;
     property ScreenFullCount: Int64 read FScreenFull;
+    property MaxBufferCount: Int64 read FMaxBufferCount;
   end;
 
 implementation
@@ -135,6 +136,7 @@ begin
   FCounter := 0;
   FRenderMS := 0;
   FQueueFull := 0;
+  FMaxBufferCount := 0;
   FStopwatch := TStopwatch.Create;
   FMainHandle := Handle;
   FWidth := Width;
@@ -193,6 +195,7 @@ begin
   FSBDict.Free;
 end;
 
+// Tested: 6/1079 cost
 procedure TRenderThread.Calculate(ALiveComment: TLiveComment);
 var
   AWidth, AHeight, Speed: Integer;
@@ -240,6 +243,8 @@ begin
   finally
     LiveCommentPoolMutex.Release;
   end;
+  if PoolCount > FMaxBufferCount then FMaxBufferCount := PoolCount;
+
   for I := 0 to PoolCount - 1 do begin
     LiveCommentPoolMutex.Acquire;
     try
@@ -444,8 +449,7 @@ begin
     // The thread loop
     ReportLog('进入主循环');
     while True do begin
-      FStopwatch.Start;
-      SleepThisCycle := False;
+      FStopwatch.Start;      SleepThisCycle := False;
       if Self.Terminated then begin // Signalled to be terminated
         {$IFDEF DEBUG}ReportLog('退出 #1');{$ENDIF}
         Exit;

@@ -324,8 +324,8 @@ object frmControl: TfrmControl
     end
   end
   object grpTiming: TRadioGroup
-    Left = 879
-    Top = 411
+    Left = 1060
+    Top = 401
     Width = 169
     Height = 81
     Caption = #26102#38388#36724#27169#24335
@@ -632,7 +632,7 @@ object frmControl: TfrmControl
     Left = 879
     Top = 8
     Width = 166
-    Height = 397
+    Height = 484
     DisplayOptions = [doColumnTitles]
     DoubleBuffered = True
     KeyOptions = [keyUnique]
@@ -643,11 +643,10 @@ object frmControl: TfrmControl
       #32479#35745#39033
       #20540)
     ColWidths = (
-      96
-      64)
+      86
+      74)
   end
   object TimerGeneral: TTimer
-    Interval = 500
     OnTimer = TimerGeneralTimer
     Left = 312
     Top = 32
