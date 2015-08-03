@@ -8,6 +8,7 @@ uses
 
 type
   TUpdateThread = class(TThread)
+    MEscape: Boolean;
     constructor Create(Handle: HWND; CCRect: TRect; var Queue: TRenderUnitQueue);
     destructor Destroy();
   protected
@@ -70,6 +71,7 @@ constructor TUpdateThread.Create(Handle: HWND; CCRect: TRect; var Queue: TRender
 begin
   FHandle := Handle;
   FRect := CCRect;
+  MEscape := False;
   if not Assigned(Queue) then raise Exception.Create('Render unit queue is not initialized.');
   FQueue := @Queue;
   with frmConfig do begin
@@ -101,7 +103,7 @@ end;
 
 procedure TUpdateThread.Execute;
 var
-  FormOffsetPoint, FormDCPoint: TPoint;
+  FormOffsetPoint, FormDCPoint, FormEscapePoint: TPoint;
   CurrentRenderUnit: TRenderUnit;
   WindowSize: SIZE;
   ScreenHDC: HDC;
@@ -124,6 +126,7 @@ begin
   end;
   FormDCPoint := Point(0,0);
   FormOffsetPoint := Point(FRect.Left,FRect.Top);
+  FormEscapePoint := Point(FRect.Width,FRect.Width);
   WindowSize.cx := FRect.Width;
   WindowSize.cy := FRect.Height;
   ReportLog('进入主循环');
@@ -139,6 +142,10 @@ begin
     FStopwatch.Stop;
     BeforeRender := FStopwatch.ElapsedMilliseconds;
     UpdateS.Acquire; // Queue is MAYBE not empty
+    if Self.Terminated then begin // Signalled to be terminated
+      {$IFDEF DEBUG}ReportLog('退出 #2');{$ENDIF}
+      Exit;
+    end;
     FStopwatch.Start;
     Inc(FSCount);
     CurrentRenderUnit.hDC := 0; // Default value to marked as unsuccessful
@@ -148,7 +155,10 @@ begin
     if CurrentRenderUnit.hDC = 0 then Continue; // MAYBE queue is really empty OR parent thread is call me to exit
     ScreenHDC := GetDC(FHandle);
     try
-      UpdateLayeredWindow(FHandle,ScreenHDC,@FormOffsetPoint,@WindowSize,CurrentRenderUnit.hDC,@FormDCPoint,0,@FBlend,ULW_ALPHA);
+      if MEscape then
+        UpdateLayeredWindow(FHandle,ScreenHDC,@FormEscapePoint,@WindowSize,CurrentRenderUnit.hDC,@FormDCPoint,0,@FBlend,ULW_ALPHA)
+      else
+        UpdateLayeredWindow(FHandle,ScreenHDC,@FormOffsetPoint,@WindowSize,CurrentRenderUnit.hDC,@FormDCPoint,0,@FBlend,ULW_ALPHA);
     finally
       ReleaseDC(FHandle,ScreenHDC);
       ReleaseDC(FHandle,CurrentRenderUnit.hSrcDC);

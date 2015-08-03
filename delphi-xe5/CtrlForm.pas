@@ -174,7 +174,6 @@ type
     procedure TerminateThreads();
     procedure LoadSetting();
     procedure ReloadControls();
-    procedure SaveSetting();
   public
     { Public declarations }
     TimeZoneBias: Integer;
@@ -226,6 +225,7 @@ type
     procedure AppendConsoleComment(AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
     procedure AppendLocalComment(LTime: TTime; RTime: TTime; AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
     procedure UpdateCaption();
+    procedure SaveSetting();
     // Old Procedures
     procedure LogEvent(Info: string; Level: TLogType = logInfo);
   end;
@@ -518,8 +518,8 @@ begin
   if Assigned(DThread) and DThread.Started then DThread.Terminate;
   if Assigned(RThread) and RThread.Started then RThread.Terminate;
   if Assigned(UThread) and UThread.Started then begin
-    UpdateS.Release; // Empty Operation
     UThread.Terminate;
+    UpdateS.Release; // Empty Operation
   end;
   if Assigned(HThread) and HThread.Started then HThread.Terminate;
 end;
@@ -707,7 +707,7 @@ begin
     with RThread do begin
       StatValueList.Values['已绘制帧'] := IntToStr(FramesCount);
       StatValueList.Values['已绘制秒'] := Format('%.3f',[RenderMS / 1000]);
-      StatValueList.Values['绘制帧率'] := Format('%.3fFPS',[FramesCount / (RenderMS / 1000)]);
+      StatValueList.Values['绘制帧率'] := Format('%.3fFPS',[FramesCount / ((RenderMS + 1) / 1000)]);
       StatValueList.Values['绘制开销'] := IntToStr(OverheadMS);
       StatValueList.Values['绘制队列满'] := IntToStr(QueueFullCount);
       StatValueList.Values['满屏限制'] := IntToStr(ScreenFullCount);
@@ -719,7 +719,7 @@ begin
     with UThread do begin
       StatValueList.Values['已显示帧'] := IntToStr(SCount);
       StatValueList.Values['已显示秒'] := Format('%.3f',[SElaspedMS / 1000]);
-      StatValueList.Values['显示帧率'] := Format('%.3fFPS',[SCount / (SElaspedMS / 1000)]);
+      StatValueList.Values['显示帧率'] := Format('%.3fFPS',[SCount / ((SElaspedMS + 1) / 1000)]);
       StatValueList.Values['帧率过高'] := IntToStr(WOverFPS);
       StatValueList.Values['更新下限'] := IntToStr(WOverMin);
       StatValueList.Values['更新上限'] := IntToStr(WOverMax);
@@ -791,7 +791,11 @@ end;
 
 procedure TfrmControl.btnEscAllClick(Sender: TObject);
 begin
-  RThread.MDoEsc := True;
+  UThread.MEscape := not UThread.MEscape;
+  if btnEscAll.Caption = '紧急屏蔽(&N)' then
+    btnEscAll.Caption := '解除屏蔽(&N)'
+  else
+    btnEscAll.Caption := '紧急屏蔽(&N)';
 end;
 
 procedure TfrmControl.btnExitClick(Sender: TObject);
@@ -1040,6 +1044,8 @@ begin
     StringItems['Title.FontName'] := MTitleFontName;
     IntegerItems['Title.FontSize'] := Floor(MTitleFontSize);
     StringItems['Title.FontColor'] := AlphaColorToString(MTitleFontColor);
+
+    Save;
   end;
 end;
 

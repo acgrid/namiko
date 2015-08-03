@@ -308,7 +308,7 @@ begin
     end;
   end;
   if Done then begin
-    {$IFDEF DEBUG}ReportLog(Format('分配通道 %d 层 %d到%d',[Layer,n,m]));{$ENDIF}
+    {$IFDEF DEBUG}ReportLog(Format('分配通道 %d 层 %d到%d',[Layer,FromCh,TillCh]));{$ENDIF}
     LiveCommentPoolMutex.Acquire;
     try
       AComment.ChannelLayer := Layer;

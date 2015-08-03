@@ -63,13 +63,15 @@ end;
 procedure TfrmDemo.FormHide(Sender: TObject);
 begin
   with frmControl do begin
-    CCWinPos.Width := Self.Width;
-    CCWinPos.Height := Self.Height;
     CCWinPos.Left := Self.Left;
     CCWinPos.Top := Self.Top;
+    CCWinPos.Right := CCWinPos.Left + Self.Width;
+    CCWinPos.Bottom := CCWinPos.Top + Self.Height;
 
     MTitleTop := TestLabel.Top;
     MTitleLeft := TestLabel.Left;
+
+    SaveSetting;
   end;
 end;
 
@@ -84,7 +86,7 @@ end;
 procedure TfrmDemo.FormMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  MovingWindow := false;
+  MovingWindow := False;
 end;
 
 procedure TfrmDemo.FormShow(Sender: TObject);

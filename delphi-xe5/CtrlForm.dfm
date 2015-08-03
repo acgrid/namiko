@@ -362,7 +362,6 @@ object frmControl: TfrmControl
       item
         Width = 100
       end>
-    ExplicitWidth = 1053
   end
   object ListComments: TListView
     Left = 292
@@ -542,7 +541,7 @@ object frmControl: TfrmControl
     Top = 441
     Width = 81
     Height = 25
-    Caption = #32039#24613#27827#34809'(&N)'
+    Caption = #32039#24613#23631#34109'(&N)'
     Font.Charset = ANSI_CHARSET
     Font.Color = clRed
     Font.Height = -12

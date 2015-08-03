@@ -31,9 +31,9 @@ object frmLog: TfrmLog
     Columns = <
       item
         Caption = #26102#38388
-        MaxWidth = 55
-        MinWidth = 55
-        Width = 55
+        MaxWidth = 80
+        MinWidth = 60
+        Width = 60
       end
       item
         Caption = #27169#22359

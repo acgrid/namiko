@@ -81,7 +81,7 @@ var
   AComment: TComment;
   TimeNow: TTime;
 begin
-  {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('[调度] 调度 %u - %u 弹幕池共有%u',[From,Till,FMainPool.Count]));{$ENDIF}
+  {$IFDEF DEBUG_DISPATCH}ReportLog(Format('[调度] 调度 %u - %u 弹幕池共有%u',[From,Till,FMainPool.Count]));{$ENDIF}
   TimeNow := Now();
   AComment := nil;
   with FMainPool do begin
@@ -94,7 +94,7 @@ begin
       end;
       if Assigned(AComment) and ((AComment.Status = Created) or (AComment.Status = Pending)) then begin
         // Subject to be dispatched
-        {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('调度 %u 创建或待定状态',[i]));{$ENDIF}
+        {$IFDEF DEBUG_DISPATCH}ReportLog(Format('调度 %u 创建或待定状态',[i]));{$ENDIF}
         if TimeNow > AComment.Time then begin
           // TOO OLD
           if TimeNow - AComment.Time > MDiscardBefore / 86400000 then begin
@@ -109,20 +109,20 @@ begin
             Continue;
           end
           else begin
-            {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('迟调度 %u ',[i]));{$ENDIF}
+            {$IFDEF DEBUG_DISPATCH}ReportLog(Format('迟调度 %u ',[i]));{$ENDIF}
             DoDispatch(AComment);
             Continue;
           end;
         end
         else begin // FUTURE TIME
           if AComment.Time - TimeNow < MAcceptAfter / 86400000 then begin
-            {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('早调度 %u ',[i]));{$ENDIF}
+            {$IFDEF DEBUG_DISPATCH}ReportLog(Format('早调度 %u ',[i]));{$ENDIF}
             DoDispatch(AComment);
             Continue;
           end;
         end;
         if AComment.Status = Created then begin
-          {$IFDEF DEBUG_VERBOSE1}ReportLog(Format('过早调度 %u ',[i]));{$ENDIF}
+          {$IFDEF DEBUG_DISPATCH}ReportLog(Format('过早调度 %u ',[i]));{$ENDIF}
           CommentPoolMutex.Acquire;
           try
             AComment.Status := Pending;
@@ -177,7 +177,7 @@ begin
       {$IFDEF DEBUG}ReportLog('退出 #1');{$ENDIF}
       Exit;
     end;
-    WaitResult := DispatchS.WaitFor(1000);
+    WaitResult := DispatchS.WaitFor(500);
     if Terminated then begin
       {$IFDEF DEBUG}ReportLog('退出 #2');{$ENDIF}
       Exit;
