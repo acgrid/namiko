@@ -449,7 +449,8 @@ begin
     // The thread loop
     ReportLog('进入主循环');
     while True do begin
-      FStopwatch.Start;      SleepThisCycle := False;
+      FStopwatch.Start;
+      SleepThisCycle := False;
       if Self.Terminated then begin // Signalled to be terminated
         {$IFDEF DEBUG}ReportLog('退出 #1');{$ENDIF}
         Exit;

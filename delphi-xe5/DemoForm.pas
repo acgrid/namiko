@@ -32,8 +32,6 @@ type
     { Private declarations }
     OriLeft, OriTop, OriLabelLeft, OriLabelTop : Integer;
     MovingWindow, MovingLabel : Boolean;
-    procedure SetTopMost();
-    procedure LogEvent(Info: string; Level: TLogType = logInfo);
   public
     { Public declarations }
     procedure UpdateControls();
@@ -54,11 +52,6 @@ uses
   CtrlForm;
 
 {$R *.dfm}
-
-procedure TfrmDemo.LogEvent(Info: string; Level: TLogType = logInfo);
-begin
-  frmLog.LogAdd(Info, 'бнЪО', Level);
-end;
 
 procedure TfrmDemo.FormHide(Sender: TObject);
 begin
@@ -107,11 +100,6 @@ procedure TfrmDemo.FormCreate(Sender: TObject);
 begin
   MovingWindow := False;
   MovingLabel := False;
-end;
-
-procedure TfrmDemo.SetTopMost();
-begin
-  SetWindowPos(Self.Handle,HWND_TOPMOST,Self.Left,Self.Top,Self.Width,Self.Height,SWP_NOACTIVATE or SWP_SHOWWINDOW);
 end;
 
 procedure TfrmDemo.TestLabelMouseDown(Sender: TObject;

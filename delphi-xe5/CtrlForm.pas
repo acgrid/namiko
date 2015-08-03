@@ -161,7 +161,7 @@ type
   private
     { Private declarations }
     CCWindowShow, CCWindowWorking, Fetching, AddOCWorking : Boolean;
-    DispatchKey : Integer;
+    DispatchKey : WPARAM;
     XMLDelay : Integer;
     FreezingTime : TTime;
 

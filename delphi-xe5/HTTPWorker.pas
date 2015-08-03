@@ -314,9 +314,9 @@ begin
         HexieMutex.Acquire;
         try
           try
-            FHexie.Subject := Content;
+            FHexie.Subject := UTF8Encode(Content);
             for HexieIndex := 0 to Hexie.Count - 1 do begin
-              FHexie.RegEx := Hexie.Strings[HexieIndex];
+              FHexie.RegEx := UTF8Encode(Hexie.Strings[HexieIndex]);
               if FHexie.Match then begin
                 ReportLog(Format('[PCRE] 已和谐来自%s的弹幕"%s"',[ThisAuthor.Address,Content]));
                 Exit;

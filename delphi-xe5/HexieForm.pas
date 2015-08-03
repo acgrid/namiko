@@ -87,9 +87,9 @@ begin
   Hexier := TPerlRegEx.Create();
   try
     try
-      Hexier.Subject := Content;
+      Hexier.Subject := UTF8Encode(Content);
       for i := 0 to HexieList.Lines.Count - 1 do begin
-        Hexier.RegEx := HexieList.Lines.Strings[i];
+        Hexier.RegEx := UTF8Encode(HexieList.Lines.Strings[i]);
         if Hexier.Match then begin
           Result := True;
           Exit;

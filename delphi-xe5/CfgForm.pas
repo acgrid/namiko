@@ -43,7 +43,7 @@ type
       property DefaultValue: string read FDefault;
       property Value: string read FValue write FValue;
       constructor Create(Group, Key, Description: string); overload; override;
-      constructor Create(Group, Key, Description, Default: string); overload;
+      constructor Create(Group, Key, Description, Default: string); reintroduce; overload;
       procedure ReadFromINI(AIniFile: TIniFile); override;
       procedure WriteToINI(AIniFile: TIniFile); override;
   end;
@@ -58,7 +58,7 @@ type
       property DefaultValue: Boolean read FDefault;
       property Value: Boolean read FValue write FValue;
       constructor Create(Group, Key, Description: string); overload; override;
-      constructor Create(Group, Key, Description: string; Default: Boolean); overload;
+      constructor Create(Group, Key, Description: string; Default: Boolean); reintroduce; overload;
       procedure ReadFromINI(AIniFile: TIniFile); override;
       procedure WriteToINI(AIniFile: TIniFile); override;
   end;
@@ -83,7 +83,7 @@ type
       property StepValue: Integer read FStepValue write FStepValue;
       property Value: Integer read FValue write SetValue;
       constructor Create(Group, Key, Description: string); overload; override;
-      constructor Create(Group, Key, Description: string; Default, MinValue, MaxValue, StepValue: Integer); overload;
+      constructor Create(Group, Key, Description: string; Default, MinValue, MaxValue, StepValue: Integer); reintroduce; overload;
       procedure ReadFromINI(AIniFile: TIniFile); override;
       procedure WriteToINI(AIniFile: TIniFile); override;
   end;
@@ -303,6 +303,7 @@ begin
   MyConfig.Add(TIntegerConfiguration.Create('Pool','DispatchCycle','调度最大周期(ms)',5,0,1000,5));
   MyConfig.Add(TIntegerConfiguration.Create('Pool','DispatchSince','允许调度已过期弹幕秒数(s)',5,0,600,1));
   MyConfig.Add(TIntegerConfiguration.Create('Pool','NetDelay','网络弹幕延迟显示时间(ms)',4000,0,10000,1000));
+  MyConfig.Add(TIntegerConfiguration.Create('Display','BufferLength','渲染缓冲区大小(ms)',2000,200,6000,100));
   MyConfig.Add(TIntegerConfiguration.Create('Display','WorkWindowLeft','弹幕窗口顶点X坐标',0,-99999,99999,10));
   MyConfig.Add(TIntegerConfiguration.Create('Display','WorkWindowTop','弹幕窗口顶点Y坐标',0,-99999,99999,10));
   MyConfig.Add(TIntegerConfiguration.Create('Display','WorkWindowWidth','弹幕窗口宽度',1024,50,99999,10));

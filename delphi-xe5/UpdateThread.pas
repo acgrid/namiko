@@ -10,7 +10,7 @@ type
   TUpdateThread = class(TThread)
     MEscape: Boolean;
     constructor Create(Handle: HWND; CCRect: TRect; var Queue: TRenderUnitQueue);
-    destructor Destroy();
+    destructor Destroy(); override;
   protected
     FHandle: HWND;
     FRect: TRect;
