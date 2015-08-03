@@ -96,9 +96,8 @@ end;
 destructor TUpdateThread.Destroy;
 begin
   FStopwatch.Stop;
-  FreeAndNil(FStopwatch);
   FSleepwatch.Stop;
-  FreeAndNil(FSleepwatch);
+  inherited Destroy();
 end;
 
 procedure TUpdateThread.Execute;
