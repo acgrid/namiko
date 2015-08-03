@@ -48,6 +48,7 @@ type
     // Cycle Counter
     FCounter, FRenderMS, FOverheadMS, {FQueueFull, }FScreenFull, FMaxBufferCount: Int64;
     FStopwatch: TStopwatch;
+    FBufferLength: Cardinal; // max frames for the buffer
     // GUI Variables
     FMainHandle: HWND;
     FWidth: Integer;
@@ -159,8 +160,9 @@ begin
   FRenderList := @RenderList;
   if not Assigned(UpdateQueue) then raise Exception.Create('TRenderUnit update queue is not initialized.');
   FUpdateQueue := @UpdateQueue;
-  FUpdateQueue.Capacity := frmConfig.IntegerItems['Display.BufferLength'] * 1000 div frmConfig.IntegerItems['Display.ReferenceFPS'];
-
+  FBufferLength := (frmConfig.IntegerItems['Display.BufferLength'] * frmConfig.IntegerItems['Display.ReferenceFPS']) div 1000;
+  ReportLog(Format('帧缓冲区长度 %u', [FBufferLength]));
+  FUpdateQueue.Capacity := Max(1024, 2 * FBufferLength); // 2 time tolerance
   // In main thread no mutex needed
   MTitleText := frmControl.MTitleText;
   MTitleTop := frmControl.MTitleTop;
@@ -450,7 +452,6 @@ begin
     // The thread loop
     ReportLog('进入主循环');
     while True do begin
-      FStopwatch.Start;
       SleepThisCycle := False;
       if Self.Terminated then begin // Signalled to be terminated
         {$IFDEF DEBUG}ReportLog('退出 #1');{$ENDIF}
@@ -469,11 +470,14 @@ begin
       finally
         UpdateQueueMutex.Release;
       end;
+      if FCounter - frmControl.UThread.SCount > FBufferLength then SleepThisCycle := True;
+
       if SleepThisCycle then begin
         //Inc(FQueueFull);
         Continue;
       end;
 
+      FStopwatch.Start;
       LastCycleUnitCount := FRenderBuffer.Count;
       LiveCommentPoolMutex.Acquire;
       try
