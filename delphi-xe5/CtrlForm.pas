@@ -709,7 +709,7 @@ begin
       StatValueList.Values['已绘制秒'] := Format('%.3f',[RenderMS / 1000]);
       StatValueList.Values['绘制帧率'] := Format('%.3fFPS',[FramesCount / ((RenderMS + 1) / 1000)]);
       StatValueList.Values['绘制开销'] := IntToStr(OverheadMS);
-      StatValueList.Values['绘制队列满'] := IntToStr(QueueFullCount);
+      //StatValueList.Values['绘制队列满'] := IntToStr(QueueFullCount);
       StatValueList.Values['满屏限制'] := IntToStr(ScreenFullCount);
       StatValueList.Values['MAX列表长度'] := IntToStr(MaxBufferCount);
     end;

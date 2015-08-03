@@ -46,7 +46,7 @@ type
     destructor Destroy(); override;
   protected
     // Cycle Counter
-    FCounter, FRenderMS, FOverheadMS, FQueueFull, FScreenFull, FMaxBufferCount: Int64;
+    FCounter, FRenderMS, FOverheadMS, {FQueueFull, }FScreenFull, FMaxBufferCount: Int64;
     FStopwatch: TStopwatch;
     // GUI Variables
     FMainHandle: HWND;
@@ -86,7 +86,7 @@ type
     procedure NotifyStatusChanged(CommentID: Integer);
   public
     property FramesCount: Int64 read FCounter;
-    property QueueFullCount: Int64 read FQueueFull;
+    //property QueueFullCount: Int64 read FQueueFull;
     property RenderMS: Int64 read FRenderMS;
     property OverheadMS: Int64 read FOverheadMS;
     property ScreenFullCount: Int64 read FScreenFull;
@@ -135,7 +135,7 @@ constructor TRenderThread.Create(Handle: HWND; Width: Integer; Height: Integer; 
 begin
   FCounter := 0;
   FRenderMS := 0;
-  FQueueFull := 0;
+  //FQueueFull := 0;
   FMaxBufferCount := 0;
   FStopwatch := TStopwatch.Create;
   FMainHandle := Handle;
@@ -159,6 +159,7 @@ begin
   FRenderList := @RenderList;
   if not Assigned(UpdateQueue) then raise Exception.Create('TRenderUnit update queue is not initialized.');
   FUpdateQueue := @UpdateQueue;
+  FUpdateQueue.Capacity := frmConfig.IntegerItems['Display.BufferLength'] * 1000 div frmConfig.IntegerItems['Display.ReferenceFPS'];
 
   // In main thread no mutex needed
   MTitleText := frmControl.MTitleText;
@@ -469,8 +470,7 @@ begin
         UpdateQueueMutex.Release;
       end;
       if SleepThisCycle then begin
-        Inc(FQueueFull);
-        Sleep(10);
+        //Inc(FQueueFull);
         Continue;
       end;
 
