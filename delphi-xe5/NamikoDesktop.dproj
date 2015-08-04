@@ -39,6 +39,12 @@
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win32)'!=''">
+        <Cfg_2_Win32>true</Cfg_2_Win32>
+        <CfgParent>Cfg_2</CfgParent>
+        <Cfg_2>true</Cfg_2>
+        <Base>true</Base>
+    </PropertyGroup>
     <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win64)'!=''">
         <Cfg_2_Win64>true</Cfg_2_Win64>
         <CfgParent>Cfg_2</CfgParent>
@@ -71,6 +77,7 @@
         <DCC_E>false</DCC_E>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
+        <DCC_DebugInformation>2</DCC_DebugInformation>
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <DCC_Namespace>System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_Locale>1033</VerInfo_Locale>
@@ -103,9 +110,17 @@
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=2.0.1.100;InternalName=;LegalCopyright=(C) acgrid;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
+        <DCC_DebugInformation>2</DCC_DebugInformation>
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
         <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
         <DCC_Optimize>false</DCC_Optimize>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
+        <DCC_Define>PUREPASCAL;$(DCC_Define)</DCC_Define>
+        <VerInfo_Build>0</VerInfo_Build>
+        <VerInfo_Locale>1033</VerInfo_Locale>
+        <VerInfo_Release>0</VerInfo_Release>
+        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
         <VerInfo_Build>0</VerInfo_Build>
@@ -127,19 +142,15 @@
         <DCCReference Include="HTTPWorker.pas"/>
         <DCCReference Include="HexieForm.pas">
             <Form>frmWordList</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="LogForm.pas">
             <Form>frmLog</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="CfgForm.pas">
             <Form>frmConfig</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="DemoForm.pas">
             <Form>frmDemo</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="NamikoTypes.pas"/>
         <BuildConfiguration Include="Debug">
@@ -194,6 +205,7 @@
                     <VersionInfoKeys Name="Comments"/>
                 </VersionInfoKeys>
                 <Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\15.0\Bpl\OmniThreadLibraryRuntimeXE7.bpl">OmniThreadLibrary runtime</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclDataSnapFireDAC210.bpl">Embarcadero DataSnap FireDAC</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k210.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp210.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>

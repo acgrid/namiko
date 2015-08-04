@@ -9,17 +9,21 @@ uses
   Math, LogForm, NamikoTypes;
 
 type
+  TByteDynArray = array of Byte;
+
+type
   TCommentUnit = record // Use to render
     PString: PWideChar;
     Length: Integer;
     Left: Integer; // X-Position
     Top: Integer; // Y-Position
+    Bitmap: GpCachedBitmap;
+    Buf: TByteDynArray;
     PFontFamily: GPFONTFAMILY;
     FillColor: TAlphaColor;
     //BorderColor: TAlphaColor;
     FontSize: Single;
     FontStyle: Integer;
-    // FONT
   end;
 type
   PCommentUnit = ^TCommentUnit;
@@ -63,6 +67,7 @@ type
     FRenderList: PLiveCommentCollection;
     FRenderBuffer: TCommentUnits;
     // Reuseable GDI+ Resource
+    FHPALETTE: HPALETTE;
     FFFDict: TFontFamilyDict;
     FSBDict: TBrushDict;
     FFPDict: TFontDict;
@@ -70,6 +75,8 @@ type
     FPStringFormat: GPSTRINGFORMAT;
     FPPath: GPPATH;
     FPPen: GPPen;
+    FOriginPoint: TIGPRectF;
+    FTitleBitmap: GpCachedBitmap;
     procedure Calculate(ALiveComment: TLiveComment);
     function ConflictTest(AComment: TLiveComment; FromPos: Integer; ToPos: Integer; Layer: Integer=0): Boolean;
     procedure DoDrawHDC(var ARenderUnit: TRenderUnit);
@@ -79,6 +86,9 @@ type
     function GetFontFamily(AFontName: WideString): GpFontFamily;
     function GetFont(AFontName: WideString; AFontSize: Single; AFontStyle: Integer): GpFont;
     function GetSolidBrush(AColor: TAlphaColor): GpBrush;
+    function GetCachedBitmap(AText: PWCHAR; ALength: Integer; AFontFamily: GPFONTFAMILY;
+       AFontStyle: Integer; emSize: Single; AFillColor: TAlphaColor; AWidth: Integer; AHeight: Integer; buf: TByteDynArray): GpCachedBitmap;
+    function CreateGDIBitmapFromHBITMAP(const hBitmap: HBITMAP; bmpBits: TByteDynArray): GpBitmap;
     procedure GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; var OHeight: Integer);
     procedure Remove(ALiveComment: TLiveComment);
     procedure ReportLog(Info: string; Level: TLogType = logInfo);
@@ -149,10 +159,15 @@ begin
   FFFDict := TFontFamilyDict.Create();
   FSBDict := TBrushDict.Create();
   FFPDict := TFontDict.Create();
+  FOriginPoint.X := 0;
+  FOriginPoint.Y := 0;
+  FOriginPoint.Width := 0;
+  FOriginPoint.Height := 0;
 
   GdipCreateFromHWND(FMainHandle,FPGraphic);
   GdipStringFormatGetGenericTypographic(FPStringFormat);
   GdipCreatePath(FillModeAlternate,FPPath);
+  FHPALETTE := GdipCreateHalftonePalette();
   if frmConfig.IntegerItems['Display.BorderWidth'] > 0 then GdipCreatePen1(StringToAlphaColor(frmConfig.StringItems['Display.BorderColor']), frmConfig.IntegerItems['Display.BorderWidth'].ToSingle, UnitWorld, FPPen);
 
   MinFS := 65535;
@@ -173,7 +188,6 @@ begin
   MDoUpdate := True;
   MDoEsc := False;
   inherited Create(True);
-  Priority := tpHigher;
 end;
 
 destructor TRenderThread.Destroy;
@@ -332,6 +346,7 @@ begin
       FillColor := AComment.Body.Format.FontColor;
       FontSize := AComment.Body.Format.FontSize;
       FontStyle := AComment.Body.Format.FontStyle;
+      Bitmap := GetCachedBitmap(PString, Length, PFontFamily, FontStyle, FontSize, FillColor, AComment.Width, AComment.Height, buf);
     end;
     FRenderBuffer.Add(AComment.Body.ID,ACommentUnit);
   end
@@ -339,6 +354,91 @@ begin
     AComment.Status := LWait;
     Inc(FScreenFull);
   end;
+end;
+
+function TRenderThread.GetCachedBitmap(AText: PWideChar; ALength: Integer; AFontFamily: Pointer; AFontStyle: Integer; emSize: Single; AFillColor: TAlphaColor; AWidth: Integer; AHeight: Integer; buf: TByteDynArray): GpCachedBitmap;
+var
+  MainDC, CurrentHDC: HDC;
+  CurrentBitmap: HBITMAP;
+  PGraphic: GPGraphics;
+  RenderedBitmap: GPBITMAP;
+begin
+  // initialization
+  MainDC := GetDC(FMainHandle);
+  if MainDC = 0 then raise Exception.Create('Cannot obtain HDC from HWND.');
+  CurrentHDC := CreateCompatibleDC(MainDC);
+  if CurrentHDC = 0 then raise Exception.Create('Cannot create HDC compatible to parent HDC.');
+  CurrentBitmap := CreateCompatibleBitmap(MainDC, AWidth, AHeight);
+  if CurrentBitmap = 0 then raise Exception.Create('Cannot create bitmap for specific HDC.');
+  SelectObject(CurrentHDC, CurrentBitmap);
+  GdipCreateFromHDC(CurrentHDC, PGraphic);
+  GdipSetSmoothingMode(PGraphic, SmoothingModeAntiAlias);
+  GdipSetInterpolationMode(PGraphic, InterpolationModeHighQualityBicubic);
+  // do render
+  GdipGraphicsClear(PGraphic, $FFFFFFFF);
+  GdipResetPath(FPPath);
+  GdipAddPathStringI(FPPath, AText, ALength, AFontFamily, AFontStyle, emSize, @FOriginPoint, FPStringFormat);
+  if Assigned(FPPen) then GdipDrawPath(PGraphic, FPPen, FPPath);
+  GdipFillPath(PGraphic, GetSolidBrush(AFillColor), FPPath);
+  //GdipCreateBitmapFromHBITMAP(CurrentBitmap, FHPALETTE, RenderedBitmap); // Lost Alpha channels
+  RenderedBitmap := CreateGDIBitmapFromHBITMAP(CurrentBitmap, buf);
+  if Assigned(RenderedBitmap) then GdipCreateCachedBitmap(RenderedBitmap, PGraphic, Result);
+  // finalization
+  GdipDeleteGraphics(PGraphic);
+  ReleaseDC(FMainHandle, MainDC);
+  DeleteObject(CurrentBitmap);
+  DeleteDC(CurrentHDC);
+end;
+
+function TRenderThread.CreateGDIBitmapFromHBITMAP(const hBitmap: HBITMAP; bmpBits: TByteDynArray): GpBitmap;
+var
+  bmp: BITMAP;
+  bmpInfo: BITMAPINFO;
+  bmpData: TIGPBitmapDataRecord;
+  bmpRect: TRect;
+  hdcScreen: HDC;
+begin
+  Result := nil;
+  ZeroMemory(@bmp, SizeOf(BITMAP));
+  if GetObject(hBitmap, SizeOf(BITMAP), @bmp) = 0 then raise Exception.Create('Error get BITMAP from HBITMAP.'); // HBITMAP -> Native BITMAP
+
+  ZeroMemory(@bmpInfo, SizeOf(BITMAPINFO));
+  bmpInfo.bmiHeader.biSize := SizeOf(BITMAPINFOHEADER);
+  bmpInfo.bmiHeader.biWidth := bmp.bmWidth;
+  bmpInfo.bmiHeader.biHeight := -bmp.bmHeight; // Upside-down!
+  bmpInfo.bmiHeader.biPlanes := bmp.bmPlanes;
+  bmpInfo.bmiHeader.biBitCount := bmp.bmBitsPixel;
+  bmpInfo.bmiHeader.biCompression := BI_RGB;
+  SetLength(bmpBits, bmp.bmWidthBytes * bmp.bmHeight);
+  ReportLog(Format('Buf Length: %u', [bmp.bmWidthBytes * bmp.bmHeight]));
+  hdcScreen := GetDC(0);
+  if hdcScreen = 0 then raise Exception.Create('GetDC() Error');
+
+  try
+    if (GetDIBits(hdcScreen, hBitmap, 0, bmp.bmHeight, PByte(bmpBits), bmpInfo, DIB_RGB_COLORS) = 0) and (GetLastError() <> 0) then
+      raise Exception.Create('Error copy HBITMAP to BITMAP.');
+  finally
+    DeleteDC(hdcScreen);
+  end;
+  GdipCreateBitmapFromScan0(bmp.bmWidth, bmp.bmHeight, bmp.bmWidthBytes, PixelFormat32bppARGB, PByte(bmpBits), Result);
+  {GdipCreateBitmapFromScan0(bmp.bmWidth, bmp.bmHeight, bmp.bmWidthBytes, PixelFormat32bppARGB, PByte(bmpBits), Result);
+  Exit;
+  bmpRect := TRect.Create(0, 0, bmp.bmWidth, bmp.bmHeight);
+  GdipBitmapLockBits(Result, @bmpRect, Ord(ImageLockModeRead), PixelFormat32bppARGB, @bmpData);
+  // assure
+  if bmp.bmHeight < 0 then begin // bottom -> top
+    for currLine := 0 to Length(bmpBits) do begin
+      CopyMemory(Pointer(Integer(bmpData.Scan0) + currLine), Pointer(Integer(bmpBits) + currLine), 1);
+    end;
+    ZeroMemory(bmpData.Scan0, Length(bmpBits));
+    for currLine := 0 to bmp.bmHeight - 1 do begin
+      CopyMemory(Pointer(Integer(bmpData.Scan0) + bmp.bmWidthBytes * (bmp.bmHeight - currLine - 1)), Pointer(Integer(bmpBits) + bmp.bmWidthBytes * currLine), bmp.bmWidthBytes);
+    end;
+  end
+  else begin // top -> bottom
+    CopyMemory(bmpData.scan0, bmpBits, Length(bmpBits));
+  end;
+  GdipBitmapUnlockBits(Result, @bmpData); }
 end;
 
 function TRenderThread.GetPossibleConflicts(FromPos, ToPos: Integer; Layer: Integer = 0): TCommentIndexList;
@@ -470,7 +570,7 @@ begin
       finally
         UpdateQueueMutex.Release;
       end;
-      if FCounter - frmControl.UThread.SCount > FBufferLength then SleepThisCycle := True;
+      if Assigned(frmControl.UThread) and (FCounter - frmControl.UThread.SCount > FBufferLength) then SleepThisCycle := True;
 
       if SleepThisCycle then begin
         //Inc(FQueueFull);
@@ -566,15 +666,7 @@ begin
   end;
   for ACommentUnit in FRenderBuffer.Values do begin
     if ACommentUnit.Length = 0 then Continue;
-    StrRect.X := ACommentUnit.Left;
-    StrRect.Y := ACommentUnit.Top;
-    StrRect.Width := 0;
-    StrRect.Height := 0;
-    GdipAddPathStringI(FPPath, ACommentUnit.PString, ACommentUnit.Length,
-      ACommentUnit.PFontFamily, ACommentUnit.FontStyle, ACommentUnit.FontSize, @StrRect, FPStringFormat);
-    if Assigned(FPPen) then GdipDrawPath(PGraphic, FPPen, FPPath);
-    GdipFillPath(PGraphic, GetSolidBrush(ACommentUnit.FillColor), FPPath);
-    GdipResetPath(FPPath);
+    GdipDrawCachedBitmap(PGraphic, ACommentUnit.Bitmap, ACommentUnit.Left, ACommentUnit.Top);
   end;
   {GraphicSharedMutex.Acquire;
   try}
@@ -583,6 +675,7 @@ begin
       StrRect.Y := MTitleTop;
       StrRect.Width := 0;
       StrRect.Height := 0;
+      GdipResetPath(FPPath);
       GdipAddPathStringI(FPPath, PWideChar(MTitleText), Length(MTitleText),
         GetFontFamily(MTitleFontName), 1, MTitleFontSize, @StrRect, FPStringFormat);
       GdipDrawPath(PGraphic, FPPen, FPPath);
@@ -681,6 +774,7 @@ begin
   finally
     LiveCommentPoolMutex.Release;
   end;
+  GdipDeleteCachedBitmap(FRenderBuffer.Items[ID].Bitmap);
   FRenderBuffer.Remove(ID); // Internal CommentUnits Buffer
 end;
 
