@@ -83,7 +83,7 @@ type
     function GetSolidBrush(AColor: TAlphaColor): GpBrush;
     function GetCachedBitmap(AText: PWCHAR; ALength: Integer; AFontFamily: GPFONTFAMILY;
        AFontStyle: Integer; emSize: Single; AFillColor: TAlphaColor; AWidth: Integer; AHeight: Integer): GpCachedBitmap;
-    function CreateGDIBitmapFromHBITMAP(const hBitmap: HBITMAP): GpBitmap;
+    function CreateCachedBitmapFromHBITMAP(const hBitmap: HBITMAP; pGraphics: GPGraphics): GpCachedBitmap;
     procedure GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; var OHeight: Integer);
     procedure Remove(ALiveComment: TLiveComment);
     procedure ReportLog(Info: string; Level: TLogType = logInfo);
@@ -355,7 +355,6 @@ var
   MainDC, CurrentHDC: HDC;
   CurrentBitmap: HBITMAP;
   PGraphic: GPGraphics;
-  RenderedBitmap: GPBITMAP;
 begin
   // initialization
   MainDC := GetDC(FMainHandle);
@@ -375,9 +374,7 @@ begin
   if Assigned(FPPen) then GdipDrawPath(PGraphic, FPPen, FPPath);
   GdipFillPath(PGraphic, GetSolidBrush(AFillColor), FPPath);
   //GdipCreateBitmapFromHBITMAP(CurrentBitmap, FHPALETTE, RenderedBitmap); // Lost Alpha channels
-  RenderedBitmap := CreateGDIBitmapFromHBITMAP(CurrentBitmap);
-  if Assigned(RenderedBitmap) then GdipCreateCachedBitmap(RenderedBitmap, PGraphic, Result);
-  GdipFree(RenderedBitmap);
+  Result := CreateCachedBitmapFromHBITMAP(CurrentBitmap, PGraphic);
   // finalization
   GdipDeleteGraphics(PGraphic);
   ReleaseDC(FMainHandle, MainDC);
@@ -385,7 +382,7 @@ begin
   DeleteDC(CurrentHDC);
 end;
 
-function TRenderThread.CreateGDIBitmapFromHBITMAP(const hBitmap: HBITMAP): GpBitmap;
+function TRenderThread.CreateCachedBitmapFromHBITMAP(const hBitmap: HBITMAP; pGraphics: GPGraphics): GpCachedBitmap;
 var
   bmp: BITMAP;
   bmpInfo: BITMAPINFO;
@@ -393,6 +390,7 @@ var
   bmpRect: TRect;}
   bmpBits: Pointer;
   bmpSize: NativeUInt;
+  pGDIbmp: GpBitmap;
   hdcScreen: HDC;
 begin
   Result := nil;
@@ -418,9 +416,15 @@ begin
     finally
       DeleteDC(hdcScreen);
     end;
-    GdipCreateBitmapFromScan0(bmp.bmWidth, bmp.bmHeight, bmp.bmWidthBytes, PixelFormat32bppARGB, PByte(bmpBits), Result);
+    GdipCreateBitmapFromScan0(bmp.bmWidth, bmp.bmHeight, bmp.bmWidthBytes, PixelFormat32bppARGB, PByte(bmpBits), pGDIbmp);
+    Assert(Assigned(pGDIbmp), 'GdipCreateBitmapFromScan0 failed');
+    try
+      GdipCreateCachedBitmap(pGDIbmp, pGraphics, Result);
+    finally
+      GdipFree(pGDIbmp);
+    end;
   finally
-    VirtualFree(bmpBits, bmpSize, MEM_RELEASE);
+    VirtualFree(bmpBits, 0, MEM_RELEASE);
   end;
   {GdipCreateBitmapFromScan0(bmp.bmWidth, bmp.bmHeight, bmp.bmWidthBytes, PixelFormat32bppARGB, PByte(bmpBits), Result);
   Exit;
@@ -679,12 +683,12 @@ begin
     GetStringDim(MTitleText, TitleFormat, TitleWidth, TitleHeight);
     FTitleBitmap := GetCachedBitmap(PWideChar(MTitleText), Length(MTitleText),
       GetFontFamily(MTitleFontName), 1, MTitleFontSize, MTitleFontColor, TitleWidth, TitleHeight);
-    Assert(Assigned(FTitleBitmap), 'Title bitmap cache not created.');
+    {$IFNDEF DEBUG}Assert(Assigned(FTitleBitmap), 'Title bitmap cache not created.');{$ENDIF}
   end;
   if Assigned(FTitleBitmap) then GdipDrawCachedBitmap(PGraphic, FTitleBitmap, MTitleLeft, MTitleTop);
   for ACommentUnit in FRenderBuffer.Values do begin
     if ACommentUnit.Length = 0 then Continue;
-    GdipDrawCachedBitmap(PGraphic, ACommentUnit.Bitmap, ACommentUnit.Left, ACommentUnit.Top);
+    if Assigned(ACommentUnit.Bitmap) then GdipDrawCachedBitmap(PGraphic, ACommentUnit.Bitmap, ACommentUnit.Left, ACommentUnit.Top);
   end;
   {$IFDEF DEBUG_DIM}GdipDrawLine(PGraphic, FPPen, 0,0,FWidth,FHeight);{$ENDIF}
   GdipDeleteGraphics(PGraphic);
