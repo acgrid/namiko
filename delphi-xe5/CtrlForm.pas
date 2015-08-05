@@ -695,8 +695,8 @@ begin
       StatValueList.Values['HTTP读超时'] := IntToStr(ReqReadTCCount);
       StatValueList.Values['HTTP被关闭'] := IntToStr(ReqClosedCount);
       StatValueList.Values['HTTP错误'] := IntToStr(ReqErrCount);
-      StatValueList.Values['HTTP平均耗时'] := Format('%.3f s',[ReqTotalMS / 1000 / ReqCount]);
-      StatValueList.Values['HTTP上次耗时'] := Format('%.3f s',[ReqLastMS / 1000]);
+      StatValueList.Values['HTTP吞吐量'] := Format('%.2f/s',[ReqCount * 1000 / ReqTotalMS]);
+      StatValueList.Values['HTTP用时'] := Format('%.3f s',[ReqLastMS / 1000]);
     end;
   end;
   if Assigned(DThread) and DThread.Started and not DThread.Finished then begin
@@ -711,7 +711,7 @@ begin
       StatValueList.Values['绘制开销'] := IntToStr(OverheadMS);
       //StatValueList.Values['绘制队列满'] := IntToStr(QueueFullCount);
       StatValueList.Values['满屏限制'] := IntToStr(ScreenFullCount);
-      StatValueList.Values['MAX列表长度'] := IntToStr(MaxBufferCount);
+      StatValueList.Values['同屏峰值'] := IntToStr(MaxBufferCount);
     end;
   end;
   if Assigned(UThread) and UThread.Started and not UThread.Finished then begin

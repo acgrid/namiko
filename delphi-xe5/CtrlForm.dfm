@@ -642,8 +642,8 @@ object frmControl: TfrmControl
       #32479#35745#39033
       #20540)
     ColWidths = (
-      86
-      74)
+      73
+      87)
   end
   object TimerGeneral: TTimer
     OnTimer = TimerGeneralTimer
