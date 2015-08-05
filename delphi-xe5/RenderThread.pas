@@ -9,16 +9,12 @@ uses
   Math, LogForm, NamikoTypes;
 
 type
-  TByteDynArray = array of Byte;
-
-type
   TCommentUnit = record // Use to render
     PString: PWideChar;
     Length: Integer;
     Left: Integer; // X-Position
     Top: Integer; // Y-Position
     Bitmap: GpCachedBitmap;
-    Buf: TByteDynArray;
     PFontFamily: GPFONTFAMILY;
     FillColor: TAlphaColor;
     //BorderColor: TAlphaColor;
@@ -87,8 +83,8 @@ type
     function GetFont(AFontName: WideString; AFontSize: Single; AFontStyle: Integer): GpFont;
     function GetSolidBrush(AColor: TAlphaColor): GpBrush;
     function GetCachedBitmap(AText: PWCHAR; ALength: Integer; AFontFamily: GPFONTFAMILY;
-       AFontStyle: Integer; emSize: Single; AFillColor: TAlphaColor; AWidth: Integer; AHeight: Integer; buf: TByteDynArray): GpCachedBitmap;
-    function CreateGDIBitmapFromHBITMAP(const hBitmap: HBITMAP; bmpBits: TByteDynArray): GpBitmap;
+       AFontStyle: Integer; emSize: Single; AFillColor: TAlphaColor; AWidth: Integer; AHeight: Integer): GpCachedBitmap;
+    function CreateGDIBitmapFromHBITMAP(const hBitmap: HBITMAP): GpBitmap;
     procedure GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; var OHeight: Integer);
     procedure Remove(ALiveComment: TLiveComment);
     procedure ReportLog(Info: string; Level: TLogType = logInfo);
@@ -346,7 +342,7 @@ begin
       FillColor := AComment.Body.Format.FontColor;
       FontSize := AComment.Body.Format.FontSize;
       FontStyle := AComment.Body.Format.FontStyle;
-      Bitmap := GetCachedBitmap(PString, Length, PFontFamily, FontStyle, FontSize, FillColor, AComment.Width, AComment.Height, buf);
+      Bitmap := GetCachedBitmap(PString, Length, PFontFamily, FontStyle, FontSize, FillColor, AComment.Width, AComment.Height);
     end;
     FRenderBuffer.Add(AComment.Body.ID,ACommentUnit);
   end
@@ -356,7 +352,7 @@ begin
   end;
 end;
 
-function TRenderThread.GetCachedBitmap(AText: PWideChar; ALength: Integer; AFontFamily: Pointer; AFontStyle: Integer; emSize: Single; AFillColor: TAlphaColor; AWidth: Integer; AHeight: Integer; buf: TByteDynArray): GpCachedBitmap;
+function TRenderThread.GetCachedBitmap(AText: PWideChar; ALength: Integer; AFontFamily: Pointer; AFontStyle: Integer; emSize: Single; AFillColor: TAlphaColor; AWidth: Integer; AHeight: Integer): GpCachedBitmap;
 var
   MainDC, CurrentHDC: HDC;
   CurrentBitmap: HBITMAP;
@@ -381,8 +377,9 @@ begin
   if Assigned(FPPen) then GdipDrawPath(PGraphic, FPPen, FPPath);
   GdipFillPath(PGraphic, GetSolidBrush(AFillColor), FPPath);
   //GdipCreateBitmapFromHBITMAP(CurrentBitmap, FHPALETTE, RenderedBitmap); // Lost Alpha channels
-  RenderedBitmap := CreateGDIBitmapFromHBITMAP(CurrentBitmap, buf);
+  RenderedBitmap := CreateGDIBitmapFromHBITMAP(CurrentBitmap);
   if Assigned(RenderedBitmap) then GdipCreateCachedBitmap(RenderedBitmap, PGraphic, Result);
+  GdipFree(RenderedBitmap);
   // finalization
   GdipDeleteGraphics(PGraphic);
   ReleaseDC(FMainHandle, MainDC);
@@ -390,12 +387,14 @@ begin
   DeleteDC(CurrentHDC);
 end;
 
-function TRenderThread.CreateGDIBitmapFromHBITMAP(const hBitmap: HBITMAP; bmpBits: TByteDynArray): GpBitmap;
+function TRenderThread.CreateGDIBitmapFromHBITMAP(const hBitmap: HBITMAP): GpBitmap;
 var
   bmp: BITMAP;
   bmpInfo: BITMAPINFO;
-  bmpData: TIGPBitmapDataRecord;
-  bmpRect: TRect;
+  {bmpData: TIGPBitmapDataRecord;
+  bmpRect: TRect;}
+  bmpBits: Pointer;
+  bmpSize: NativeUInt;
   hdcScreen: HDC;
 begin
   Result := nil;
@@ -409,18 +408,22 @@ begin
   bmpInfo.bmiHeader.biPlanes := bmp.bmPlanes;
   bmpInfo.bmiHeader.biBitCount := bmp.bmBitsPixel;
   bmpInfo.bmiHeader.biCompression := BI_RGB;
-  SetLength(bmpBits, bmp.bmWidthBytes * bmp.bmHeight);
-  ReportLog(Format('Buf Length: %u', [bmp.bmWidthBytes * bmp.bmHeight]));
-  hdcScreen := GetDC(0);
-  if hdcScreen = 0 then raise Exception.Create('GetDC() Error');
-
+  bmpSize := bmp.bmWidthBytes * bmp.bmHeight;
+  {$IFDEF DEBUG}ReportLog(Format('Buf Length: %u', [bmpSize]));{$ENDIF}
+  bmpBits := VirtualAlloc(nil, bmpSize, MEM_COMMIT, PAGE_READWRITE);
+  Assert(Assigned(bmpBits), 'VirtualAlloc failed');
   try
-    if (GetDIBits(hdcScreen, hBitmap, 0, bmp.bmHeight, PByte(bmpBits), bmpInfo, DIB_RGB_COLORS) = 0) and (GetLastError() <> 0) then
-      raise Exception.Create('Error copy HBITMAP to BITMAP.');
+    hdcScreen := GetDC(0);
+    if hdcScreen = 0 then raise Exception.Create('GetDC() Error');
+    try
+      if GetDIBits(hdcScreen, hBitmap, 0, bmp.bmHeight, PByte(bmpBits), bmpInfo, DIB_RGB_COLORS) = 0 then raise Exception.Create('Error copy HBITMAP to BITMAP.');
+    finally
+      DeleteDC(hdcScreen);
+    end;
+    GdipCreateBitmapFromScan0(bmp.bmWidth, bmp.bmHeight, bmp.bmWidthBytes, PixelFormat32bppARGB, PByte(bmpBits), Result);
   finally
-    DeleteDC(hdcScreen);
+    VirtualFree(bmpBits, bmpSize, MEM_RELEASE);
   end;
-  GdipCreateBitmapFromScan0(bmp.bmWidth, bmp.bmHeight, bmp.bmWidthBytes, PixelFormat32bppARGB, PByte(bmpBits), Result);
   {GdipCreateBitmapFromScan0(bmp.bmWidth, bmp.bmHeight, bmp.bmWidthBytes, PixelFormat32bppARGB, PByte(bmpBits), Result);
   Exit;
   bmpRect := TRect.Create(0, 0, bmp.bmWidth, bmp.bmHeight);
