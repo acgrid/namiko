@@ -63,7 +63,6 @@ type
     FRenderList: PLiveCommentCollection;
     FRenderBuffer: TCommentUnits;
     // Reuseable GDI+ Resource
-    FHPALETTE: HPALETTE;
     FFFDict: TFontFamilyDict;
     FSBDict: TBrushDict;
     FFPDict: TFontDict;
@@ -159,11 +158,11 @@ begin
   FOriginPoint.Y := 0;
   FOriginPoint.Width := 0;
   FOriginPoint.Height := 0;
+  FTitleBitmap := nil;
 
   GdipCreateFromHWND(FMainHandle,FPGraphic);
   GdipStringFormatGetGenericTypographic(FPStringFormat);
   GdipCreatePath(FillModeAlternate,FPPath);
-  FHPALETTE := GdipCreateHalftonePalette();
   if frmConfig.IntegerItems['Display.BorderWidth'] > 0 then GdipCreatePen1(StringToAlphaColor(frmConfig.StringItems['Display.BorderColor']), frmConfig.IntegerItems['Display.BorderWidth'].ToSingle, UnitWorld, FPPen);
 
   MinFS := 65535;
@@ -193,7 +192,6 @@ var
   SP: GpBrush;
 begin
   inherited Destroy();
-  FreeAndNil(FStopwatch);
   GdipDeleteGraphics(FPGraphic);
   GdipDeleteStringFormat(FPStringFormat);
   if Assigned(FPPen) then GdipDeletePen(FPPen);
@@ -606,7 +604,6 @@ begin
       end;
 
       if (FRenderBuffer.Count > 0) or (LastCycleUnitCount > 0) or MDoUpdate or MDoEsc then begin
-        MDoUpdate := False;
         Inc(FCounter);
         FStopwatch.Start;
         // New hDC Interface and associated handle
@@ -623,6 +620,7 @@ begin
         ThisRenderUnit.hBitmap := CurrentBitmap;
         // Do Draw
         DoDrawHDC(ThisRenderUnit);
+        MDoUpdate := False;
         FStopwatch.Stop;
         FRenderMS := FRenderMS + FStopwatch.ElapsedMilliseconds;
         FStopwatch.Reset;
@@ -650,7 +648,8 @@ end;
 procedure TRenderThread.DoDrawHDC(var ARenderUnit: TRenderUnit);
 var
   PGraphic: GpGraphics;
-  StrRect: TIGPRect;
+  TitleFormat: TCommentFormat;
+  TitleHeight, TitleWidth: Integer;
   ACommentUnit: TCommentUnit;
 begin
   GdipCreateFromHDC(ARenderUnit.hDC,PGraphic);
@@ -667,26 +666,26 @@ begin
       LiveCommentPoolMutex.Release;
     end;
   end;
+  if (Length(MTitleText) > 0) and (MDoUpdate or not Assigned(FTitleBitmap)) then begin // Display the Title
+    if Assigned(FTitleBitmap) then GdipDeleteCachedBitmap(FTitleBitmap);
+    TitleFormat.DefaultName := False;
+    TitleFormat.DefaultSize := False;
+    TitleFormat.DefaultColor := False;
+    TitleFormat.DefaultStyle := False;
+    TitleFormat.FontName := MTitleFontName;
+    TitleFormat.FontSize := MTitleFontSize;
+    TitleFormat.FontColor := MTitleFontColor;
+    TitleFormat.FontStyle := 1;
+    GetStringDim(MTitleText, TitleFormat, TitleWidth, TitleHeight);
+    FTitleBitmap := GetCachedBitmap(PWideChar(MTitleText), Length(MTitleText),
+      GetFontFamily(MTitleFontName), 1, MTitleFontSize, MTitleFontColor, TitleWidth, TitleHeight);
+    Assert(Assigned(FTitleBitmap), 'Title bitmap cache not created.');
+  end;
+  if Assigned(FTitleBitmap) then GdipDrawCachedBitmap(PGraphic, FTitleBitmap, MTitleLeft, MTitleTop);
   for ACommentUnit in FRenderBuffer.Values do begin
     if ACommentUnit.Length = 0 then Continue;
     GdipDrawCachedBitmap(PGraphic, ACommentUnit.Bitmap, ACommentUnit.Left, ACommentUnit.Top);
   end;
-  {GraphicSharedMutex.Acquire;
-  try}
-    if Length(MTitleText) > 0 then begin // Display the Title
-      StrRect.X := MTitleLeft;
-      StrRect.Y := MTitleTop;
-      StrRect.Width := 0;
-      StrRect.Height := 0;
-      GdipResetPath(FPPath);
-      GdipAddPathStringI(FPPath, PWideChar(MTitleText), Length(MTitleText),
-        GetFontFamily(MTitleFontName), 1, MTitleFontSize, @StrRect, FPStringFormat);
-      GdipDrawPath(PGraphic, FPPen, FPPath);
-      GdipFillPath(PGraphic, GetSolidBrush(MTitleFontColor), FPPath);
-    end;
-  {finally
-    GraphicSharedMutex.Release;
-  end;}
   {$IFDEF DEBUG_DIM}GdipDrawLine(PGraphic, FPPen, 0,0,FWidth,FHeight);{$ENDIF}
   GdipDeleteGraphics(PGraphic);
 end;
