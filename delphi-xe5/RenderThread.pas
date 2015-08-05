@@ -406,7 +406,7 @@ begin
   bmpInfo.bmiHeader.biCompression := BI_RGB;
   bmpSize := bmp.bmWidthBytes * bmp.bmHeight;
   {$IFDEF DEBUG}ReportLog(Format('Buf Length: %u', [bmpSize]));{$ENDIF}
-  bmpBits := VirtualAlloc(nil, bmpSize, MEM_COMMIT, PAGE_READWRITE);
+  bmpBits := VirtualAlloc(nil, bmpSize, MEM_COMMIT or MEM_RESERVE, PAGE_READWRITE);
   Assert(Assigned(bmpBits), 'VirtualAlloc failed');
   try
     hdcScreen := GetDC(0);
