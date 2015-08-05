@@ -662,6 +662,7 @@ procedure TfrmControl.TimerGeneralTimer(Sender: TObject);
 var
   TimeNow: TTime;
   HRunning, DRunning, RRunning, URunning: Boolean;
+  str: string;
 begin
   {case grpTiming.ItemIndex of
     0: InternalTime := Time();
@@ -695,7 +696,8 @@ begin
       StatValueList.Values['HTTP读超时'] := IntToStr(ReqReadTCCount);
       StatValueList.Values['HTTP被关闭'] := IntToStr(ReqClosedCount);
       StatValueList.Values['HTTP错误'] := IntToStr(ReqErrCount);
-      StatValueList.Values['HTTP吞吐量'] := Format('%.2f/s',[ReqCount * 1000 / ReqTotalMS]);
+      if ReqTotalMS = 0 then str := '-' else str := Format('%.2f/s',[ReqCount * 1000 / ReqTotalMS]);
+      StatValueList.Values['HTTP吞吐量'] := str;
       StatValueList.Values['HTTP用时'] := Format('%.3f s',[ReqLastMS / 1000]);
     end;
   end;
@@ -707,7 +709,8 @@ begin
     with RThread do begin
       StatValueList.Values['已绘制帧'] := IntToStr(FramesCount);
       StatValueList.Values['已绘制秒'] := Format('%.3f',[RenderMS / 1000]);
-      StatValueList.Values['绘制帧率'] := Format('%.3fFPS',[FramesCount / ((RenderMS + 1) / 1000)]);
+      if RenderMS = 0 then str := '-' else str := Format('%.3fFPS',[FramesCount / (RenderMS / 1000)]);
+      StatValueList.Values['绘制帧率'] := str;
       StatValueList.Values['绘制开销'] := IntToStr(OverheadMS);
       //StatValueList.Values['绘制队列满'] := IntToStr(QueueFullCount);
       StatValueList.Values['满屏限制'] := IntToStr(ScreenFullCount);
@@ -719,7 +722,8 @@ begin
     with UThread do begin
       StatValueList.Values['已显示帧'] := IntToStr(SCount);
       StatValueList.Values['已显示秒'] := Format('%.3f',[SElaspedMS / 1000]);
-      StatValueList.Values['显示帧率'] := Format('%.3fFPS',[SCount / ((SElaspedMS + 1) / 1000)]);
+      if SElaspedMS = 0 then str := '-' else str := Format('%.3fFPS',[SCount / (SElaspedMS / 1000)]);
+      StatValueList.Values['显示帧率'] := str;
       StatValueList.Values['帧率过高'] := IntToStr(WOverFPS);
       StatValueList.Values['更新下限'] := IntToStr(WOverMin);
       StatValueList.Values['更新上限'] := IntToStr(WOverMax);
@@ -1420,6 +1424,7 @@ begin
     CommentID := StrToInt(ListComments.Selected.SubItems.Strings[T_ID]);
     CommentPoolMutex.Acquire;
     try
+      if CommentPool.Count <= CommentID then Exit;      
       with CommentPool.Items[CommentID] do begin
         Content := '';
         Status := TCommentStatus.Removed;
