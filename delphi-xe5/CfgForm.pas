@@ -134,6 +134,8 @@ var
 
 implementation
 
+uses CtrlForm;
+
 {$R *.dfm}
 
 constructor TConfiguration.Create(Group: string; Key: string; Description: string);
@@ -271,6 +273,8 @@ end;
 procedure TfrmConfig.BtnSaveClick(Sender: TObject);
 begin
   Save;
+  frmControl.LoadSetting;
+  frmControl.ReloadControls;
   Self.Hide;
 end;
 

@@ -172,8 +172,6 @@ type
     procedure CreateCommentWindow();
     procedure StartThreads();
     procedure TerminateThreads();
-    procedure LoadSetting();
-    procedure ReloadControls();
   public
     { Public declarations }
     TimeZoneBias: Integer;
@@ -226,6 +224,8 @@ type
     procedure AppendLocalComment(LTime: TTime; RTime: TTime; AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
     procedure UpdateCaption();
     procedure SaveSetting();
+    procedure LoadSetting();
+    procedure ReloadControls();
     // Old Procedures
     procedure LogEvent(Info: string; Level: TLogType = logInfo);
   end;
