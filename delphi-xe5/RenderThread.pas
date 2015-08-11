@@ -216,9 +216,13 @@ begin
     with ALiveComment do begin
       if Status <> TLiveCommentStatus.LCreated then Exit;
       AHeight := 0;
-      GetStringDim(Body.Content,Body.Format,AWidth,AHeight);
+      GetStringDim(Body.Content,Body.Format, AWidth, AHeight);
       Width := AWidth;
       Height := AHeight;
+      if (Width = 0) or (Height = 0) then begin
+        Status := LDelete;
+        Exit;
+      end;
       case Body.Effect.Display of
         Scroll: begin
           Left := FWidth - 1; // For inspect
@@ -690,7 +694,7 @@ begin
     if ACommentUnit.Length = 0 then Continue;
     if Assigned(ACommentUnit.Bitmap) then GdipDrawCachedBitmap(PGraphic, ACommentUnit.Bitmap, ACommentUnit.Left, ACommentUnit.Top);
   end;
-  {$IFDEF DEBUG_DIM}GdipDrawLine(PGraphic, FPPen, 0,0,FWidth,FHeight);{$ENDIF}
+  {$IFDEF DEBUG_DIM}GdipDrawLine(PGraphic, FPPen, 0, 0, FWidth, FHeight);{$ENDIF}
   GdipDeleteGraphics(PGraphic);
 end;
 
@@ -775,13 +779,17 @@ begin
     CommentPoolMutex.Release;
   end;
   LiveCommentPoolMutex.Acquire;
-  try
-    FRenderList.Remove(ALiveComment);
-  finally
-    LiveCommentPoolMutex.Release;
+  if FRenderList.Contains(ALiveComment) then begin
+    try
+      FRenderList.Remove(ALiveComment);
+    finally
+      LiveCommentPoolMutex.Release;
+    end;
   end;
-  GdipDeleteCachedBitmap(FRenderBuffer.Items[ID].Bitmap);
-  FRenderBuffer.Remove(ID); // Internal CommentUnits Buffer
+  if FRenderBuffer.ContainsKey(ID) then begin
+    GdipDeleteCachedBitmap(FRenderBuffer.Items[ID].Bitmap);
+    FRenderBuffer.Remove(ID); // Internal CommentUnits Buffer
+  end;
 end;
 
 procedure TRenderThread.ReportLog(Info: string; Level: TLogType = logInfo);

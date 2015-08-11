@@ -6,7 +6,6 @@ uses
   Winapi.Windows, Winapi.Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   StdCtrls, ExtCtrls, ComCtrls,
   Menus, Math, SyncObjs, System.Generics.Collections,
-  XMLDoc, XMLIntf,
   IdContext, IdIntercept, IdServerInterceptLogBase, IdServerInterceptLogFile,
   Dialogs, System.UITypes,
   IdSocketHandle, IdGlobal,
@@ -56,12 +55,10 @@ const
 
 type
   TfrmControl = class(TForm)
-    grpCCWindow: TGroupBox;
     btnCCWork: TButton;
     TimerGeneral: TTimer;
     grpGuestCommentSet: TGroupBox;
     grpOfficialComment: TGroupBox;
-    editOfficialComment: TEdit;
     cobNetCFontName: TComboBox;
     cobOfficialCFontName: TComboBox;
     btnOfficialSend: TButton;
@@ -108,6 +105,8 @@ type
     RadioGroupModes: TRadioGroup;
     BtnReloadCfg: TButton;
     StatValueList: TValueListEditor;
+    editOfficialComment: TMemo;
+    btnSetLabelText: TButton;
     procedure btnCCShowClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnCCWorkClick(Sender: TObject);
@@ -157,6 +156,10 @@ type
     procedure BtnReloadCfgClick(Sender: TObject);
     procedure editOfficialCommentDurationChange(Sender: TObject);
     procedure btnEscAllClick(Sender: TObject);
+    procedure btnSetLabelTextClick(Sender: TObject);
+    procedure editOfficialCommentKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure editOfficialCommentKeyPress(Sender: TObject; var Key: Char);
 
   private
     { Private declarations }
@@ -264,7 +267,7 @@ begin
     Caption := 'C';
     SubItems.Add(IntToStr(AComment.ID));
     SubItems.Add(Format('%s.%u',[TimeToStr(AComment.Time),MilliSecondOf(AComment.Time)]));
-    SubItems.Add(AComment.Content);
+    SubItems.Add(StringReplace(AComment.Content, #13, '\n', [rfReplaceAll]));
     case AComment.Author.Source of
       Internet: SubItems.Add(AComment.Author.Address);
       Console: SubItems.Add(L_Console);
@@ -309,8 +312,7 @@ begin
   AComment.Format.FontColor := BGRToRGB(AComment.Format.FontColor);
   AppendListView(AComment);
   // Do not change these two lines
-  AComment.Content := StringReplace(AComment.Content,'\n',#13,[rfReplaceAll]);
-  AComment.Content := StringReplace(AComment.Content,'/n',#13,[rfReplaceAll]);
+  AComment.Content := StringReplace(AComment.Content,'\n', #13, [rfReplaceAll]);
   {$IFDEF DEBUG_VERBOSE1}LogEvent('Before CommentPoolMutex.Acquire()', logDebug);{$ENDIF}
   CommentPoolMutex.Acquire; // CS: Read the comment pool
   {$IFDEF DEBUG_VERBOSE1}LogEvent('After CommentPoolMutex.Acquire()', logDebug);{$ENDIF}
@@ -756,7 +758,6 @@ end;
 
 procedure TfrmControl.btnSetFixedLabelClick(Sender: TObject);
 begin
-  MTitleText := StringReplace(editOfficialComment.Text,'/n',#13,[rfReplaceAll]);
   MTitleFontName := OfficialFontName;
   MTitleFontSize := OfficialFontSize;
   MTitleFontColor := BGRToRGB(OfficialFontColor);
@@ -768,6 +769,12 @@ begin
       Font.Color := cobOfficialCFontColor.Brush.Color;
     end;
   end;
+  UpdateCaption;
+end;
+
+procedure TfrmControl.btnSetLabelTextClick(Sender: TObject);
+begin
+  MTitleText := editOfficialComment.Text;
   UpdateCaption;
 end;
 
@@ -838,13 +845,13 @@ var
 begin
   Content := TrimRight(editOfficialComment.Text);
   if Length(Content) = 0 then Exit;
-  {if frmWordList.Hexied(Content) then begin
-    if Application.MessageBox('检测到敏感词，继续吗？','河蟹已经阻止不了你了么',MB_ICONQUESTION + MB_YESNO) = IDNO then begin
-      editOfficialComment.Clear;
+  editOfficialComment.Clear;
+  if frmWordList.Hexied(Content) then begin
+    if Application.MessageBox('检测到敏感词，继续吗？','警告',MB_ICONQUESTION + MB_YESNO) = IDNO then begin
       editOfficialComment.SetFocus;
-      exit;
+      Exit;
     end;
-  end;}
+  end;
 
   case grpSpecialEffects.ItemIndex of
     0: Effect.Display := Scroll;
@@ -867,7 +874,6 @@ begin
 
   AppendConsoleComment(Content,Effect,Format);
 
-  editOfficialComment.Clear;
   editOfficialComment.SetFocus;
 end;
 
@@ -1186,6 +1192,23 @@ end;
 procedure TfrmControl.editOfficialCommentDurationChange(Sender: TObject);
 begin
   OfficialDuration := StrToIntDef(editOfficialCommentDuration.Text, 5000);
+end;
+
+procedure TfrmControl.editOfficialCommentKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if (Key = VK_RETURN) and (Shift = [ssCtrl]) then btnOfficialSend.Click();
+  Key := VK_BACK;
+end;
+
+procedure TfrmControl.editOfficialCommentKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+
+  if (Key = #10) and (GetKeyState(VK_CONTROL) < 0) then begin
+    Key := #0;
+    btnOfficialSend.Click();
+  end;
 end;
 
 procedure TfrmControl.cobNetCFontSizeKeyPress(Sender: TObject;
