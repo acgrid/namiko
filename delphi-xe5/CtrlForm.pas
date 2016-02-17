@@ -17,8 +17,6 @@ uses
   LogForm, CfgForm;
 
 const
-  NamikoTrayMessage = WM_USER + 233;
-
   KEY = 'saf32459090sua0fj23jnroiahfaj23-ir512nmrpaf314';
 
   L_Console = '控制台';
@@ -107,6 +105,7 @@ type
     StatValueList: TValueListEditor;
     editOfficialComment: TMemo;
     btnSetLabelText: TButton;
+    TrayIcon: TTrayIcon;
     procedure btnCCShowClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnCCWorkClick(Sender: TObject);
@@ -160,6 +159,7 @@ type
     procedure editOfficialCommentKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure editOfficialCommentKeyPress(Sender: TObject; var Key: Char);
+    procedure TrayIconClick(Sender: TObject);
 
   private
     { Private declarations }
@@ -168,8 +168,6 @@ type
     XMLDelay : Integer;
     FreezingTime : TTime;
 
-    procedure WindowTrayMessage(var Message: TMessage);
-    message NamikoTrayMessage;
     procedure WMHotKey(var Msg : TWMHotKey); message WM_HOTKEY;
 
     procedure CreateCommentWindow();
@@ -235,7 +233,6 @@ type
 
 var
   frmControl: TfrmControl;
-  TrayIconData: TNotifyIconData;
   // Thread Sync Objects
   SharedConfigurationMutex, GraphicSharedMutex, {HTTPSharedMutex,} HexieMutex,
   CommentPoolMutex, LiveCommentPoolMutex, UpdateQueueMutex: TMutex;
@@ -375,19 +372,6 @@ end;
 procedure TfrmControl.btnCCShowClick(Sender: TObject);
 begin
   FormDimSet.Show;
-end;
-
-procedure TfrmControl.WindowTrayMessage(var Message: TMessage);
-begin
-  if Message.Msg = NamikoTrayMessage then begin
-    case Message.LParam of
-      WM_LBUTTONUP:
-      begin
-        ShowWindow(Self.Handle,SW_NORMAL);
-        SetForegroundWindow(Self.Handle);
-      end;
-    end;
-  end;
 end;
 
 procedure TfrmControl.CreateCommentWindow;
@@ -576,16 +560,7 @@ begin
   except
     LogEvent('快捷键设置失败', logException);
   end;
-  //Register Tray Icon
-  TrayIconData.cbSize := SizeOf(TrayIconData);
-  TrayIconData.uFlags := NIF_ICON or NIF_TIP or NIF_MESSAGE;
-  TrayIconData.uID := UINT(Self);
-  TrayIconData.Wnd := Handle;
-  TrayIconData.hIcon := Application.Icon.Handle;
-  StrCopy(@TrayIconData.szTip,PChar(Application.Title));
-  TrayIconData.uCallbackMessage := NamikoTrayMessage;
-  Shell_NotifyIcon(NIM_ADD,@TrayIconData);
-  LogEvent('创建托盘图标');
+  TrayIcon.Hint := Caption;
   //Pools
   CommentPool := TCommentCollection.Create(True);
   CommentPoolMutex.Release;
@@ -623,7 +598,6 @@ begin
 procedure TfrmControl.FormDestroy(Sender: TObject);
 begin
   SysReady := False;
-  Shell_NotifyIcon(NIM_DELETE,@TrayIconData);
   UnRegisterHotKey(handle,DispatchKey);
   GlobalDeleteAtom(DispatchKey);
   FreeAndNil(DThread);
@@ -736,6 +710,12 @@ begin
     IfThen(RRunning,'运行','停止'),
     IfThen(URunning,'运行','停止'),
     IfThen(HRunning,'运行','停止')]);
+end;
+
+procedure TfrmControl.TrayIconClick(Sender: TObject);
+begin
+  ShowWindow(Self.Handle, SW_NORMAL);
+  SetForegroundWindow(Self.Handle);
 end;
 
 procedure TfrmControl.UpdateCaption;
