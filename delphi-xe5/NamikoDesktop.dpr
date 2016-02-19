@@ -13,7 +13,13 @@ uses
   LogForm in 'LogForm.pas' {frmLog},
   CfgForm in 'CfgForm.pas' {frmConfig},
   DemoForm in 'DemoForm.pas' {frmDemo},
-  NamikoTypes in 'NamikoTypes.pas';
+  NamikoTypes in 'NamikoTypes.pas',
+  ImageMgrForm in 'ImageMgrForm.pas' {frmImageManager},
+  ImageViewForm in 'ImageViewForm.pas' {frmImage},
+  MsgViewForm in 'MsgViewForm.pas' {frmMessages},
+  HTTPImageWorker in 'HTTPImageWorker.pas',
+  HTTPMsgWorker in 'HTTPMsgWorker.pas',
+  JPEGUtils in 'JPEGUtils.pas';
 
 {$R *.res}
 
@@ -24,6 +30,9 @@ begin
   Application.Title := 'Namiko Danmaku Client';
   Application.CreateForm(TfrmLog, frmLog);
   Application.CreateForm(TfrmConfig, frmConfig);
+  Application.CreateForm(TfrmImage, frmImage);
+  Application.CreateForm(TfrmImageManager, frmImageManager);
+  Application.CreateForm(TfrmMessages, frmMessages);
   Application.CreateForm(TfrmWordList, frmWordList);
   Application.CreateForm(TfrmDemo, frmDemo);
   Application.CreateForm(TfrmControl, frmControl);

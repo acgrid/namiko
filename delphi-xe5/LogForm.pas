@@ -5,10 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ComCtrls, Vcl.ExtDlgs,
-  Vcl.ExtCtrls, System.Generics.Collections, SyncObjs, Math, Clipbrd;
-
-type
-  TLogType = (logDebug, logInfo, logWarning, logError, logException);
+  Vcl.ExtCtrls, System.Generics.Collections, SyncObjs, Math, Clipbrd, NamikoTypes;
 
 type
   TLog = class(TObject)

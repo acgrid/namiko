@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, PerlRegEx, LogForm;
+  Dialogs, StdCtrls, PerlRegEx, NamikoTypes;
 
 type
   TfrmWordList = class(TForm)
@@ -34,7 +34,7 @@ implementation
 
 {$R *.dfm}
 uses
-  CtrlForm, HTTPWorker;
+  HTTPWorker, LogForm, CtrlForm;
 
 procedure TfrmWordList.FormCreate(Sender: TObject);
 begin

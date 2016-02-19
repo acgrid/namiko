@@ -3,8 +3,8 @@
 interface
 
 uses
-  System.Classes, System.SysUtils, System.SyncObjs, System.DateUtils, System.Diagnostics,
-  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, System.JSON, PerlRegEx,
+  System.Classes, System.SysUtils, System.SyncObjs, System.DateUtils, System.StrUtils, System.Diagnostics, System.UIConsts,
+  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, System.JSON, PerlRegEx, Math,
   NamikoTypes, LogForm, CfgForm;
 
 type
@@ -31,6 +31,7 @@ type
     procedure ReadLines(var AResponse: string; var NextID: Int64);
     procedure ReadSharedConfiguration();
   public
+    const DATA_VERSION = '4';
     property HexieList: TStringList read Hexie;
     property ReqCount: Int64 read FReqCount;
     property ReqConnTCCount: Int64 read FReqConnTCCount;
@@ -45,7 +46,7 @@ type
 implementation
 
 uses
-  CtrlForm, HexieForm;
+  CtrlForm, HexieForm, ImageMgrForm, MsgViewForm;
 
 {
   Important: Methods and properties of objects in visual components can only be
@@ -130,6 +131,7 @@ var
   Response: string;
   LJSONObject: TJSONObject;
   JResult, JTimestamp, JLastID: TJSONPair;
+  JVersion: TJSONValue;
 begin
   NameThreadForDebugging('HTTP');
   { Place thread code here }
@@ -146,6 +148,11 @@ begin
             JResult := LJSONObject.Get('Result');
             JTimestamp := LJSONObject.Get('Timestamp');
             JLastID := LJSONObject.Get('FrontID');
+            JVersion := LJSONObject.GetValue('Version');
+            if not Assigned(JVersion) or (JVersion.Value <> DATA_VERSION) then begin
+              ReportLog(Format('测试错误：服务器版本 %s，本地版本 %s.',[JVersion.Value, DATA_VERSION]));
+              Exit;
+            end;
             if Assigned(JTimestamp) and Assigned(JLastID) then begin
               RequestID := StrToInt64(JLastID.JsonValue.Value);
               FRemoteTimeOffset := DateTimeToUnix(Now()) - (StrToInt64(JTimestamp.JsonValue.Value()) - FTimeOffset); // DateTimeToUnix is local timestamp - (PHP's UTC timestamp - offset of local to UTC)
@@ -270,21 +277,25 @@ end;
 procedure THTTPWorkerThread.ReadLines(var AResponse: string; var NextID: Int64);
 var
   LJsonArr: TJSONArray;
-  LJsonValue: TJSONValue;
+  LJsonValue, LSubValue: TJSONValue;
   LItem: TJSONValue;
-  ThisID: Int64;
+  LSubItem: TJSONObject;
+  ThisID, ImageSize: Int64;
   RTime, LTime: TDateTime;
   ThisAuthor: TCommentAuthor;
   ThisFormat: TCommentFormat;
-  Content: string;
+  ImageKey, ImageSignature, MsgType, Content: string;
   HexieIndex: Integer;
-  TimeFound, IPFound, ContentFound: Boolean;
+  ImagesCnt, SrvMessagesCnt: Cardinal;
+  TimeFound, IPFound, ContentFound, ImageFound, SrvMessageFound: Boolean;
 begin
   LTime := Now();
   ThisFormat.DefaultName := True;
   ThisFormat.DefaultSize := True;
   ThisFormat.DefaultColor := True;
   ThisFormat.DefaultStyle := True;
+  ImagesCnt := 0;
+  SrvMessagesCnt := 0;
   try
     LJsonArr := TJSONObject.ParseJSONValue(TEncoding.ASCII.GetBytes(AResponse),0) as TJSONArray;
     try
@@ -292,13 +303,16 @@ begin
         TimeFound := False;
         IPFound := False;
         ContentFound := False;
+        ImageFound := False;
+        SrvMessageFound := False;
+        ThisAuthor.Group := '';
         for LItem in TJSONArray(LJsonValue) do begin
           if TJSONPair(LItem).JsonString.Value = 'ID' then begin
-            ThisID := StrToInt64(TJSONPair(LItem).JsonValue.Value());
+            ThisID := TJSONNumber(TJSONPair(LItem).JsonValue).AsInt64;
             if ThisID > NextID then NextID := ThisID;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'Timestamp' then begin
-            RTime := UnixToDateTime(StrToInt64(TJSONPair(LItem).JsonValue.Value()) - FTimeOffset + FRemoteTimeOffset);
+          if TJSONPair(LItem).JsonString.Value = 'TS' then begin
+            RTime := UnixToDateTime(TJSONNumber(TJSONPair(LItem).JsonValue).AsInt64 - FTimeOffset + FRemoteTimeOffset);
             TimeFound := True;
           end;
           if TJSONPair(LItem).JsonString.Value = 'IP' then begin
@@ -306,45 +320,99 @@ begin
             ThisAuthor.Address := TJSONPair(LItem).JsonValue.Value;
             IPFound := True;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'Content' then begin
+          if TJSONPair(LItem).JsonString.Value = 'UG' then begin
+            ThisAuthor.Group := TJSONPair(LItem).JsonValue.Value;
+          end;
+          if TJSONPair(LItem).JsonString.Value = 'IMG' then begin
+            LSubItem := TJSONObject(TJSONPair(LItem).JsonValue);
+            LSubValue := LSubItem.GetValue('KEY');
+            ImageKey := IfThen(Assigned(LSubValue), LSubValue.Value, '');
+            LSubValue := LSubItem.GetValue('SIZE');
+            ImageSize := IfThen(Assigned(LSubValue), TJSONNumber(LSubValue).AsInt, 0);
+            LSubValue := LSubItem.GetValue('SIGN');
+            ImageSignature := IfThen(Assigned(LSubValue), LSubValue.Value, '');
+            if (ImageKey <> '') and (ImageSize > 0) then begin
+              Inc(ImagesCnt);
+              ImageFound := True;
+            end;
+          end;
+          if TJSONPair(LItem).JsonString.Value = 'SRV' then begin
+            LSubItem := TJSONObject(TJSONPair(LItem).JsonValue);
+            LSubValue := LSubItem.GetValue('TYPE');
+            MsgType := IfThen(Assigned(LSubValue), LSubValue.Value, '');
+            LSubValue := LSubItem.GetValue('MSG');
+            Content := IfThen(Assigned(LSubValue), LSubValue.Value, '');
+            if (MsgType <> '') and (Content <> '') then begin
+              Inc(SrvMessagesCnt);
+              SrvMessageFound := True;
+            end;
+          end;
+          if TJSONPair(LItem).JsonString.Value = 'DM' then begin
             Content := TJSONPair(LItem).JsonValue.Value;
             ContentFound := True;
           end;
-        end;
-        HexieMutex.Acquire;
-        try
-          try
-            FHexie.Subject := UTF8Encode(Content);
-            for HexieIndex := 0 to Hexie.Count - 1 do begin
-              FHexie.RegEx := UTF8Encode(Hexie.Strings[HexieIndex]);
-              if FHexie.Match then begin
-                ReportLog(Format('[PCRE] 已和谐来自%s的弹幕"%s"',[ThisAuthor.Address,Content]));
-                Exit;
-              end;
-            end;
-          except
-            on E:Exception do begin
-              ReportLog('[PCRE] 正则表达式错误：'+E.Message);
-            end;
+          if TJSONPair(LItem).JsonString.Value = 'FS' then begin
+            ThisFormat.FontSize := TJSONNumber(TJSONPair(LItem).JsonValue).AsDouble;
+            ThisFormat.DefaultSize := False;
           end;
-        finally
-          HexieMutex.Release;
+          if TJSONPair(LItem).JsonString.Value = 'FC' then begin
+            ThisFormat.FontColor := StringToAlphaColor(TJSONPair(LItem).JsonValue.Value);
+            ThisFormat.DefaultColor := False;
+          end;
         end;
         if TimeFound and IPFound and ContentFound then begin
+          HexieMutex.Acquire;
+          try
+            try
+              FHexie.Subject := UTF8Encode(Content);
+              for HexieIndex := 0 to Hexie.Count - 1 do begin
+                FHexie.RegEx := UTF8Encode(Hexie.Strings[HexieIndex]);
+                if FHexie.Match then begin
+                  ReportLog(Format('[PCRE] 已和谐来自%s的弹幕"%s"',[ThisAuthor.Address,Content]));
+                  Exit;
+                end;
+              end;
+            except
+              on E:Exception do begin
+                ReportLog('[PCRE] 正则表达式错误：'+E.Message);
+              end;
+            end;
+          finally
+            HexieMutex.Release;
+          end;
           Synchronize(procedure begin
             frmControl.AppendNetComment(LTime,RTime,ThisAuthor,Content,ThisFormat);
           end);
+        end
+        else if TimeFound and IPFound and ImageFound then begin
+          Synchronize(procedure begin
+            frmImageManager.AddImageComment(ThisID, RTime, 0, ThisAuthor, ImageKey, ImageSignature, ImageSize);
+          end);
+        end
+        else if TimeFound and IPFound and SrvMessageFound then begin
+          Synchronize(procedure begin
+            frmMessages.AddSrvMessage(ThisID, RTime, ThisAuthor, MsgType, Content);
+          end);
         end;
       end;
-      finally
-        LJsonArr.Free;
-      end;
-    except
-      on E: Exception do begin
-      {$IFDEF DEBUG}ReportLog(Format('JSON 解析异常 %s "%s"',[E.ClassName,E.Message]));{$ENDIF}
-      Sleep(FInterval);
-      end;
+    finally
+      LJsonArr.Free;
     end;
+  except
+    on E: Exception do begin
+    {$IFDEF DEBUG}ReportLog(Format('JSON 解析异常 %s "%s"',[E.ClassName,E.Message]));{$ENDIF}
+    Sleep(FInterval);
+    end;
+  end;
+  if (ImagesCnt > 0) or (SrvMessagesCnt > 0) then begin
+    Synchronize(procedure begin
+      with frmControl do begin
+        TrayIcon.BalloonTitle := '新的图片或会场消息';
+        TrayIcon.BalloonHint := Format('刚才接收到%u条图片，%u个会场消息。', [ImagesCnt, SrvMessagesCnt]);
+        TrayIcon.ShowBalloonHint;
+      end;
+    end);
+  end;
 end;
 
 procedure THTTPWorkerThread.ReportLog(Info: string; Level: TLogType = logInfo);

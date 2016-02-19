@@ -105,6 +105,8 @@ type
     StatValueList: TValueListEditor;
     editOfficialComment: TMemo;
     btnSetLabelText: TButton;
+    BtnImageWindow: TButton;
+    BtnMessageWindow: TButton;
     TrayIcon: TTrayIcon;
     procedure btnCCShowClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -159,6 +161,8 @@ type
     procedure editOfficialCommentKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure editOfficialCommentKeyPress(Sender: TObject; var Key: Char);
+    procedure BtnImageWindowClick(Sender: TObject);
+    procedure BtnMessageWindowClick(Sender: TObject);
     procedure TrayIconClick(Sender: TObject);
 
   private
@@ -256,7 +260,7 @@ implementation
 
 {$R *.dfm}
 uses
-  SetupForm, HexieForm, DemoForm;
+  SetupForm, HexieForm, DemoForm, ImageMgrForm, MsgViewForm, ImageViewForm;
 
 procedure TfrmControl.AppendListView(const AComment: TComment);
 begin
@@ -545,6 +549,9 @@ begin
   cobNetCFontName.Items.AddStrings(Screen.Fonts);
   cobOfficialCFontName.Items.AddStrings(Screen.Fonts);
   //Load Settings
+  TImageComment.ImageDir := APP_DIR + 'images\';
+  ForceDirectories(TImageComment.ImageDir);
+  LogEvent('图片缓存位置: ' + TImageComment.ImageDir);
   LoadSetting(); // Call After APP_DIR
   LogEvent('初始化配置');
   ReloadControls();
@@ -868,6 +875,11 @@ begin
   if not frmLog.Visible then frmLog.Show;
 end;
 
+procedure TfrmControl.BtnMessageWindowClick(Sender: TObject);
+begin
+  frmMessages.Show;
+end;
+
 procedure TfrmControl.btnSaveCommentClick(Sender: TObject);
 {var
   XMLDoc : TXMLDocument;
@@ -999,6 +1011,7 @@ begin
   //editNetHost.Text already assigned
   editNetPassword.Text := NetPassword;
   chkAutoStartNet.Checked := AutoStart;
+  frmImage.Init;
 end;
 
 procedure TfrmControl.SaveSetting();
@@ -1436,6 +1449,11 @@ begin
       CommentPoolMutex.Release;
     end;
   end;
+end;
+
+procedure TfrmControl.BtnImageWindowClick(Sender: TObject);
+begin
+  frmImageManager.Show;
 end;
 
 function AlphaColorToColor(Alpha: TAlphaColor): TColor;

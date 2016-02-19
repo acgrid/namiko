@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Grids, Vcl.ValEdit, Vcl.ExtCtrls,
-  Vcl.ComCtrls, Vcl.StdCtrls, System.Generics.Collections, IniFiles, LogForm, Math,
+  Vcl.ComCtrls, Vcl.StdCtrls, System.Generics.Collections, IniFiles, NamikoTypes, Math,
   Vcl.Buttons;
 
 type
@@ -134,7 +134,7 @@ var
 
 implementation
 
-uses CtrlForm;
+uses LogForm, CtrlForm;
 
 {$R *.dfm}
 
@@ -326,6 +326,15 @@ begin
   MyConfig.Add(TStringConfiguration.Create('Title','FontName','官方标题字体','SimHei'));
   MyConfig.Add(TIntegerConfiguration.Create('Title','FontSize','官方标题字号',22,8,100,2));
   MyConfig.Add(TStringConfiguration.Create('Title','FontColor','官方标题颜色','clRed'));
+  MyConfig.Add(TStringConfiguration.Create('ImageView','BackgroundColor','图片显示背景颜色','clBlack'));
+  MyConfig.Add(TStringConfiguration.Create('ImageView','ForegroundColor','图片显示前景颜色','clWhite'));
+  MyConfig.Add(TIntegerConfiguration.Create('ImageView','DelayTime','图片显示时间(ms)',5000,100,30000,100));
+  MyConfig.Add(TIntegerConfiguration.Create('ImageView','Left','图片显示顶点X坐标',0,-99999,99999,10));
+  MyConfig.Add(TIntegerConfiguration.Create('ImageView','Top','图片显示顶点Y坐标',0,-99999,99999,10));
+  MyConfig.Add(TIntegerConfiguration.Create('ImageView','Width','图片显示宽度',640,1,99999,10));
+  MyConfig.Add(TIntegerConfiguration.Create('ImageView','Height','图片显示高度',480,1,99999,10));
+  MyConfig.Add(TStringConfiguration.Create('ImageView','SignatureFontName','图片签名字体','SimHei'));
+  MyConfig.Add(TIntegerConfiguration.Create('ImageView','SignatureFontSize','图片签名字号',16,8,100,2));
   MyConfig.Add(TBooleanConfiguration.Create('Debug','GeneralLogFile','自动输出日志到文件',{$IFDEF DEBUG}True{$ELSE}False{$ENDIF}));
   MyConfig.Add(TBooleanConfiguration.Create('Debug','HTTPLogFile','转储HTTP请求到文件',{$IFDEF DEBUG}True{$ELSE}False{$ENDIF}));
   Initialize;

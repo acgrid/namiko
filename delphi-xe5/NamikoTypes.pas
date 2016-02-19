@@ -6,6 +6,9 @@ uses
   Winapi.Windows, System.UITypes, System.Generics.Collections;
 
 type
+  TLogType = (logDebug, logInfo, logWarning, logError, logException);
+
+type
   TNetResult = (OK, BadFormat, BadKey, BadTime, BadData, BadLen, Hexied, IntErr);
 // TComment -> TLiveComment -> TRenderUnit
 // TCommentCollection -> TLiveCommentCollection -> TRenderUnitQueue
@@ -17,6 +20,7 @@ type
   TCommentAuthor = record
     Source: TAuthorSource;
     Address: string;
+    Group: string;
   end;
 type
   TCommentEffectType = (Scroll, UpperFixed, LowerFixed);
@@ -108,14 +112,88 @@ type
   TRenderUnitQueue = TQueue<TRenderUnit>;
 type
   PRenderUnitQueue = ^TRenderUnitQueue;
+type
+  TImageComment = class(TObject)
+    DBID: Int64;
+    Time: TTime;
+    Author: TCommentAuthor;
+    FileSize: Int64;
+    Width, Height: Cardinal;
+    IsSignatured: Boolean;
+    Signature: string;
+    Displayed: Boolean;
+    Committed: Boolean;
+    CommittedTime: TTime;
+    class var ImageDir: string;
+  protected
+    FImageKey: string;
+    FDownloaded: Boolean;
+  public
+    function GetImageFileName(): string;
+    property ImageKey: string read FImageKey;
+    property ImageFile: string read GetImageFileName;
+    property Downloaded: Boolean read FDownloaded;
+    procedure Reload;
+    constructor Create(Key: string);
+  end;
+type
+  TImageCommentCollection = TDictionary<Int64, TImageComment>;
+type
+  PImageCommentCollection = ^TImageCommentCollection;
+type
+  TSrvMessage = class(TObject)
+    DBID: Int64;
+    Time: TTime;
+    Author: TCommentAuthor;
+    MsgType: string;
+    Content: string;
+  end;
+type
+  TSrvMessageCollection = TDictionary<Int64, TSrvMessage>;
+
 
 implementation
+
+uses System.SysUtils, JPEGUtils;
 
 constructor TComment.Create;
 begin
   inherited Create();
   Inc(MaxID);
   Self.FID := MaxID;
+end;
+
+constructor TImageComment.Create(Key: string);
+
+begin
+  inherited Create();
+  FImageKey := Key;
+  Displayed := False;
+  Reload;
+end;
+
+procedure TImageComment.Reload;
+var
+  X, Y: Word;
+begin
+  FDownloaded := FileExists(GetImageFileName());
+  if FDownloaded then begin
+    JPEGDimensions(GetImageFileName(), FileSize, X, Y);
+    if FileSize < 1024 then begin
+      FDownloaded := False;
+    end;
+    Width := X;
+    Height := Y;
+  end;
+  if not FDownloaded then begin
+    Width := 0;
+    Height := 0;
+  end;
+end;
+
+function TImageComment.GetImageFileName(): string;
+begin
+  Result := ImageDir + FImageKey + '.jpg';
 end;
 
 end.

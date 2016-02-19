@@ -244,7 +244,7 @@ object frmControl: TfrmControl
       OnClick = cobOfficialCFontBoldClick
     end
     object editOfficialCommentParaUpDown: TUpDown
-      Left = 193
+      Left = 195
       Top = 51
       Width = 16
       Height = 25
@@ -466,7 +466,7 @@ object frmControl: TfrmControl
     end
   end
   object btnOpenFilter: TButton
-    Left = 376
+    Left = 456
     Top = 467
     Width = 81
     Height = 25
@@ -504,7 +504,7 @@ object frmControl: TfrmControl
     OnClick = btnExitClick
   end
   object btnEscAll: TButton
-    Left = 376
+    Left = 456
     Top = 441
     Width = 81
     Height = 25
@@ -541,7 +541,7 @@ object frmControl: TfrmControl
     TabOrder = 12
   end
   object btnClearList: TButton
-    Left = 463
+    Left = 543
     Top = 441
     Width = 82
     Height = 25
@@ -550,7 +550,7 @@ object frmControl: TfrmControl
     OnClick = btnClearListClick
   end
   object BtnLogShow: TButton
-    Left = 463
+    Left = 543
     Top = 467
     Width = 82
     Height = 25
@@ -559,7 +559,7 @@ object frmControl: TfrmControl
     OnClick = BtnLogShowClick
   end
   object BtnConfig: TButton
-    Left = 551
+    Left = 631
     Top = 467
     Width = 82
     Height = 25
@@ -568,11 +568,11 @@ object frmControl: TfrmControl
     OnClick = BtnConfigClick
   end
   object BtnReloadCfg: TButton
-    Left = 551
+    Left = 631
     Top = 441
     Width = 82
     Height = 25
-    Caption = #37325#36733#37197#32622'(&5)'
+    Caption = #37325#36733#37197#32622'(&9)'
     TabOrder = 16
     OnClick = BtnReloadCfgClick
   end
@@ -652,6 +652,24 @@ object frmControl: TfrmControl
     TabOrder = 23
     OnKeyPress = editOfficialCommentKeyPress
   end
+  object BtnImageWindow: TButton
+    Left = 376
+    Top = 441
+    Width = 75
+    Height = 25
+    Caption = #22270#29255#31649#29702'(&5)'
+    TabOrder = 24
+    OnClick = BtnImageWindowClick
+  end
+  object BtnMessageWindow: TButton
+    Left = 375
+    Top = 467
+    Width = 75
+    Height = 25
+    Caption = #29616#22330#28040#24687'(&6)'
+    TabOrder = 25
+    OnClick = BtnMessageWindowClick
+  end
   object TimerGeneral: TTimer
     OnTimer = TimerGeneralTimer
     Left = 312
@@ -675,7 +693,9 @@ object frmControl: TfrmControl
     Top = 120
   end
   object TrayIcon: TTrayIcon
+    Animate = True
     BalloonTimeout = 3000
+    BalloonFlags = bfInfo
     Icon.Data = {
       0000010001008080000001002000280801001600000028000000800000000001
       000001002000000000000000010000000000000000000000000000000000FFFF

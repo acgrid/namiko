@@ -369,6 +369,7 @@ begin
   if CurrentBitmap = 0 then raise Exception.Create('Cannot create bitmap for specific HDC.');
   SelectObject(CurrentHDC, CurrentBitmap);
   GdipCreateFromHDC(CurrentHDC, PGraphic);
+  Assert(Assigned(PGraphic), 'GDI+ graphic is not created.');
   GdipSetSmoothingMode(PGraphic, SmoothingModeAntiAlias);
   GdipSetInterpolationMode(PGraphic, InterpolationModeHighQualityBicubic);
   // do render
@@ -423,7 +424,7 @@ begin
     GdipCreateBitmapFromScan0(bmp.bmWidth, bmp.bmHeight, bmp.bmWidthBytes, PixelFormat32bppARGB, PByte(bmpBits), pGDIbmp);
     Assert(Assigned(pGDIbmp), 'GdipCreateBitmapFromScan0 failed');
     try
-      GdipCreateCachedBitmap(pGDIbmp, pGraphics, Result);
+      GdipCreateCachedBitmap(pGDIbmp, pGraphics, Result); // AV in RDP
     finally
       GdipFree(pGDIbmp);
     end;
