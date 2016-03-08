@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ComCtrls, NamikoTypes,
-  System.Actions, Vcl.ActnList, Vcl.Menus;
+  System.Actions, Vcl.ActnList, Vcl.Menus, Math;
 
 const
   TM_RECV_TIME = 0;
@@ -91,7 +91,7 @@ begin
     SubItems.Add(Msg.Author.Group);
     SubItems.Add(Msg.MsgType);
     if Length(Msg.Content) > 10 then begin
-      SubItems.Add(Copy(Msg.Content, 0, 10) + '...');
+      SubItems.Add(Copy(Msg.Content, 0, Min(20, Length(Msg.Content))) + '...');
     end
     else begin
       SubItems.Add(Msg.Content);

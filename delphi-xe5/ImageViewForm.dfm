@@ -1,9 +1,9 @@
 object frmImage: TfrmImage
   Left = 0
-  Top = 0
+  Top = 500
   BorderStyle = bsNone
-  Caption = 'frmImage'
-  ClientHeight = 338
+  Caption = 'IMG'
+  ClientHeight = 352
   ClientWidth = 651
   Color = clBlack
   Font.Charset = DEFAULT_CHARSET
@@ -13,6 +13,7 @@ object frmImage: TfrmImage
   Font.Style = []
   FormStyle = fsStayOnTop
   OldCreateOrder = False
+  Position = poDesigned
   OnCreate = FormCreate
   OnResize = FormResize
   PixelsPerInch = 96
@@ -33,7 +34,7 @@ object frmImage: TfrmImage
   end
   object ProgressBarRemaining: TProgressBar
     Left = 0
-    Top = 321
+    Top = 336
     Width = 651
     Height = 17
     DoubleBuffered = False

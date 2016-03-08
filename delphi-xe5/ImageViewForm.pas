@@ -27,6 +27,8 @@ type
 var
   frmImage: TfrmImage;
 
+procedure SetFormMonitor(Form:TCustomForm; MonitorIndex, Left, Top: Integer);
+
 implementation
 
 uses
@@ -39,18 +41,32 @@ begin
   Init;
 end;
 
+procedure SetFormMonitor(Form: TCustomForm; MonitorIndex, Left, Top: Integer);
+begin
+  if (MonitorIndex > -1) and (MonitorIndex < Screen.MonitorCount) then begin
+    Form.SetBounds(
+      Screen.Monitors[MonitorIndex].Left + Left,
+      Screen.Monitors[MonitorIndex].Top + Top,
+      Form.Width, Form.Height);
+  end;
+end;
+
 procedure TfrmImage.Init;
 begin
+  frmImage.Left := Screen.Monitors[Screen.MonitorCount - 1].Left;
   with frmConfig do begin
     DelayTime := IntegerItems['ImageView.DelayTime'];
-    frmImage.Left := IntegerItems['ImageView.Left'];
     frmImage.Top := IntegerItems['ImageView.Top'];
+    frmImage.Left := IntegerItems['ImageView.Left'];
     frmImage.Width := IntegerItems['ImageView.Width'];
     frmImage.Height := IntegerItems['ImageView.Height'];
     frmImage.Color := StringToColor(StringItems['ImageView.BackgroundColor']);
-    ProgressBarRemaining.BackgroundColor := Color;
+    ProgressBarRemaining.BackgroundColor := frmImage.Color;
     ProgressBarRemaining.BarColor := StringToColor(StringItems['ImageView.ForegroundColor']);
-    LabelSignature.Color := ProgressBarRemaining.BarColor;
+    LabelSignature.Font.Color := ProgressBarRemaining.BarColor;
+    LabelSignature.Font.Size := IntegerItems['ImageView.SignatureFontSize'];
+    LabelSignature.Font.Name := StringItems['ImageView.SignatureFontName'];
+    LabelSignature.Color := frmImage.Color;
   end;
 end;
 
@@ -78,6 +94,7 @@ begin
   LeftTime := DelayTime;
   TimerHide.Enabled := True;
   Show;
+  SetFormMonitor(Self, 1, frmConfig.IntegerItems['ImageView.Left'], frmConfig.IntegerItems['ImageView.Top']);
 end;
 
 end.

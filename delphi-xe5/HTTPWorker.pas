@@ -3,7 +3,7 @@
 interface
 
 uses
-  System.Classes, System.SysUtils, System.SyncObjs, System.DateUtils, System.StrUtils, System.Diagnostics, System.UIConsts,
+  System.Classes, System.SysUtils, System.SyncObjs, System.DateUtils, System.StrUtils, System.Diagnostics, Vcl.GraphUtil,
   IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, System.JSON, PerlRegEx, Math,
   NamikoTypes, LogForm, CfgForm;
 
@@ -18,6 +18,7 @@ type
     FTimeOffset: Integer;
     FRemoteTimeOffset: Integer;
     FKey: string;
+    FOpacity: Byte;
     FInterval: Integer;
     FRetryDelay: Integer;
     FPoolCount: Cardinal;
@@ -356,7 +357,7 @@ begin
             ThisFormat.DefaultSize := False;
           end;
           if TJSONPair(LItem).JsonString.Value = 'FC' then begin
-            ThisFormat.FontColor := StringToAlphaColor(TJSONPair(LItem).JsonValue.Value);
+            ThisFormat.FontColor := ColorToAlphaColor(WebColorStrToColor(TJSONPair(LItem).JsonValue.Value), FOpacity);
             ThisFormat.DefaultColor := False;
           end;
         end;
@@ -400,11 +401,12 @@ begin
     end;
   except
     on E: Exception do begin
-    {$IFDEF DEBUG}ReportLog(Format('JSON 解析异常 %s "%s"',[E.ClassName,E.Message]));{$ENDIF}
+    ReportLog(Format('JSON 解析异常 %s "%s"',[E.ClassName,E.Message]));
     Sleep(FInterval);
     end;
   end;
   if (ImagesCnt > 0) or (SrvMessagesCnt > 0) then begin
+    {$IFDEF DEBUG}ReportLog('气泡弹出');{$ENDIF}
     Synchronize(procedure begin
       with frmControl do begin
         TrayIcon.BalloonTitle := '新的图片或会场消息';
@@ -426,6 +428,7 @@ begin
   try}
   with frmConfig do begin
     FInterval := IntegerItems['HTTP.Interval'];
+    FOpacity := IntegerItems['NetComment.Opacity'];
 
     Worker.ConnectTimeout := IntegerItems['HTTP.ConnTimeout'];
     Worker.ReadTimeout := IntegerItems['HTTP.RecvTimeout'];

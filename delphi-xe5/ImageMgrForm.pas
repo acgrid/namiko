@@ -82,7 +82,7 @@ var
 implementation
 
 uses
-  JPEGUtils, ImageViewForm, HTTPImageWorker, System.Generics.Collections;
+  JPEGUtils, ImageViewForm, HTTPImageWorker, System.Generics.Collections, CfgForm;
 
 {$R *.dfm}
 
@@ -271,6 +271,7 @@ end;
 procedure TfrmImageManager.AddImageComment(ID: Int64; RecvTime: TTime; CommittedTime: TTime; Author: TCommentAuthor; ImageKey: string; Signature: string; ImageSize: Int64);
 var
   Comment: TImageComment;
+  Thread: THTTPImageWorker;
 begin
   if ImagePool.ContainsKey(ID) then begin
     ReportLog(Format('ID冲突发现: %u', [ID]));
@@ -286,6 +287,10 @@ begin
   Comment.CommittedTime := CommittedTime;
   ImagePool.Add(ID, Comment);
   InsertListView(Comment);
+  if not Comment.Downloaded and frmConfig.BooleanItems['ImageView.AutoDownload'] then begin
+    Thread := THTTPImageWorker.Create;
+    Thread.Download(Comment.DBID, Comment.ImageKey, Comment.GetImageFileName);
+  end;
 end;
 
 procedure TfrmImageManager.InsertListView(Cmt: TImageComment);
@@ -422,6 +427,7 @@ begin
     if Comment.Downloaded and Assigned(Row) then begin
       Row.SubItems.Strings[TI_DIM] := Format('%u*%u px', [Comment.Width, Comment.Height]);
       Row.SubItems.Strings[TI_FLAG_DL] := '已下载';
+      Row.Selected := True;
     end;
   end;
 end;

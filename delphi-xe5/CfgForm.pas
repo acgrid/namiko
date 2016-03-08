@@ -335,6 +335,7 @@ begin
   MyConfig.Add(TIntegerConfiguration.Create('ImageView','Height','图片显示高度',480,1,99999,10));
   MyConfig.Add(TStringConfiguration.Create('ImageView','SignatureFontName','图片签名字体','SimHei'));
   MyConfig.Add(TIntegerConfiguration.Create('ImageView','SignatureFontSize','图片签名字号',16,8,100,2));
+  MyConfig.Add(TBooleanConfiguration.Create('ImageView','AutoDownload','自动下载图片（渣网勿用）',{$IFDEF DEBUG}False{$ELSE}True{$ENDIF}));
   MyConfig.Add(TBooleanConfiguration.Create('Debug','GeneralLogFile','自动输出日志到文件',{$IFDEF DEBUG}True{$ELSE}False{$ENDIF}));
   MyConfig.Add(TBooleanConfiguration.Create('Debug','HTTPLogFile','转储HTTP请求到文件',{$IFDEF DEBUG}True{$ELSE}False{$ENDIF}));
   Initialize;
