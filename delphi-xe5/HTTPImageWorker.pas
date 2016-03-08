@@ -4,7 +4,7 @@ interface
 
 uses
   System.SysUtils, System.Classes, System.DateUtils, System.JSON,
-  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile,
+  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, IdComponent,
   NamikoTypes;
 
 type
@@ -22,6 +22,7 @@ type
     FThreadID: Cardinal;
     Worker: TIdHTTP;
     Logger: TIdLogFile;
+    LastestProgress: Integer;
     function ConvertTS(StdUnixTS: Int64): TDateTime;
     procedure RequestForString(AURL: string; var Response: string);
     procedure DoList;
@@ -30,6 +31,7 @@ type
     procedure DoDiscard;
     procedure Execute; override;
     procedure ReportLog(Info: string; Level: TLogType = logInfo);
+    procedure DownloadProgress(ASender: TObject; AWorkMode: TWorkMode; AWorkCount: Int64);
     class var NextID: Cardinal;
   public
     property Action: THTTPImageAction read FAction;
@@ -173,6 +175,27 @@ begin
   end;
 end;
 
+procedure THTTPImageWorker.DownloadProgress(ASender: TObject; AWorkMode: TWorkMode; AWorkCount: Int64);
+var
+  HTTP: TIdHTTP;
+  ContentLength: Int64;
+  CurrentPercent: Integer;
+begin
+  Http := TIdHTTP(ASender);
+  ContentLength := Http.Response.ContentLength;
+
+  if (Pos('chunked', LowerCase(Http.Response.TransferEncoding)) = 0) and
+     (ContentLength > 0) then begin
+    CurrentPercent := 100 * AWorkCount div ContentLength;
+    if CurrentPercent <> LastestProgress then begin
+      LastestProgress := CurrentPercent;
+      Synchronize(procedure begin
+        frmImageManager.FindListItem(FID).SubItems.Strings[TI_FLAG_DL] := Format('%d%%', [CurrentPercent]);
+      end);
+    end;
+  end;
+end;
+
 procedure THTTPImageWorker.Download(ID: Int64; Key: string; SavePath: string);
 begin
   FAction := THTTPImageAction.DOWNLOAD;
@@ -188,7 +211,9 @@ var
   OutStream: TFileStream;
 begin
   OutStream := TFileStream.Create(FSavePath, fmCreate or fmShareDenyWrite);
+  LastestProgress := 0;
   try
+    Worker.OnWork := DownloadProgress;
     Worker.Get(Format('%s?action=image-download&key=%s&image=%s',[FBaseURL, FKey, FImageKey]), OutStream);
     if Worker.ResponseCode <> 200 then begin
       raise Exception.Create(Format('下载失败，返回值%u 长度%u',[Worker.ResponseCode, Worker.Response.ContentLength]));

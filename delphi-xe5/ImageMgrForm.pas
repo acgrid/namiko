@@ -67,13 +67,13 @@ type
     { Private declarations }
     CurrentImageID: Int64;
     ImagePool: TImageCommentCollection;
-    function FindListItem(ID: Int64): TListItem;
     function FindComment(ListItem: TListItem): TImageComment;
     procedure ReportLog(Info: string; Level: TLogType = logInfo);
     procedure LoadImage(ImageFile: TFileName; Container: TImage);
     procedure InsertListView(Cmt: TImageComment);
   public
     { Public declarations }
+    function FindListItem(ID: Int64): TListItem;
   end;
 
 var
