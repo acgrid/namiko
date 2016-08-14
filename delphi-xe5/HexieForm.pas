@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, PerlRegEx, NamikoTypes;
+  Dialogs, StdCtrls, System.RegularExpressionsCore, NamikoTypes;
 
 type
   TfrmWordList = class(TForm)
@@ -87,9 +87,9 @@ begin
   Hexier := TPerlRegEx.Create();
   try
     try
-      Hexier.Subject := UTF8Encode(Content);
+      Hexier.Subject := Content;
       for i := 0 to HexieList.Lines.Count - 1 do begin
-        Hexier.RegEx := UTF8Encode(HexieList.Lines.Strings[i]);
+        Hexier.RegEx := HexieList.Lines.Strings[i];
         if Hexier.Match then begin
           Result := True;
           Exit;

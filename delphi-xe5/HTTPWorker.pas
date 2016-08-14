@@ -4,7 +4,7 @@ interface
 
 uses
   System.Classes, System.SysUtils, System.SyncObjs, System.DateUtils, System.StrUtils, System.Diagnostics, Vcl.GraphUtil,
-  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, System.JSON, PerlRegEx, Math,
+  IdGlobal, IdExceptionCore, IdHTTP, IdLogFile, System.JSON, System.RegularExpressionsCore, Math,
   NamikoTypes, LogForm, CfgForm;
 
 type
@@ -365,9 +365,9 @@ begin
           HexieMutex.Acquire;
           try
             try
-              FHexie.Subject := UTF8Encode(Content);
+              FHexie.Subject := Content;
               for HexieIndex := 0 to Hexie.Count - 1 do begin
-                FHexie.RegEx := UTF8Encode(Hexie.Strings[HexieIndex]);
+                FHexie.RegEx := Hexie.Strings[HexieIndex];
                 if FHexie.Match then begin
                   ReportLog(Format('[PCRE] 已和谐来自%s的弹幕"%s"',[ThisAuthor.Address,Content]));
                   Exit;

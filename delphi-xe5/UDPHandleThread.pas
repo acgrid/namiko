@@ -177,7 +177,7 @@ begin
             UDPResponse(RJSONObject);
             Exit; // Finally block will be executed. Do not be afraid
           end;
-          JContent := LJSONObject.Get('Content');
+          JContent := LJSONObject.Get('DM');
           if Assigned(JContent) then begin
             Content := JContent.JsonValue.Value();
             Len := Length(Content);
@@ -201,7 +201,7 @@ begin
             UDPResponse(RJSONObject);
             Exit;
           end;
-          JSource := LJSONObject.Get('Source');
+          JSource := LJSONObject.Get('IP');
           if Assigned(JSource) then begin
             ThisAuthor.Source := TAuthorSource.Internet;
             ThisAuthor.Address := JSource.JsonValue.Value();
@@ -212,7 +212,7 @@ begin
             UDPResponse(RJSONObject);
             Exit;
           end;
-          JTime := LJSONObject.Get('Time');
+          JTime := LJSONObject.Get('TS');
           if Assigned(JTime) then begin
             RTime := UnixToDateTime(StrToInt64(JTime.JsonValue.Value()));
           end
