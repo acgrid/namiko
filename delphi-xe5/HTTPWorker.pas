@@ -32,7 +32,7 @@ type
     procedure ReadLines(var AResponse: string; var NextID: Int64);
     procedure ReadSharedConfiguration();
   public
-    const DATA_VERSION = '4';
+    const DATA_VERSION = '5';
     property HexieList: TStringList read Hexie;
     property ReqCount: Int64 read FReqCount;
     property ReqConnTCCount: Int64 read FReqConnTCCount;
