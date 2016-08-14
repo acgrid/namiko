@@ -177,6 +177,7 @@ type
     procedure CreateCommentWindow();
     procedure StartThreads();
     procedure TerminateThreads();
+    procedure SafeFontName(var FontName: string; Fallback: string);
   public
     { Public declarations }
     TimeZoneBias: Integer;
@@ -206,7 +207,7 @@ type
     // Title Variables
     MTitleText: string;
     MTitleTop, MTitleLeft: Integer;
-    MTitleFontName: WideString;
+    MTitleFontName: string;
     MTitleFontSize: Real;
     MTitleFontColor: TAlphaColor;
     // CONTAINERS <<SHOULD BE FREED MANUALLY>>
@@ -939,6 +940,15 @@ begin
   CommMode := RadioGroupModes.ItemIndex;
 end;
 
+procedure TfrmControl.SafeFontName(var FontName: string; Fallback: string);
+begin
+  LogEvent(Format('FONT TEST %s: %d', [FontName, Screen.Fonts.IndexOf(FontName)]), logDebug);
+  if Screen.Fonts.IndexOf(FontName) = -1 then begin
+    LogEvent(Format('字体丢失：%s，使用%s替代', [FontName, Fallback]), logWarning);
+    FontName := Fallback;
+  end;
+end;
+
 procedure TfrmControl.LoadSetting();
 begin
   with frmConfig do begin
@@ -949,6 +959,7 @@ begin
     NetDefaultDuration := IntegerItems['NetComment.Duration'];
     NetDefaultOpacity := IntegerItems['NetComment.Opacity'];
     NetDelayDuration := IntegerItems['Pool.NetDelay'];
+    SafeFontName(NetDefaultFontName, 'Arial');
 
     OfficialFontName := StringItems['OfficialComment.FontName'];
     OfficialFontSize := IntegerItems['OfficialComment.FontSize'].ToDouble;
@@ -956,6 +967,7 @@ begin
     OfficialFontStyle := IntegerItems['OfficialComment.FontStyle'];
     OfficialDuration := IntegerItems['OfficialComment.Duration'];
     OfficialOpacity := IntegerItems['OfficialComment.Opacity'];
+    SafeFontName(OfficialFontName, 'Arial');
 
     CommMode := IntegerItems['Connection.Mode'];
     CommUDPPort := IntegerItems['Connection.Port'];
@@ -982,6 +994,7 @@ begin
     MTitleFontName := StringItems['Title.FontName'];
     MTitleFontSize := IntegerItems['Title.FontSize'].ToDouble;
     MTitleFontColor := StringToAlphaColor(StringItems['Title.FontColor']);
+    SafeFontName(MTitleFontName, 'Arial');
   end;
 end;
 
