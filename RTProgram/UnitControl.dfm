@@ -14,6 +14,7 @@ object frmControl: TfrmControl
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 13
@@ -53,8 +54,12 @@ object frmControl: TfrmControl
       end
       item
         Caption = 'LRC'
+      end
+      item
+        Caption = 'LOGO'
       end>
-    DoubleBuffered = True
+    ColumnClick = False
+    DoubleBuffered = False
     GridLines = True
     ReadOnly = True
     RowSelect = True
@@ -66,7 +71,9 @@ object frmControl: TfrmControl
     Left = 710
     Top = 8
     Width = 248
-    Height = 420
+    Height = 250
+    Enabled = False
+    ScrollBars = ssVertical
     TabOrder = 1
     TitleCaptions.Strings = (
       #39033#30446
@@ -74,6 +81,9 @@ object frmControl: TfrmControl
     ColWidths = (
       84
       158)
+    RowHeights = (
+      18
+      18)
   end
   object StatusValues: TValueListEditor
     Left = 506
@@ -87,6 +97,9 @@ object frmControl: TfrmControl
     ColWidths = (
       82
       112)
+    RowHeights = (
+      18
+      18)
   end
   object StatusBar: TStatusBar
     Left = 0
@@ -106,9 +119,6 @@ object frmControl: TfrmControl
         Text = 'TIME'
         Width = 50
       end>
-    ExplicitLeft = 512
-    ExplicitTop = 240
-    ExplicitWidth = 0
   end
   object GroupProgramData: TGroupBox
     Left = 145
@@ -235,6 +245,15 @@ object frmControl: TfrmControl
       #20840#37096#22330#27425)
     TabOrder = 7
   end
+  object MemoLog: TMemo
+    Left = 710
+    Top = 265
+    Width = 248
+    Height = 163
+    ReadOnly = True
+    ScrollBars = ssVertical
+    TabOrder = 8
+  end
   object TCPServer: TIdCmdTCPServer
     Bindings = <>
     DefaultPort = 0
@@ -256,24 +275,14 @@ object frmControl: TfrmControl
     ReplyUnknownCommand.Text.Strings = (
       'Unknown Command')
     Left = 8
-    Top = 8
-  end
-  object FileOpenJSON: TFileOpenDialog
-    FavoriteLinks = <>
-    FileTypes = <
-      item
-        DisplayName = 'JSON'
-        FileMask = '*.json'
-      end>
-    Options = []
-    Left = 56
-    Top = 8
+    Top = 32
   end
   object ActionList: TActionList
-    Left = 112
-    Top = 8
+    Left = 120
+    Top = 32
     object ActionLoadJSON: TAction
       Caption = #21152#36733'&JSON'
+      OnExecute = ActionLoadJSONExecute
     end
     object ActionReloadJSON: TAction
       Caption = 'Action1'
@@ -301,9 +310,21 @@ object frmControl: TfrmControl
     end
     object ActionShowConfig: TAction
       Caption = #37197#32622'(&N)'
+      OnExecute = ActionShowConfigExecute
     end
     object ActionExit: TAction
       Caption = #36864#20986'(&X)'
     end
+  end
+  object OpenFile: TOpenTextFileDialog
+    Filter = 'JSON File|*.json'
+    Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
+    Title = #36873#25321#33410#30446#34920'JSON'#25991#20214
+    Encodings.Strings = (
+      'ASCII'
+      'UTF-8')
+    EncodingIndex = 1
+    Left = 56
+    Top = 32
   end
 end

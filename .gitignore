@@ -2,3 +2,6 @@
 /delphi-xe5/*.log
 *.identcache
 /delphi-xe5/__history
+*/Win32/*
+*/Win64/*
+*/__history/*

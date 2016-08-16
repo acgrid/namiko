@@ -5,7 +5,10 @@ uses
   UnitControl in 'UnitControl.pas' {frmControl},
   ProgramTypes in 'ProgramTypes.pas',
   LiveWindow in 'LiveWindow.pas',
-  InfoWindow in 'InfoWindow.pas';
+  InfoWindow in 'InfoWindow.pas',
+  CfgForm in 'CfgForm.pas' {frmConfig},
+  Configuration in 'Configuration.pas',
+  WebUIClient in 'WebUIClient.pas';
 
 {$R *.res}
 
@@ -13,5 +16,6 @@ begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.CreateForm(TfrmControl, frmControl);
+  Application.CreateForm(TfrmConfig, frmConfig);
   Application.Run;
 end.
