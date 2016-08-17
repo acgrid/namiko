@@ -8,7 +8,8 @@ uses
   InfoWindow in 'InfoWindow.pas',
   CfgForm in 'CfgForm.pas' {frmConfig},
   Configuration in 'Configuration.pas',
-  WebUIClient in 'WebUIClient.pas';
+  UnitServer in 'UnitServer.pas',
+  UnitWebUI in 'UnitWebUI.pas';
 
 {$R *.res}
 

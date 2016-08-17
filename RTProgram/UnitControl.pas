@@ -7,7 +7,7 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Grids, Vcl.ValEdit, Vcl.StdCtrls,
   Vcl.ComCtrls, Vcl.ExtCtrls, IdBaseComponent, IdComponent, IdCustomTCPServer,
   IdTCPServer, IdCmdTCPServer, System.Actions, Vcl.ActnList, ProgramTypes,
-  System.Generics.Collections, System.JSON, System.IOUtils, Vcl.ExtDlgs, StrUtils;
+  System.Generics.Collections, System.JSON, System.IOUtils, Vcl.ExtDlgs, StrUtils, SyncObjs;
 
 const STATUS_PANEL_JSON = 0;
 const STATUS_PANEL_MODE = 1;
@@ -102,6 +102,9 @@ type
 var
   frmControl: TfrmControl;
   AppPath: string;
+  PlayItemS: TSemaphore;
+  ProgramsMutex: TMutex;
+  DefaultSA: TSecurityAttributes; // Use to create thread objects
 
 implementation
 
@@ -142,15 +145,28 @@ end;
 procedure TfrmControl.InitializeSystem;
 begin
   WorkMode := TWorkMode(GetCfgInteger('Connection.Mode'));
-  with StatusBar.Panels.Items[STATUS_PANEL_JSON] do begin
+  with StatusBar.Panels.Items[STATUS_PANEL_MODE] do begin
     case WorkMode of
       SERVER_ONLY: Text := '主控';
       SERVER_INFO: Text := '主控+信息窗口';
       SERVER_LIVE: Text := '主控+直播窗口';
-      INFO_LIVE: Text := '本地测试';
+      INFO_LIVE: Text := '本地信息+直播';
       CLIENT_INFO: Text := '信息窗口远程';
       CLIENT_LIVE: Text := '直播窗口远程';
     end;  
+  end;
+  if WorkMode < INFO_LIVE then begin // Server Start
+      
+  end
+  else if WorkMode > INFO_LIVE then begin // Client Start
+      
+  end;
+  if (WorkMode = SERVER_INFO) or (WorkMode = INFO_LIVE) or (WorkMode = CLIENT_INFO) then begin
+      
+  end;
+  if (WorkMode = SERVER_LIVE) or (WorkMode = INFO_LIVE) or (WorkMode = CLIENT_LIVE) then begin
+  
+  
   end;
 end;
 
@@ -192,8 +208,7 @@ end;
 
 procedure TfrmControl.ActionReloadJSONExecute(Sender: TObject);
 begin
-  if FileExists(LastJSON) then ReadJSONContent(TFile.ReadAllBytes(LastJSON))
-  else MessageBox('暂无文件');
+  if FileExists(LastJSON) then ReadJSONContent(TFile.ReadAllBytes(LastJSON));
 end;
 
 procedure TfrmControl.ActionShowConfigExecute(Sender: TObject);
@@ -206,6 +221,7 @@ begin
   ListSessions.ItemIndex := 0;
   Programs := TPrograms.Create(True);
   ProgramsBySession := TSessionProgramsDict.Create();
+  ProgramsMutex.Release;
   ListSessions.OnChange := ListSessionsChange;
   InitializeSystem;
 end;
@@ -262,16 +278,21 @@ begin
       Index := 1;
       ProgramsBySession.Clear;
       Programs.Clear;
-      for JSONSession in JSONSessions do begin
-        if JSONSession.JsonValue is TJSONArray then begin
-          JSONSessionArray := JSONSession.JsonValue as TJSONArray;
-          ProgramsBySession.Add(Index, TPrograms.Create(False));
-          for JSONProgram in JSONSessionArray do begin
-            if JSONProgram is TJSONObject then AddProgramToSession(Index, JSONSession.JsonString.Value, JSONProgram as TJSONObject);            
-          end;
-        end
-        else raise Exception.Create('JSON场次不是数组');
-        Inc(Index);
+      ProgramsMutex.Acquire;
+      try
+        for JSONSession in JSONSessions do begin
+          if JSONSession.JsonValue is TJSONArray then begin
+            JSONSessionArray := JSONSession.JsonValue as TJSONArray;
+            ProgramsBySession.Add(Index, TPrograms.Create(False));
+            for JSONProgram in JSONSessionArray do begin
+              if JSONProgram is TJSONObject then AddProgramToSession(Index, JSONSession.JsonString.Value, JSONProgram as TJSONObject);
+            end;
+          end
+          else raise Exception.Create('JSON场次不是数组');
+          Inc(Index);
+        end;
+      finally
+        ProgramsMutex.Release;
       end;
       DisplayPrograms(0, True);
       ListSessions.ItemIndex := 0;
@@ -479,7 +500,17 @@ begin
   end;
 end;
 
+
 initialization
   AppPath := ExtractFilePath(Application.ExeName);
+  DefaultSA.nLength := SizeOf(TSecurityAttributes);
+  DefaultSA.lpSecurityDescriptor := nil;
+  DefaultSA.bInheritHandle := False;
+  ProgramsMutex := TMutex.Create(@DefaultSA, True, 'program_mutex');
+  PlayItemS := TSemaphore.Create(@DefaultSA, 0, 1, 'play_item', False);
+
+finalization
+  PlayItemS.Free;
+  ProgramsMutex.Free;
 
 end.
