@@ -7,8 +7,25 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Grids, Vcl.ValEdit, Vcl.StdCtrls,
   Vcl.ComCtrls, Vcl.ExtCtrls, IdBaseComponent, IdComponent, IdCustomTCPServer,
   IdTCPServer, IdCmdTCPServer, System.Actions, Vcl.ActnList, ProgramTypes,
-  System.Generics.Collections, System.JSON, System.IOUtils, Vcl.ExtDlgs;
+  System.Generics.Collections, System.JSON, System.IOUtils, Vcl.ExtDlgs, StrUtils;
 
+const STATUS_PANEL_JSON = 0;
+const STATUS_PANEL_MODE = 1;
+const STATUS_PANEL_TIME = 2;
+
+type
+  TListBox = class(Vcl.StdCtrls.TListBox)
+  private
+    FItemIndex: Integer;
+    FOnChange: TNotifyEvent;
+    procedure CNCommand(var AMessage: TWMCommand); message CN_COMMAND;
+  protected
+    procedure Change; virtual;
+    procedure SetItemIndex(const Value: Integer); override;
+  published
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+  
 type
   TfrmControl = class(TForm)
     ListViewProgramList: TListView;
@@ -45,13 +62,19 @@ type
     ActionExit: TAction;
     MemoLog: TMemo;
     OpenFile: TOpenTextFileDialog;
+    BtnTimeMinus: TButton;
+    BtnTimePlus: TButton;
+    ActionTimeMinus: TAction;
+    ActionTimePlus: TAction;
+    TimerSecond: TTimer;
     procedure FormResize(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure ActionLoadJSONExecute(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ActionShowConfigExecute(Sender: TObject);
     procedure AddProgramToSession(SessionIndex: Integer; Session: string; ProgramJSON: TJSONObject);
-    procedure DisplayPrograms(SessionIndex: Integer);
+    procedure DisplayPrograms(SessionIndex: Integer; ReloadList: Boolean = False);
+    procedure ListSessionsChange(Sender: TObject);
     function JSONStringDefault(AValue: TJSONValue; DefaultValue: string = ''): string;
     function JSONCardinalDefault(AValue: TJSONValue): Cardinal;
     function TCreditsFactory(AValue: TJSONValue): TCredits;
@@ -59,14 +82,21 @@ type
     function TFB2KFactory(APLValue: TJSONValue; AIdxValue: TJSONValue): TFB2K;
     function TMpcHCFactory(AValue: TJSONValue): TMpcHC;
     function TLogoFactory(AValue: TJSONValue): TLogo;
+    procedure ActionReloadJSONExecute(Sender: TObject);
+    procedure TimerSecondTimer(Sender: TObject);
   private
     { Private declarations }
     procedure ReadJSONContent(AData: TArray<Byte>);
+    procedure InitializeSystem();
+    procedure InitializePrograms();
   public
     { Public declarations }
+    WorkMode: TWorkMode;
+    LastJSON: TFileName;
     Programs: TPrograms;
     ProgramsBySession: TSessionProgramsDict;
-    procedure Log(AText: string);
+    procedure Log(AText: string); 
+    function TProgramStatusToString(AStatus: TProgramStatus): string;
   end;
 
 var
@@ -79,18 +109,91 @@ implementation
 
 uses Configuration, CfgForm;
 
+{ TListBox }
+
+procedure TListBox.Change;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TListBox.CNCommand(var AMessage: TWMCommand);
+begin
+  inherited;
+  if (AMessage.NotifyCode = LBN_SELCHANGE) and (FItemIndex <> ItemIndex) then
+  begin
+    FItemIndex := ItemIndex;
+    Change;
+  end;
+end;
+
+procedure TListBox.SetItemIndex(const Value: Integer);
+begin
+  inherited;
+  if FItemIndex <> ItemIndex then
+  begin
+    FItemIndex := ItemIndex;
+    Change;
+  end;
+end;
+
+{ TfrmControl }
+
+procedure TfrmControl.InitializeSystem;
+begin
+  WorkMode := TWorkMode(GetCfgInteger('Connection.Mode'));
+  with StatusBar.Panels.Items[STATUS_PANEL_JSON] do begin
+    case WorkMode of
+      SERVER_ONLY: Text := '主控';
+      SERVER_INFO: Text := '主控+信息窗口';
+      SERVER_LIVE: Text := '主控+直播窗口';
+      INFO_LIVE: Text := '本地测试';
+      CLIENT_INFO: Text := '信息窗口远程';
+      CLIENT_LIVE: Text := '直播窗口远程';
+    end;  
+  end;
+end;
+
+procedure TfrmControl.ListSessionsChange(Sender: TObject);
+begin
+  DisplayPrograms(ListSessions.ItemIndex, False);
+end;
+
+function TfrmControl.TProgramStatusToString(AStatus: TProgramStatus): string;
+begin
+  case AStatus of
+    Check: Result := '检查';
+    Ready: Result := '就绪';
+    Missing: Result := '缺失';
+    InfoShown: Result := '信息';
+    Playing: Result := '播放';
+    Played: Result := '完毕';
+  end;
+end;
+
 procedure TfrmControl.ActionLoadJSONExecute(Sender: TObject);
 begin
   if OpenFile.Execute then begin
     Log('读取JSON数据：' + OpenFile.FileName);
     try
       ReadJSONContent(TFile.ReadAllBytes(OpenFile.FileName));
+      LastJSON := OpenFile.FileName;
+      (ConfigDict.Items['Startup.LastJSON'] as TStringConfiguration).Value := LastJSON;
+      StatusBar.Panels[STATUS_PANEL_JSON].Text := LastJSON;
+      (ConfigDict.Items['Startup.LastSession'] as TIntegerConfiguration).Value := 0;
+      // Check Data
     except
       on E: Exception do begin
         Log('JSON 读取失败：' + E.Message);
       end;
     end;
   end;
+end;
+
+procedure TfrmControl.ActionReloadJSONExecute(Sender: TObject);
+begin
+  if FileExists(LastJSON) then ReadJSONContent(TFile.ReadAllBytes(LastJSON))
+  else MessageBox('暂无文件');
 end;
 
 procedure TfrmControl.ActionShowConfigExecute(Sender: TObject);
@@ -103,6 +206,8 @@ begin
   ListSessions.ItemIndex := 0;
   Programs := TPrograms.Create(True);
   ProgramsBySession := TSessionProgramsDict.Create();
+  ListSessions.OnChange := ListSessionsChange;
+  InitializeSystem;
 end;
 
 procedure TfrmControl.FormDestroy(Sender: TObject);
@@ -135,6 +240,12 @@ begin
   MemoLog.Lines.Add(TimeToStr(Time()) + ' ' + AText);
 end;
 
+procedure TfrmControl.InitializePrograms;
+begin
+  // CHECK FILE EXISTENCE
+  // SEND TO CLIENTS
+end;
+
 procedure TfrmControl.ReadJSONContent(AData: TArray<Byte>);
 var
   JSON, JSONProgram: TJSONValue;
@@ -149,18 +260,21 @@ begin
     if JSON is TJSONObject then begin
       JSONSessions := JSON as TJSONObject;
       Index := 1;
+      ProgramsBySession.Clear;
+      Programs.Clear;
       for JSONSession in JSONSessions do begin
         if JSONSession.JsonValue is TJSONArray then begin
           JSONSessionArray := JSONSession.JsonValue as TJSONArray;
           ProgramsBySession.Add(Index, TPrograms.Create(False));
           for JSONProgram in JSONSessionArray do begin
-            if JSONProgram is TJSONObject then AddProgramToSession(Index, JSONSession.JsonValue.Value, JSONProgram as TJSONObject);            
+            if JSONProgram is TJSONObject then AddProgramToSession(Index, JSONSession.JsonString.Value, JSONProgram as TJSONObject);            
           end;
         end
         else raise Exception.Create('JSON场次不是数组');
         Inc(Index);
       end;
-      DisplayPrograms(0);
+      DisplayPrograms(0, True);
+      ListSessions.ItemIndex := 0;
     end
     else raise Exception.Create('JSON数据不是对象');
   finally
@@ -177,6 +291,8 @@ begin
   AProgram.Session := Session;
   AProgram.Sequence := (ProgramJSON.GetValue('SEQUENCE') as TJSONNumber).AsDouble;
   AProgram.TypeName := JSONStringDefault(ProgramJSON.GetValue('TYPE'), '-');
+  AProgram.ID := JSONStringDefault(ProgramJSON.GetValue('ID'), '-');
+  AProgram.Team := JSONStringDefault(ProgramJSON.GetValue('TEAM'), '');
   AProgram.MobilePhone := JSONStringDefault(ProgramJSON.GetValue('MOBILE'), '');
   AProgram.MainTitle := JSONStringDefault(ProgramJSON.GetValue('TITLE_O'), '');
   AProgram.TranslatedTitle := JSONStringDefault(ProgramJSON.GetValue('TITLE_OT'), '');
@@ -286,6 +402,11 @@ begin
   else Result.Enabled := False;
 end;
 
+procedure TfrmControl.TimerSecondTimer(Sender: TObject);
+begin
+  StatusBar.Panels.Items[STATUS_PANEL_TIME].Text := TimeToStr(Time());
+end;
+
 function TfrmControl.TMpcHCFactory(AValue: TJSONValue): TMpcHC;
 var
   FullPath: string;
@@ -310,31 +431,48 @@ begin
   end;    
 end;
 
-procedure TfrmControl.DisplayPrograms(SessionIndex: Integer);
+procedure TfrmControl.DisplayPrograms(SessionIndex: Integer; ReloadList: Boolean = False);
 var
   ProgramsInSession: TPrograms;
   ProgramItem: TProgram;
   CurrentSession: string;
+  I, IStart, IEnd: Integer;
 begin
-  ListSessions.Items.Clear;
-  ListSessions.Items.Add('全部场次');
-  for ProgramsInSession in ProgramsBySession.Values do begin
+  if ReloadList then begin
+    ListSessions.Items.Clear;
+    ListSessions.Items.Add('全部场次');
+  end;
+  ListViewProgramList.Items.Clear;
+  if SessionIndex > 0 then begin
+    IStart := SessionIndex;
+    IEnd := SessionIndex;
+    (ConfigDict.Items['Startup.LastSession'] as TIntegerConfiguration).Value := SessionIndex;  
+  end
+  else begin
+    IStart := 1;
+    IEnd := ProgramsBySession.Count;
+  end;
+  for I := IStart to IEnd do begin
+    ProgramsInSession := ProgramsBySession.Items[I];
     CurrentSession := ProgramsInSession.First.Session;
-    ListSessions.Items.Add(CurrentSession);
+    if ReloadList then ListSessions.Items.Add(CurrentSession);
     with ListViewProgramList do begin
-      Items.Clear;
       for ProgramItem in ProgramsInSession do begin
         with Items.Add do begin  
-          Caption := '';
-          SubItems.Add(CurrentSession);
+          Caption := TProgramStatusToString(ProgramItem.Status);
+          SubItems.Add(ProgramItem.Session);
           SubItems.Add(Format('%.1f', [ProgramItem.Sequence]));
-          SubItems.Add('');
+          if ProgramItem.Team = '' then begin
+            SubItems.Add(ProgramItem.ID);          
+          end
+          else 
+            SubItems.Add(ProgramItem.ID + '(' + ProgramItem.Team + ')');
           SubItems.Add(ProgramItem.TypeName);
           SubItems.Add(ProgramItem.MainTitle);
-          SubItems.Add('');
-          SubItems.Add('');
-          SubItems.Add('');
-          SubItems.Add('');
+          SubItems.Add(IfThen(ProgramItem.FB2K.Enabled, Format('%u:%u', [ProgramItem.FB2K.Playlist, ProgramItem.FB2K.Index]), '无'));
+          SubItems.Add(IfThen(ProgramItem.MPCHC.Enabled, '有', '无'));
+          SubItems.Add(IfThen(ProgramItem.Lyric.Enabled, '有', '无'));
+          SubItems.Add(IfThen(ProgramItem.Logo.Enabled, '有', '无'));
         end;
       end;  
     end;

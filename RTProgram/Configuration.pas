@@ -87,6 +87,13 @@ type
 procedure LoadSettings();
 procedure SaveSettings();
 
+function GetCfgString(const Key: string): string;
+function GetCfgBoolean(const Key: string): Boolean;
+function GetCfgInteger(const Key: string): Integer;
+procedure SetCfgString(const Key: string; Value: string);
+procedure SetCfgBoolean(const Key: string; Value: Boolean);
+procedure SetCfgInteger(const Key: string; Value: Integer);
+
 var
   MyConfig: TConfigurationPool;
   ConfigDict: TConfigurationDict;
@@ -202,6 +209,45 @@ begin
   AIniFile.WriteInteger(FGroup, FKey, FValue);
 end;
 
+function GetCfgString(const Key: string): string;
+begin
+  if ConfigDict.ContainsKey(Key) then
+    Result := TStringConfiguration(ConfigDict.Items[Key]).Value
+  else
+    raise Exception.Create('获取不存在的配置项 '+ Key);
+end;
+
+function GetCfgBoolean(const Key: string): Boolean;
+begin
+  if ConfigDict.ContainsKey(Key) then
+    Result := TBooleanConfiguration(ConfigDict.Items[Key]).Value
+  else
+    raise Exception.Create('获取不存在的配置项 '+ Key);
+end;
+
+function GetCfgInteger(const Key: string): Integer;
+begin
+  if ConfigDict.ContainsKey(Key) then
+    Result := TIntegerConfiguration(ConfigDict.Items[Key]).Value
+  else
+    raise Exception.Create('获取不存在的配置项 '+ Key);
+end;
+
+procedure SetCfgString(const Key: string; Value: string);
+begin
+  TStringConfiguration(ConfigDict.Items[Key]).Value := Value;
+end;
+
+procedure SetCfgBoolean(const Key: string; Value: Boolean);
+begin
+  TBooleanConfiguration(ConfigDict.Items[Key]).Value := Value;
+end;
+
+procedure SetCfgInteger(const Key: string; Value: Integer);
+begin
+  TIntegerConfiguration(ConfigDict.Items[Key]).Value := Value;
+end;
+
 procedure LoadSettings();
 var
   Ini: TIniFile;
@@ -261,7 +307,7 @@ initialization
   MyConfig.Add(TIntegerConfiguration.Create('Connection','Port','TCP监听/远程连接端口',20000,1,65535,1));
 
   MyConfig.Add(TStringConfiguration.Create('Startup','LastJSON','最近使用的JSON节目单',''));
-  MyConfig.Add(TIntegerConfiguration.Create('Startup','LastSession','最近打开的场次'));
+  MyConfig.Add(TIntegerConfiguration.Create('Startup','LastSession','最近打开的场次', 0, 0, 65535, 1));
 
   MyConfig.Add(TStringConfiguration.Create('FB2K','URL','foobar2000 WebUI地址','http://127.0.0.1:8888/default/'));
   MyConfig.Add(TStringConfiguration.Create('FB2K','ExePath','foobar2000 启动路径',''));

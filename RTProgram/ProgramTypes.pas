@@ -4,6 +4,8 @@ interface
 
 uses System.Types, System.UITypes, System.Generics.Collections, IGDIPlusEmbedded;
 
+type TWorkMode = (SERVER_ONLY, SERVER_INFO, SERVER_LIVE, INFO_LIVE, CLIENT_INFO, CLIENT_LIVE);
+
 type TCredit = class(TObject)
   Title: string;
   Name: string;
@@ -52,6 +54,8 @@ end;
 type TProgram = class(TObject)
   Session: string;
   Sequence: Double;
+  ID: string;
+  Team: string;
   TypeName: string;
   MobilePhone: string;
   MainTitle: string;

@@ -7,17 +7,18 @@ object frmControl: TfrmControl
   Color = clBtnFace
   Constraints.MinHeight = 490
   Constraints.MinWidth = 980
-  Font.Charset = DEFAULT_CHARSET
+  DoubleBuffered = True
+  Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'Tahoma'
+  Font.Name = 'Meiryo'
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnResize = FormResize
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 17
   object ListViewProgramList: TListView
     Left = 8
     Top = 8
@@ -59,7 +60,7 @@ object frmControl: TfrmControl
         Caption = 'LOGO'
       end>
     ColumnClick = False
-    DoubleBuffered = False
+    DoubleBuffered = True
     GridLines = True
     ReadOnly = True
     RowSelect = True
@@ -156,7 +157,7 @@ object frmControl: TfrmControl
       Left = 11
       Top = 23
       Width = 90
-      Height = 34
+      Height = 26
       Action = ActionShowInfo
       TabOrder = 0
     end
@@ -164,28 +165,45 @@ object frmControl: TfrmControl
       Left = 107
       Top = 23
       Width = 90
-      Height = 34
+      Height = 26
       Action = ActionHideInfo
       TabOrder = 1
     end
     object BtnPlay: TButton
       Left = 11
-      Top = 63
+      Top = 72
       Width = 90
-      Height = 34
+      Height = 25
       Action = ActionPlay
       Default = True
       TabOrder = 2
     end
     object BtnStop: TButton
       Left = 107
-      Top = 63
+      Top = 72
       Width = 90
-      Height = 34
+      Height = 25
       Action = ActionStop
       Cancel = True
       Caption = #20572#27490#25773#25918'(&T)'
       TabOrder = 3
+    end
+    object BtnTimeMinus: TButton
+      Left = 12
+      Top = 46
+      Width = 89
+      Height = 25
+      Action = ActionTimeMinus
+      Caption = '&-0.1s'
+      TabOrder = 4
+    end
+    object BtnTimePlus: TButton
+      Left = 107
+      Top = 46
+      Width = 90
+      Height = 25
+      Action = ActionTimePlus
+      TabOrder = 5
     end
   end
   object GroupControls: TGroupBox
@@ -237,10 +255,10 @@ object frmControl: TfrmControl
   end
   object ListSessions: TListBox
     Left = 8
-    Top = 265
+    Top = 264
     Width = 128
     Height = 163
-    ItemHeight = 13
+    ItemHeight = 17
     Items.Strings = (
       #20840#37096#22330#27425)
     TabOrder = 7
@@ -286,6 +304,7 @@ object frmControl: TfrmControl
     end
     object ActionReloadJSON: TAction
       Caption = 'Action1'
+      OnExecute = ActionReloadJSONExecute
     end
     object ActionShowInfo: TAction
       Caption = #26174#31034#20449#24687'(&I)'
@@ -315,6 +334,12 @@ object frmControl: TfrmControl
     object ActionExit: TAction
       Caption = #36864#20986'(&X)'
     end
+    object ActionTimeMinus: TAction
+      Caption = '-0.1s'
+    end
+    object ActionTimePlus: TAction
+      Caption = '&+0.1s'
+    end
   end
   object OpenFile: TOpenTextFileDialog
     Filter = 'JSON File|*.json'
@@ -324,7 +349,12 @@ object frmControl: TfrmControl
       'ASCII'
       'UTF-8')
     EncodingIndex = 1
-    Left = 56
+    Left = 64
+    Top = 32
+  end
+  object TimerSecond: TTimer
+    OnTimer = TimerSecondTimer
+    Left = 176
     Top = 32
   end
 end
