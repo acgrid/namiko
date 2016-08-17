@@ -4,12 +4,12 @@ uses
   Vcl.Forms,
   UnitControl in 'UnitControl.pas' {frmControl},
   ProgramTypes in 'ProgramTypes.pas',
-  LiveWindow in 'LiveWindow.pas',
   InfoWindow in 'InfoWindow.pas',
   CfgForm in 'CfgForm.pas' {frmConfig},
   Configuration in 'Configuration.pas',
-  UnitServer in 'UnitServer.pas',
-  UnitWebUI in 'UnitWebUI.pas';
+  UnitWebUI in 'UnitWebUI.pas',
+  UnitClient in 'UnitClient.pas',
+  LiveWindow in 'LiveWindow.pas' {frmLiveWindow};
 
 {$R *.res}
 

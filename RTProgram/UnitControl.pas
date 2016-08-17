@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Grids, Vcl.ValEdit, Vcl.StdCtrls,
   Vcl.ComCtrls, Vcl.ExtCtrls, IdBaseComponent, IdComponent, IdCustomTCPServer,
-  IdTCPServer, IdCmdTCPServer, System.Actions, Vcl.ActnList, ProgramTypes,
+  IdGlobal, IdTCPServer, IdCmdTCPServer, System.Actions, Vcl.ActnList, ProgramTypes,
   System.Generics.Collections, System.JSON, System.IOUtils, Vcl.ExtDlgs, StrUtils, SyncObjs;
 
 const STATUS_PANEL_JSON = 0;
@@ -89,13 +89,16 @@ type
     procedure ReadJSONContent(AData: TArray<Byte>);
     procedure InitializeSystem();
     procedure InitializePrograms();
+    procedure InitializeTCPServer();
   public
     { Public declarations }
+    LiveHWND, InfoHWND: HWND;
     WorkMode: TWorkMode;
     LastJSON: TFileName;
     Programs: TPrograms;
     ProgramsBySession: TSessionProgramsDict;
-    procedure Log(AText: string); 
+    procedure Log(AText: string);
+    procedure ReadJSONFile(AFileName: string);
     function TProgramStatusToString(AStatus: TProgramStatus): string;
   end;
 
@@ -110,7 +113,7 @@ implementation
 
 {$R *.dfm}
 
-uses Configuration, CfgForm;
+uses Configuration, CfgForm, InfoWindow, LiveWindow, UnitClient, UnitWebUI;
 
 { TListBox }
 
@@ -156,18 +159,30 @@ begin
     end;  
   end;
   if WorkMode < INFO_LIVE then begin // Server Start
-      
+    InitializeTCPServer;
+    Log(Format('启动TCP服务器于%s:%u', [GetCfgString('Connection.Host'), GetCfgInteger('Connection.Port')]));
   end
   else if WorkMode > INFO_LIVE then begin // Client Start
-      
+    // ???
   end;
   if (WorkMode = SERVER_INFO) or (WorkMode = INFO_LIVE) or (WorkMode = CLIENT_INFO) then begin
-      
+    CreateInfoWindow;
+    Log('创建信息窗口');
   end;
   if (WorkMode = SERVER_LIVE) or (WorkMode = INFO_LIVE) or (WorkMode = CLIENT_LIVE) then begin
-  
-  
+    Application.CreateForm(TfrmLiveWindow, frmLiveWindow);
+    Log('创建直播窗口');
   end;
+end;
+
+procedure TfrmControl.InitializeTCPServer;
+begin
+  with TCPServer.Bindings.Add do begin
+    IPVersion := Id_IPv4;
+    IP := GetCfgString('Connection.Host');
+    Port := GetCfgInteger('Connection.Port');
+  end;
+  TCPServer.Active := True;
 end;
 
 procedure TfrmControl.ListSessionsChange(Sender: TObject);
@@ -190,19 +205,8 @@ end;
 procedure TfrmControl.ActionLoadJSONExecute(Sender: TObject);
 begin
   if OpenFile.Execute then begin
-    Log('读取JSON数据：' + OpenFile.FileName);
-    try
-      ReadJSONContent(TFile.ReadAllBytes(OpenFile.FileName));
-      LastJSON := OpenFile.FileName;
-      (ConfigDict.Items['Startup.LastJSON'] as TStringConfiguration).Value := LastJSON;
-      StatusBar.Panels[STATUS_PANEL_JSON].Text := LastJSON;
-      (ConfigDict.Items['Startup.LastSession'] as TIntegerConfiguration).Value := 0;
-      // Check Data
-    except
-      on E: Exception do begin
-        Log('JSON 读取失败：' + E.Message);
-      end;
-    end;
+    ReadJSONFile(OpenFile.FileName);
+    (ConfigDict.Items['Startup.LastSession'] as TIntegerConfiguration).Value := 0;
   end;
 end;
 
@@ -224,13 +228,18 @@ begin
   ProgramsMutex.Release;
   ListSessions.OnChange := ListSessionsChange;
   InitializeSystem;
+  LastJSON := GetCfgString('Startup.LastJSON');
+  if FileExists(LastJSON) then begin
+    ReadJSONFile(LastJSON);
+    DisplayPrograms(GetCfgInteger('Startup.LastSession'));
+  end;
 end;
 
 procedure TfrmControl.FormDestroy(Sender: TObject);
 var
   ProgramsInSession: TPrograms;
 begin
-  for ProgramsInSession in ProgramsBySession.Values do ProgramsInSession.Free;    
+  for ProgramsInSession in ProgramsBySession.Values do ProgramsInSession.Free;
   ProgramsBySession.Free;
   Programs.Free;
 end;
@@ -257,9 +266,23 @@ begin
 end;
 
 procedure TfrmControl.InitializePrograms;
+var
+  I: Integer;
+  MPCFail, LogoFail: Boolean;
 begin
-  // CHECK FILE EXISTENCE
-  // SEND TO CLIENTS
+  ProgramsMutex.Acquire;
+  try
+    for I := 0 to Programs.Count - 1 do begin
+      MPCFail := Programs.Items[I].MPCHC.HasError();
+      LogoFail := Programs.Items[I].Logo.HasError();
+      if MPCFail or LogoFail then
+        Programs.Items[I].Status := Missing
+      else
+        Programs.Items[I].Status := Ready;
+    end;
+  finally
+    ProgramsMutex.Release;
+  end;
 end;
 
 procedure TfrmControl.ReadJSONContent(AData: TArray<Byte>);
@@ -294,6 +317,7 @@ begin
       finally
         ProgramsMutex.Release;
       end;
+      InitializePrograms;
       DisplayPrograms(0, True);
       ListSessions.ItemIndex := 0;
     end
@@ -459,6 +483,7 @@ var
   CurrentSession: string;
   I, IStart, IEnd: Integer;
 begin
+  if SessionIndex > ProgramsBySession.Count then Exit;
   if ReloadList then begin
     ListSessions.Items.Clear;
     ListSessions.Items.Add('全部场次');
@@ -467,6 +492,7 @@ begin
   if SessionIndex > 0 then begin
     IStart := SessionIndex;
     IEnd := SessionIndex;
+    ListSessions.ItemIndex := SessionIndex;
     (ConfigDict.Items['Startup.LastSession'] as TIntegerConfiguration).Value := SessionIndex;  
   end
   else begin
@@ -491,11 +517,26 @@ begin
           SubItems.Add(ProgramItem.TypeName);
           SubItems.Add(ProgramItem.MainTitle);
           SubItems.Add(IfThen(ProgramItem.FB2K.Enabled, Format('%u:%u', [ProgramItem.FB2K.Playlist, ProgramItem.FB2K.Index]), '无'));
-          SubItems.Add(IfThen(ProgramItem.MPCHC.Enabled, '有', '无'));
+          SubItems.Add(ProgramItem.MPCHC.ToString());
           SubItems.Add(IfThen(ProgramItem.Lyric.Enabled, '有', '无'));
-          SubItems.Add(IfThen(ProgramItem.Logo.Enabled, '有', '无'));
+          SubItems.Add(ProgramItem.MPCHC.ToString());
         end;
       end;  
+    end;
+  end;
+end;
+
+procedure TfrmControl.ReadJSONFile(AFileName: string);
+begin
+  Log('读取JSON数据：' + AFileName);
+  try
+    ReadJSONContent(TFile.ReadAllBytes(AFileName));
+    LastJSON := AFileName;
+    (ConfigDict.Items['Startup.LastJSON'] as TStringConfiguration).Value := LastJSON;
+    StatusBar.Panels[STATUS_PANEL_JSON].Text := LastJSON;
+  except
+    on E: Exception do begin
+      Log('JSON 读取失败：' + E.Message);
     end;
   end;
 end;

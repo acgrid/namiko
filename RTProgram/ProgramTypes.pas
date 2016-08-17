@@ -2,7 +2,8 @@ unit ProgramTypes;
 
 interface
 
-uses System.Types, System.UITypes, System.Generics.Collections, IGDIPlusEmbedded;
+uses System.Types, System.UITypes, System.Generics.Collections, IGDIPlusEmbedded,
+ System.SysUtils, System.StrUtils;
 
 type TWorkMode = (SERVER_ONLY, SERVER_INFO, SERVER_LIVE, INFO_LIVE, CLIENT_INFO, CLIENT_LIVE);
 
@@ -44,11 +45,17 @@ end;
 type TMpcHC = class(TObject)
   Enabled: Boolean;
   FullPath: string;
+  function IsAvaliable(): Boolean;
+  function HasError(): Boolean;
+  function ToString(): string;
 end;
 
 type TLogo = class(TObject)
   Enabled: Boolean;
   FullPath: string;
+  function IsAvaliable(): Boolean;
+  function HasError(): Boolean;
+  function ToString(): string;
 end;
 
 type TProgram = class(TObject)
@@ -108,6 +115,36 @@ implementation
 constructor TProgram.Create;
 begin
   Self.Status := Check;
+end;
+
+function TMpcHC.IsAvaliable: Boolean;
+begin
+  Result := FileExists(Self.FullPath);
+end;
+
+function TLogo.IsAvaliable: Boolean;
+begin
+  Result := FileExists(Self.FullPath);
+end;
+
+function TMpcHC.HasError: Boolean;
+begin
+  Result := Self.Enabled and (not FileExists(Self.FullPath));
+end;
+
+function TLogo.HasError: Boolean;
+begin
+  Result := Self.Enabled and (not FileExists(Self.FullPath));
+end;
+
+function TMpcHC.ToString: string;
+begin
+  Result := IfThen(Self.Enabled, IfThen(Self.HasError, '¡Á', '¡Ì'), 'ÎÞ');
+end;
+
+function TLogo.ToString: string;
+begin
+  Result := IfThen(Self.Enabled, IfThen(Self.HasError, '¡Á', '¡Ì'), 'ÎÞ');
 end;
 
 end.
