@@ -96,23 +96,9 @@ begin
         // Subject to be dispatched
         {$IFDEF DEBUG_DISPATCH}ReportLog(Format('调度 %u 创建或待定状态',[i]));{$ENDIF}
         if TimeNow > AComment.Time then begin
-          // TOO OLD
-          if TimeNow - AComment.Time > MDiscardBefore / 86400000 then begin
-            ReportLog(Format('调度 %u 超时删除',[i]));
-            CommentPoolMutex.Acquire;
-            try
-              AComment.Status := Removed;
-              NotifyStatusChanged(AComment.ID);
-            finally
-              CommentPoolMutex.Release;
-            end;
-            Continue;
-          end
-          else begin
-            {$IFDEF DEBUG_DISPATCH}ReportLog(Format('迟调度 %u ',[i]));{$ENDIF}
-            DoDispatch(AComment);
-            Continue;
-          end;
+          {$IFDEF DEBUG_DISPATCH}ReportLog(Format('迟调度 %u ',[i]));{$ENDIF}
+          DoDispatch(AComment);
+          Continue;
         end
         else begin // FUTURE TIME
           if AComment.Time - TimeNow < MAcceptAfter / 86400000 then begin
