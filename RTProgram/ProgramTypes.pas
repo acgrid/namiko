@@ -3,7 +3,7 @@ unit ProgramTypes;
 interface
 
 uses System.Types, System.UITypes, System.Generics.Collections, IGDIPlusEmbedded,
- System.SysUtils, System.StrUtils;
+ System.SysUtils, System.StrUtils, System.Classes;
 
 type TWorkMode = (SERVER_ONLY, SERVER_INFO, SERVER_LIVE, INFO_LIVE, CLIENT_INFO, CLIENT_LIVE);
 
@@ -47,7 +47,7 @@ type TMpcHC = class(TObject)
   FullPath: string;
   function IsAvaliable(): Boolean;
   function HasError(): Boolean;
-  function ToString(): string;
+  function ToString(): string; override;
 end;
 
 type TLogo = class(TObject)
@@ -55,7 +55,7 @@ type TLogo = class(TObject)
   FullPath: string;
   function IsAvaliable(): Boolean;
   function HasError(): Boolean;
-  function ToString(): string;
+  function ToString(): string; override;
 end;
 
 type TProgram = class(TObject)
@@ -79,6 +79,8 @@ type TProgram = class(TObject)
   constructor Create();
 end;
 
+type PProgram = ^TProgram;
+
 type TPrograms = TObjectList<TProgram>;
 
 type TSessionProgramsDict = TDictionary<Integer, TPrograms>;
@@ -98,6 +100,7 @@ type TTextElement = class(TFrameElement)
   Font: GPFONTFAMILY;
   Size: Single;
   Color: TAlphaColor;
+  Style: Integer;
 end;
 
 type TImageElement = class(TFrameElement)
@@ -110,7 +113,16 @@ type TFrame = record
   Elements: TObjectList<TFrameElement>;
 end;
 
+type
+  TFontFamilyDict = TDictionary<string,GPFONTFAMILY>;
+type
+  TBrushDict = TDictionary<TAlphaColor,GpBrush>;
+type
+  TFontDict = TDictionary<string, GPFont>;
+
 implementation
+
+uses Configuration, UnitControl;
 
 constructor TProgram.Create;
 begin

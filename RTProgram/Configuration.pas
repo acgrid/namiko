@@ -288,9 +288,10 @@ initialization
   MyConfig.Add(TIntegerConfiguration.Create('InfoWindow','FontStyle','信息窗口字形，目前支持0=常规，1=加粗',0,0,1,1));
   MyConfig.Add(TIntegerConfiguration.Create('InfoWindow','Duration','信息窗口节目介绍显示时长(ms)',3000,1000,10000,100));
   MyConfig.Add(TIntegerConfiguration.Create('InfoWindow','Opacity','信息窗口文字透明度',255,0,255,1));
-  MyConfig.Add(TStringConfiguration.Create('InfoWindow','LogoFile','信息窗口LOGO路径',''));
+  MyConfig.Add(TStringConfiguration.Create('InfoWindow','LogoFile','信息窗口LOGO 路径',''));
   MyConfig.Add(TIntegerConfiguration.Create('InfoWindow','LogoLeft','信息窗口LOGO 百分比X坐标',85,0,100,1));
   MyConfig.Add(TIntegerConfiguration.Create('InfoWindow','LogoTop','信息窗口LOGO 百分比Y坐标',15,0,100,1));
+  MyConfig.Add(TIntegerConfiguration.Create('InfoWindow','Duration','信息窗口信息显示时间',3,1,10,1));
 
   MyConfig.Add(TStringConfiguration.Create('LiveWindow','FontName','直播窗口字体','SimHei'));
   MyConfig.Add(TIntegerConfiguration.Create('LiveWindow','FontSize','直播窗口字号',48,8,100,2));
@@ -298,9 +299,10 @@ initialization
   MyConfig.Add(TIntegerConfiguration.Create('LiveWindow','FontStyle','直播窗口字形，目前支持0=常规，1=加粗',0,0,1,1));
   MyConfig.Add(TIntegerConfiguration.Create('LiveWindow','Duration','直播窗口节目介绍显示时长',5000,1000,10000,100));
   MyConfig.Add(TIntegerConfiguration.Create('LiveWindow','Opacity','直播窗口不透明度',255,0,255,1));
-  MyConfig.Add(TStringConfiguration.Create('LiveWindow','LogoFile','直播窗口LOGO路径',''));
+  MyConfig.Add(TStringConfiguration.Create('LiveWindow','LogoFile','直播窗口LOGO 路径',''));
   MyConfig.Add(TIntegerConfiguration.Create('LiveWindow','LogoLeft','直播窗口LOGO 百分比X坐标',85,0,100,1));
   MyConfig.Add(TIntegerConfiguration.Create('LiveWindow','LogoTop','直播窗口LOGO 百分比Y坐标',15,0,100,1));
+  MyConfig.Add(TIntegerConfiguration.Create('LiveWindow','Duration','直播窗口信息显示时间，0表示持续',0,1,10,1));
 
   MyConfig.Add(TIntegerConfiguration.Create('Connection','Mode','通讯模式。0 = 主控 1 = 主控+信息窗口 2 = 主控+直播窗口 3 = 本地运行 4 = 信息窗口远程 5 => 直播窗口远程',1,0,5,1));
   MyConfig.Add(TStringConfiguration.Create('Connection','Host','TCP监听绑定/远程连接主机','0.0.0.0'));
@@ -326,9 +328,7 @@ initialization
   MyConfig.Add(TIntegerConfiguration.Create('Display','LiveWindowHeight','直播窗口高度',1080,50,99999,10));
 
   MyConfig.Add(TIntegerConfiguration.Create('Display','BufferLength','渲染缓冲区大小(ms)',2000,200,6000,100));
-  MyConfig.Add(TIntegerConfiguration.Create('Display','ReferenceFPS','参考帧率(fps)',24,5,60,1));
-  MyConfig.Add(TIntegerConfiguration.Create('Display','MinInterval','最小刷新间隔(ms)',5,1,1000,5));
-  MyConfig.Add(TIntegerConfiguration.Create('Display','MaxInterval','最大刷新间隔(ms)',100,1,1000,5));
+  MyConfig.Add(TIntegerConfiguration.Create('Display','ReferenceFPS','参考帧率(fps)',100,5,120,1));
 
   MyConfig.Add(TIntegerConfiguration.Create('Render','BorderWidth','文本描边大小',2,0,5,1));
   MyConfig.Add(TStringConfiguration.Create('Render','BorderColor','文本描边颜色','#FF000000'));

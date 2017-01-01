@@ -308,6 +308,7 @@ object frmControl: TfrmControl
     end
     object ActionShowInfo: TAction
       Caption = #26174#31034#20449#24687'(&I)'
+      OnExecute = ActionShowInfoExecute
     end
     object ActionHideInfo: TAction
       Caption = #20851#38381#20449#24687'(&C)'

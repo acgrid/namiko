@@ -84,6 +84,7 @@ type
     function TLogoFactory(AValue: TJSONValue): TLogo;
     procedure ActionReloadJSONExecute(Sender: TObject);
     procedure TimerSecondTimer(Sender: TObject);
+    procedure ActionShowInfoExecute(Sender: TObject);
   private
     { Private declarations }
     procedure ReadJSONContent(AData: TArray<Byte>);
@@ -105,7 +106,9 @@ type
 var
   frmControl: TfrmControl;
   AppPath: string;
-  PlayItemS: TSemaphore;
+  InfoHoldS: TSemaphore;
+  InfoWindowS: TSemaphore;
+  LiveWindowS: TSemaphore;
   ProgramsMutex: TMutex;
   DefaultSA: TSecurityAttributes; // Use to create thread objects
 
@@ -218,6 +221,18 @@ end;
 procedure TfrmControl.ActionShowConfigExecute(Sender: TObject);
 begin
   frmConfig.Show;
+end;
+
+procedure TfrmControl.ActionShowInfoExecute(Sender: TObject);
+var
+  SelectedProgram: TProgram;
+begin
+  if Assigned(ListViewProgramList.Selected) then begin
+    SelectedProgram := ListViewProgramList.Selected.Data;
+    if Assigned(SelectedProgram) then begin
+      TInfoRenderThread.Create(SelectedProgram, infoOnly, 0);
+    end;
+  end;
 end;
 
 procedure TfrmControl.FormCreate(Sender: TObject);
@@ -505,8 +520,9 @@ begin
     if ReloadList then ListSessions.Items.Add(CurrentSession);
     with ListViewProgramList do begin
       for ProgramItem in ProgramsInSession do begin
-        with Items.Add do begin  
+        with Items.Add do begin
           Caption := TProgramStatusToString(ProgramItem.Status);
+          Data := ProgramItem;
           SubItems.Add(ProgramItem.Session);
           SubItems.Add(Format('%.1f', [ProgramItem.Sequence]));
           if ProgramItem.Team = '' then begin
@@ -548,10 +564,14 @@ initialization
   DefaultSA.lpSecurityDescriptor := nil;
   DefaultSA.bInheritHandle := False;
   ProgramsMutex := TMutex.Create(@DefaultSA, True, 'program_mutex');
-  PlayItemS := TSemaphore.Create(@DefaultSA, 0, 1, 'play_item', False);
+  InfoWindowS := TSemaphore.Create(@DefaultSA, 0, 1, 'Info_window', False);
+  LiveWindowS := TSemaphore.Create(@DefaultSA, 0, 1, 'Live_window', False);
+  InfoHoldS := TSemaphore.Create(@DefaultSA, 0, 1, 'Info_hold', False);
 
 finalization
-  PlayItemS.Free;
+  InfoWindowS.Free;
+  LiveWindowS.Free;
+  InfoHoldS.Free;
   ProgramsMutex.Free;
 
 end.

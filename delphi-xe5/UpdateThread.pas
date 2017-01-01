@@ -107,6 +107,7 @@ var
   WindowSize: SIZE;
   ScreenHDC: HDC;
   BeforeRender, RenderElasped, RenderDelay: Int64;
+//  MPC_HWND: HWND;
 begin
   NameThreadForDebugging('Update');
   { Place thread code here }
@@ -153,6 +154,9 @@ begin
     UpdateQueueMutex.Release;
     if CurrentRenderUnit.hDC = 0 then Continue; // MAYBE queue is really empty OR parent thread is call me to exit
     ScreenHDC := GetDC(FHandle);
+//    MPC_HWND := FindWindow(nil, 'Media Player Classic Home Cinema');
+//    SetWindowPos(MPC_HWND, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE or SWP_NOSIZE or SWP_SHOWWINDOW or SWP_NOACTIVATE);
+//    if MPC_HWND <> 0 then SetWindowPos(MPC_HWND, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE or SWP_NOSIZE or SWP_SHOWWINDOW or SWP_NOACTIVATE);
     try
       if MEscape then
         UpdateLayeredWindow(FHandle,ScreenHDC,@FormEscapePoint,@WindowSize,CurrentRenderUnit.hDC,@FormDCPoint,0,@FBlend,ULW_ALPHA)
