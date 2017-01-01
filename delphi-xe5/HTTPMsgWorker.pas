@@ -8,7 +8,7 @@ uses
   NamikoTypes;
 
 type
-  TMsgAction = (LIST, MARKDONE);
+  TMsgAction = (SHOW = 1, DELETE = 2, AWARD = 3, LIST = 100, MARKDONE = 101);
 
 type
   THTTPMsgWorker = class(TThread)
@@ -26,6 +26,7 @@ type
     procedure RequestForString(AURL: string; var Response: string);
     procedure DoList;
     procedure DoMarkDone;
+    procedure DoDanmakuUpdate;
     procedure Execute; override;
     procedure ReportLog(Info: string; Level: TLogType = logInfo);
     class var NextID: Cardinal;
@@ -33,6 +34,9 @@ type
     property Action: TMsgAction read FAction;
     procedure List();
     procedure MarkDone(ID: Int64);
+    procedure DanmakuShow(ID: Int64);
+    procedure DanmakuDelete(ID: Int64);
+    procedure DanmakuAward(ID: Int64);
   end;
 
 implementation
@@ -182,6 +186,35 @@ begin
   Start;
 end;
 
+procedure THTTPMsgWorker.DoDanmakuUpdate;
+var
+  Response: string;
+begin
+  RequestForString(Format('%s?action=update&key=%s&id=%u&status=%u',[FBaseURL, FKey, FID, Ord(FAction)]), Response);
+  if Response <> '{"Result":"OK"}' then ReportLog('µ¯Ä»¸üÐÂ´íÎó:' + Response);
+end;
+
+procedure THTTPMsgWorker.DanmakuShow(ID: Int64);
+begin
+  FAction := TMsgAction.SHOW;
+  FID := ID;
+  Start;
+end;
+
+procedure THTTPMsgWorker.DanmakuDelete(ID: Int64);
+begin
+  FAction := TMsgAction.DELETE;
+  FID := ID;
+  Start;
+end;
+
+procedure THTTPMsgWorker.DanmakuAward(ID: Int64);
+begin
+  FAction := TMsgAction.AWARD;
+  FID := ID;
+  Start;
+end;
+
 procedure THTTPMsgWorker.Execute;
 begin
   NameThreadForDebugging('HTTPMsg');
@@ -189,6 +222,9 @@ begin
     case FAction of
       TMsgAction.LIST: DoList;
       TMsgAction.MARKDONE: DoMarkDone;
+      TMsgAction.SHOW: DoDanmakuUpdate;
+      TMsgAction.DELETE: DoDanmakuUpdate;
+      TMsgAction.AWARD: DoDanmakuUpdate;
     end;
   except
     on EIdConnectTimeout do begin

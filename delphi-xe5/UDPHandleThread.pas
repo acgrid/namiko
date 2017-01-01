@@ -229,7 +229,7 @@ begin
           UDPResponse(RJSONObject);
           // Construct the record and sync to Main thread
           Synchronize(procedure begin
-            frmControl.AppendNetComment(LTime,RTime,ThisAuthor,Content,ThisFormat);
+            frmControl.AppendNetComment(0,LTime,RTime,ThisAuthor,Content,ThisFormat);
           end);
         end
         else begin

@@ -92,7 +92,7 @@ begin
       finally
         CommentPoolMutex.Release;
       end;
-      if Assigned(AComment) and ((AComment.Status = Created) or (AComment.Status = Pending)) then begin
+      if Assigned(AComment) and (AComment.Status = Pending) then begin
         // Subject to be dispatched
         {$IFDEF DEBUG_DISPATCH}ReportLog(Format('调度 %u 创建或待定状态',[i]));{$ENDIF}
         if TimeNow > AComment.Time then begin

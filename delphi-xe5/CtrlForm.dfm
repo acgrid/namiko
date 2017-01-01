@@ -7,7 +7,7 @@ object frmControl: TfrmControl
   Caption = 
     'Namiko Danmaku Client [Unicode GDI+ UDP/HTTP PCRE Multi-threaded' +
     ']'
-  ClientHeight = 517
+  ClientHeight = 516
   ClientWidth = 1054
   Color = clBtnFace
   Constraints.MaxHeight = 555
@@ -303,7 +303,7 @@ object frmControl: TfrmControl
   end
   object Statusbar: TStatusBar
     Left = 0
-    Top = 498
+    Top = 497
     Width = 1054
     Height = 19
     Panels = <
@@ -593,6 +593,9 @@ object frmControl: TfrmControl
     ColWidths = (
       73
       87)
+    RowHeights = (
+      18
+      18)
   end
   object EditDispatchKey: THotKey
     Left = 74

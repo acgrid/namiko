@@ -225,7 +225,7 @@ type
     procedure UpdateListView(const CommentID: Integer); // called by AppendListView
     procedure AppendListView(const AComment: TComment);
     procedure AppendComment(var AComment: TComment); // MUTEX, called by AppendXComment()
-    procedure AppendNetComment(LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat);
+    procedure AppendNetComment(LID: Int64; LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat);
     procedure AppendConsoleComment(AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
     procedure AppendLocalComment(LTime: TTime; RTime: TTime; AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
     procedure UpdateCaption();
@@ -261,7 +261,7 @@ implementation
 
 {$R *.dfm}
 uses
-  SetupForm, HexieForm, DemoForm, ImageMgrForm, MsgViewForm, ImageViewForm;
+  SetupForm, HexieForm, DemoForm, ImageMgrForm, MsgViewForm, ImageViewForm, HTTPMsgWorker;
 
 procedure TfrmControl.AppendListView(const AComment: TComment);
 begin
@@ -327,11 +327,12 @@ begin
   end;
 end;
 
-procedure TfrmControl.AppendNetComment(LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat);
+procedure TfrmControl.AppendNetComment(LID: Int64; LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat);
 var
   ThisComment: TComment;
 begin
   ThisComment := TComment.Create;
+  ThisComment.RID := LID;
   ThisComment.Time := LTime + (NetDelayDuration + Random(3000)) / 86400000; // TODO
   ThisComment.Content := AContent;
   ThisComment.Author := Author;
@@ -362,7 +363,7 @@ begin
   ThisComment.Author.Source := Console;
   ThisComment.Format := AFormat;
   ThisComment.Effect := AEffect;
-  ThisComment.Status := Created;
+  ThisComment.Status := Pending;
   AppendComment(ThisComment);
 end;
 
@@ -1446,17 +1447,34 @@ procedure TfrmControl.ListCommentsKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 var
   CommentID: Integer;
+  CommentRID: Int64;
+  Thread: THTTPMsgWorker;
 begin
-  if (Key = VK_Delete) and (ListComments.SelCount > 0) then begin
-    ListComments.Selected.SubItems.Strings[T_TEXT] := '(已删除)';
-    ListComments.Selected.Caption := 'R';
-    CommentID := StrToInt(ListComments.Selected.SubItems.Strings[T_ID]);
+  if ListComments.SelCount > 0 then begin
+    CommentID := StrToInt(ListComments.Selected.SubItems.Strings[T_ID]) - 1;
     CommentPoolMutex.Acquire;
     try
-      if CommentPool.Count <= CommentID then Exit;      
+      if CommentPool.Count <= CommentID then Exit;
       with CommentPool.Items[CommentID] do begin
-        Content := '';
-        Status := TCommentStatus.Removed;
+        CommentRID := RID;
+        if CommentRID = 0 then Exit;
+        Thread := THTTPMsgWorker.Create;
+        case Key of
+          VK_SPACE: begin
+            Status := TCommentStatus.Pending;
+            ListComments.Selected.Caption := '进';
+            Thread.DanmakuShow(RID);
+          end;
+          VK_DELETE: begin
+            Status := TCommentStatus.Removed;
+            ListComments.Selected.Caption := '删';
+            Thread.DanmakuDelete(RID);
+          end;
+          VK_F12: begin
+            Thread.DanmakuAward(RID);
+            ListComments.Selected.Caption := '奖';
+          end;
+        end;
       end;
     finally
       CommentPoolMutex.Release;

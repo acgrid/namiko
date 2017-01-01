@@ -155,7 +155,7 @@ begin
               Exit;
             end;
             if Assigned(JTimestamp) and Assigned(JLastID) then begin
-              RequestID := StrToInt64(JLastID.JsonValue.Value);
+              RequestID := 0;
               FRemoteTimeOffset := DateTimeToUnix(Now()) - (StrToInt64(JTimestamp.JsonValue.Value()) - FTimeOffset); // DateTimeToUnix is local timestamp - (PHP's UTC timestamp - offset of local to UTC)
               ReportLog(Format('测试成功，本地-远程时间差%d秒 开始接收网络弹幕',[FRemoteTimeOffset]));
               Synchronize(procedure begin
@@ -382,7 +382,7 @@ begin
             HexieMutex.Release;
           end;
           Synchronize(procedure begin
-            frmControl.AppendNetComment(LTime,RTime,ThisAuthor,Content,ThisFormat);
+            frmControl.AppendNetComment(ThisID,LTime,RTime,ThisAuthor,Content,ThisFormat);
           end);
         end
         else if TimeFound and IPFound and ImageFound then begin

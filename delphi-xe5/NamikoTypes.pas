@@ -54,6 +54,7 @@ type
   );
 type
   TComment = class(TObject)
+    RID: Int64;
     Time: TTime;
     Content: string;
     Author: TCommentAuthor;
