@@ -338,11 +338,11 @@ object frmControl: TfrmControl
       end
       item
         Caption = 'ID'
-        Width = 30
+        Width = 40
       end
       item
         Caption = #26412#22320#26102#38388
-        Width = 90
+        Width = 80
       end
       item
         Caption = #20869#23481
@@ -350,24 +350,25 @@ object frmControl: TfrmControl
       end
       item
         Caption = #26469#28304
-        Width = 80
+        Width = 85
       end
       item
         Caption = #26684#24335
-        Width = 60
+        Width = 40
       end
       item
-        AutoSize = True
         Caption = #27169#24335
+        Width = 40
       end
       item
-        AutoSize = True
         Caption = #37325#22797
+        Width = 40
       end
       item
-        AutoSize = True
         Caption = #29992#26102
+        Width = 40
       end>
+    ColumnClick = False
     DoubleBuffered = True
     FlatScrollBars = True
     GridLines = True
@@ -524,8 +525,7 @@ object frmControl: TfrmControl
     Width = 85
     Height = 25
     Hint = #24314#35758#20808#35774#23450#33258#23450#20041#26102#38388'0:0:0'#20877#24405#21046#12290
-    Caption = #20923#32467#24320#20851'(&Z)'
-    Enabled = False
+    Caption = #20923#32467#26174#31034'(&Z)'
     ParentShowHint = False
     ShowHint = True
     TabOrder = 11

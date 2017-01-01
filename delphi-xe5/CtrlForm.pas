@@ -241,6 +241,7 @@ var
   // Thread Sync Objects
   SharedConfigurationMutex, GraphicSharedMutex, {HTTPSharedMutex,} HexieMutex,
   CommentPoolMutex, LiveCommentPoolMutex, UpdateQueueMutex: TMutex;
+  UpdateLockEvent: TLightweightEvent;
   DispatchS, UpdateS: TSemaphore;
   DefaultSA: TSecurityAttributes; // Use to create thread objects
   // Comment Layered Window
@@ -268,7 +269,7 @@ begin
   with ListComments.Items.Add do begin
     Caption := '待';
     SubItems.Add(IntToStr(AComment.ID));
-    SubItems.Add(Format('%s.%u',[TimeToStr(AComment.Time),MilliSecondOf(AComment.Time)]));
+    SubItems.Add(TimeToStr(AComment.Time));
     SubItems.Add(StringReplace(AComment.Content, #13, '\n', [rfReplaceAll]));
     case AComment.Author.Source of
       Internet: SubItems.Add(AComment.Author.Address);
@@ -510,6 +511,7 @@ begin
   if Assigned(DThread) and DThread.Started then DThread.Terminate;
   if Assigned(RThread) and RThread.Started then RThread.Terminate;
   if Assigned(UThread) and UThread.Started then begin
+    UpdateLockEvent.SetEvent;
     UThread.Terminate;
     UpdateS.Release; // Empty Operation
   end;
@@ -1433,13 +1435,14 @@ end;
 
 procedure TfrmControl.BtnFreezingClick(Sender: TObject);
 begin
-  if Freezing then begin
-    InternalTimeOffset := InternalTimeOffset - (Time() - FreezingTime);
+  if UpdateLockEvent.IsSet then begin
+    UpdateLockEvent.ResetEvent;
+    BtnFreezing.Caption := '解除冻结(&Z)';
   end
   else begin
-    FreezingTime := Time();
+    UpdateLockEvent.SetEvent;
+    BtnFreezing.Caption := '冻结显示(&Z)';
   end;
-  Freezing := not Freezing;
 end;
 
 procedure TfrmControl.ListCommentsDblClick(Sender: TObject);
@@ -1537,6 +1540,8 @@ initialization
   UpdateQueueMutex := TMutex.Create(@DefaultSA,True,'render_queue_m');
   DispatchS := TSemaphore.Create(@DefaultSA,0,1024,'dispatch_s',False);
   UpdateS := TSemaphore.Create(@DefaultSA,0,1024,'update_s',False);
+  UpdateLockEvent := TLightweightEvent.Create;
+  UpdateLockEvent.SetEvent;
 
 finalization
   CommentPoolMutex.Free();
@@ -1548,6 +1553,7 @@ finalization
   UpdateQueueMutex.Free();
   DispatchS.Free();
   UpdateS.Free();
+  UpdateLockEvent.Free;
   CoUninitialize();
 
 end.

@@ -160,8 +160,10 @@ begin
     try
       if MEscape then
         UpdateLayeredWindow(FHandle,ScreenHDC,@FormEscapePoint,@WindowSize,CurrentRenderUnit.hDC,@FormDCPoint,0,@FBlend,ULW_ALPHA)
-      else
+      else begin
+        UpdateLockEvent.WaitFor();
         UpdateLayeredWindow(FHandle,ScreenHDC,@FormOffsetPoint,@WindowSize,CurrentRenderUnit.hDC,@FormDCPoint,0,@FBlend,ULW_ALPHA);
+      end;
     finally
       ReleaseDC(FHandle,ScreenHDC);
       ReleaseDC(FHandle,CurrentRenderUnit.hSrcDC);
