@@ -170,7 +170,6 @@ type
     CCWindowShow, CCWindowWorking, Fetching, AddOCWorking : Boolean;
     DispatchKey : WPARAM;
     XMLDelay : Integer;
-    FreezingTime : TTime;
 
     procedure WMHotKey(var Msg : TWMHotKey); message WM_HOTKEY;
 
