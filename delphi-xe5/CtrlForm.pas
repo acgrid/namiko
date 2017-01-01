@@ -330,7 +330,6 @@ end;
 procedure TfrmControl.AppendNetComment(LID: Int64; LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat);
 var
   ThisComment: TComment;
-  Thread: THTTPMsgWorker;
 begin
   ThisComment := TComment.Create;
   ThisComment.RID := LID;
@@ -352,8 +351,6 @@ begin
   end;
   ThisComment.Status := Created;
   AppendComment(ThisComment);
-  Thread := THTTPMsgWorker.Create;
-  Thread.DanmakuShow(LID);
 end;
 
 procedure TfrmControl.AppendConsoleComment(AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
@@ -651,6 +648,7 @@ var
   TimeNow: TTime;
   HRunning, DRunning, RRunning, URunning: Boolean;
   str: string;
+  {$IFDEF DEBUG}Key: Word;{$ENDIF}
 begin
   {case grpTiming.ItemIndex of
     0: InternalTime := Time();
@@ -722,6 +720,15 @@ begin
     IfThen(RRunning,'运行','停止'),
     IfThen(URunning,'运行','停止'),
     IfThen(HRunning,'运行','停止')]);
+  {$IFDEF DEBUG}
+  if ListComments.Items.Count > 0 then begin
+    while ListComments.ItemIndex < ListComments.Items.Count - 1 do begin
+      ListComments.ItemIndex := ListComments.ItemIndex + 1;
+      Key := 32;
+      ListCommentsKeyDown(Self, Key, []);
+    end;
+  end;
+  {$ENDIF}
 end;
 
 procedure TfrmControl.TrayIconClick(Sender: TObject);
