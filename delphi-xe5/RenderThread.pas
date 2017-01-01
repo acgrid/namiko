@@ -346,7 +346,7 @@ begin
       FontStyle := AComment.Body.Format.FontStyle;
       Bitmap := GetCachedBitmap(PString, Length, PFontFamily, FontStyle, FontSize, FillColor, AComment.Width, AComment.Height);
     end;
-    FRenderBuffer.Add(AComment.Body.ID,ACommentUnit);
+    FRenderBuffer.AddOrSetValue(AComment.Body.ID,ACommentUnit);
   end
   else begin
     AComment.Status := LWait;
@@ -775,7 +775,6 @@ begin
   CommentPoolMutex.Acquire;
   try
     ALiveComment.Body.Status := Removed;
-    NotifyStatusChanged(ID); // add mutex
   finally
     CommentPoolMutex.Release;
   end;
@@ -791,6 +790,7 @@ begin
     GdipDeleteCachedBitmap(FRenderBuffer.Items[ID].Bitmap);
     FRenderBuffer.Remove(ID); // Internal CommentUnits Buffer
   end;
+  NotifyStatusChanged(ID); // add mutex
 end;
 
 procedure TRenderThread.ReportLog(Info: string; Level: TLogType = logInfo);
@@ -840,9 +840,9 @@ end;
 
 procedure TRenderThread.NotifyStatusChanged(CommentID: Integer);
 begin
-  {Synchronize(procedure begin
+  Synchronize(procedure begin
     if Assigned(frmControl) then frmControl.UpdateListView(CommentID);
-  end);}
+  end);
 end;
 
 end.

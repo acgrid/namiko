@@ -266,7 +266,7 @@ uses
 procedure TfrmControl.AppendListView(const AComment: TComment);
 begin
   with ListComments.Items.Add do begin
-    Caption := 'C';
+    Caption := '待';
     SubItems.Add(IntToStr(AComment.ID));
     SubItems.Add(Format('%s.%u',[TimeToStr(AComment.Time),MilliSecondOf(AComment.Time)]));
     SubItems.Add(StringReplace(AComment.Content, #13, '\n', [rfReplaceAll]));
@@ -294,17 +294,17 @@ var
 begin
   if CommentID > CommentPool.Count then Exit;
   Index := CommentID - ListViewOffset - 1;
-  if Index > ListComments.Items.Count then Exit;
+  if Index >= ListComments.Items.Count then Exit;
   AComment := CommentPool.Items[Index];
   //if StrToInt(ListComments.Items[Index].SubItems.Strings[T_ID]) = CommentID then begin // Out of range
   case AComment.Status of
-    Created: ListComments.Items.Item[Index].Caption := 'C';
-    Pending: ListComments.Items.Item[Index].Caption := 'P';
-    Starting: ListComments.Items.Item[Index].Caption := 'S';
-    Waiting: ListComments.Items.Item[Index].Caption := 'W';
-    Displaying: ListComments.Items.Item[Index].Caption := '<';
-    Removing: ListComments.Items.Item[Index].Caption := 'R';
-    Removed: ListComments.Items.Item[Index].Caption := 'D';
+    Created: ListComments.Items.Item[Index].Caption := '待';
+    Pending: ListComments.Items.Item[Index].Caption := '进';
+    Starting: ListComments.Items.Item[Index].Caption := '起';
+    Waiting: ListComments.Items.Item[Index].Caption := '等';
+    Displaying: ListComments.Items.Item[Index].Caption := '飞';
+    Removing: ListComments.Items.Item[Index].Caption := '出';
+    Removed: ListComments.Items.Item[Index].Caption := '退';
   end;
   //end;
 end;
@@ -330,6 +330,7 @@ end;
 procedure TfrmControl.AppendNetComment(LID: Int64; LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat);
 var
   ThisComment: TComment;
+  Thread: THTTPMsgWorker;
 begin
   ThisComment := TComment.Create;
   ThisComment.RID := LID;
@@ -351,6 +352,8 @@ begin
   end;
   ThisComment.Status := Created;
   AppendComment(ThisComment);
+  Thread := THTTPMsgWorker.Create;
+  Thread.DanmakuShow(LID);
 end;
 
 procedure TfrmControl.AppendConsoleComment(AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
@@ -1458,26 +1461,32 @@ begin
       with CommentPool.Items[CommentID] do begin
         CommentRID := RID;
         if CommentRID = 0 then Exit;
-        Thread := THTTPMsgWorker.Create;
         case Key of
           VK_SPACE: begin
             Status := TCommentStatus.Pending;
-            ListComments.Selected.Caption := '进';
-            Thread.DanmakuShow(RID);
           end;
           VK_DELETE: begin
             Status := TCommentStatus.Removed;
-            ListComments.Selected.Caption := '删';
-            Thread.DanmakuDelete(RID);
-          end;
-          VK_F12: begin
-            Thread.DanmakuAward(RID);
-            ListComments.Selected.Caption := '奖';
           end;
         end;
       end;
     finally
       CommentPoolMutex.Release;
+    end;
+    Thread := THTTPMsgWorker.Create;
+    case Key of
+      VK_SPACE: begin
+        ListComments.Selected.Caption := '进';
+        Thread.DanmakuShow(CommentRID);
+      end;
+      VK_DELETE: begin
+        ListComments.Selected.Caption := '删';
+        Thread.DanmakuDelete(CommentRID);
+      end;
+      VK_F12: begin
+        ListComments.Selected.Caption := '奖';
+        Thread.DanmakuAward(CommentRID);
+      end;
     end;
   end;
 end;
