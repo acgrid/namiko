@@ -313,7 +313,7 @@ begin
             if ThisID > NextID then NextID := ThisID;
           end;
           if TJSONPair(LItem).JsonString.Value = 'TS' then begin
-            RTime := UnixToDateTime(TJSONNumber(TJSONPair(LItem).JsonValue).AsInt64 - FTimeOffset + FRemoteTimeOffset);
+            RTime := UnixToDateTime(TJSONNumber(TJSONPair(LItem).JsonValue).AsInt64, False);
             TimeFound := True;
           end;
           if TJSONPair(LItem).JsonString.Value = 'IP' then begin

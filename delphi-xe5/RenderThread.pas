@@ -675,21 +675,6 @@ begin
       LiveCommentPoolMutex.Release;
     end;
   end;
-  if (Length(MTitleText) > 0) and (MDoUpdate or not Assigned(FTitleBitmap)) then begin // Display the Title
-    if Assigned(FTitleBitmap) then GdipDeleteCachedBitmap(FTitleBitmap);
-    TitleFormat.DefaultName := False;
-    TitleFormat.DefaultSize := False;
-    TitleFormat.DefaultColor := False;
-    TitleFormat.DefaultStyle := False;
-    TitleFormat.FontName := MTitleFontName;
-    TitleFormat.FontSize := MTitleFontSize;
-    TitleFormat.FontColor := MTitleFontColor;
-    TitleFormat.FontStyle := 1;
-    GetStringDim(MTitleText, TitleFormat, TitleWidth, TitleHeight);
-    FTitleBitmap := GetCachedBitmap(PWideChar(MTitleText), Length(MTitleText),
-      GetFontFamily(MTitleFontName), 1, MTitleFontSize, MTitleFontColor, TitleWidth, TitleHeight);
-    {$IFNDEF DEBUG}Assert(Assigned(FTitleBitmap), 'Title bitmap cache not created.');{$ENDIF}
-  end;
   if Assigned(FTitleBitmap) then GdipDrawCachedBitmap(PGraphic, FTitleBitmap, MTitleLeft, MTitleTop);
   for ACommentUnit in FRenderBuffer.Values do begin
     if ACommentUnit.Length = 0 then Continue;

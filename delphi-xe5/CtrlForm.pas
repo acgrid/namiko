@@ -333,7 +333,7 @@ var
 begin
   ThisComment := TComment.Create;
   ThisComment.RID := LID;
-  ThisComment.Time := LTime + (NetDelayDuration + Random(3000)) / 86400000; // TODO
+  ThisComment.Time := RTime;
   ThisComment.Content := AContent;
   ThisComment.Author := Author;
   ThisComment.Format := AFormat;
@@ -1491,10 +1491,6 @@ begin
       VK_DELETE: begin
         ListComments.Selected.Caption := '删';
         Thread.DanmakuDelete(CommentRID);
-      end;
-      VK_F12: begin
-        ListComments.Selected.Caption := '奖';
-        Thread.DanmakuAward(CommentRID);
       end;
     end;
   end;
