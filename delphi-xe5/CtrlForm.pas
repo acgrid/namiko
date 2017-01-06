@@ -1474,6 +1474,9 @@ begin
           VK_SPACE: begin
             Status := TCommentStatus.Pending;
           end;
+          VK_F12: begin
+            Status := TCommentStatus.Pending;
+          end;
           VK_DELETE: begin
             Status := TCommentStatus.Removed;
           end;
