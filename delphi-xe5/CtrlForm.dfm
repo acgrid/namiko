@@ -520,7 +520,7 @@ object frmControl: TfrmControl
     OnClick = btnEscAllClick
   end
   object BtnFreezing: TButton
-    Left = 788
+    Left = 719
     Top = 467
     Width = 85
     Height = 25
@@ -539,6 +539,7 @@ object frmControl: TfrmControl
     BorderWidth = 1
     Smooth = True
     TabOrder = 12
+    Visible = False
   end
   object btnClearList: TButton
     Left = 543
@@ -672,6 +673,25 @@ object frmControl: TfrmControl
     Caption = #29616#22330#28040#24687'(&6)'
     TabOrder = 25
     OnClick = BtnMessageWindowClick
+  end
+  object BtnAuto: TButton
+    Left = 719
+    Top = 441
+    Width = 85
+    Height = 25
+    Caption = #33258#21160#28155#21152#24320
+    TabOrder = 26
+    OnClick = BtnAutoClick
+  end
+  object EditAutoTarget: TEdit
+    Left = 818
+    Top = 441
+    Width = 39
+    Height = 25
+    Alignment = taCenter
+    NumbersOnly = True
+    TabOrder = 27
+    Text = '30'
   end
   object TimerGeneral: TTimer
     OnTimer = TimerGeneralTimer
@@ -2818,5 +2838,11 @@ object frmControl: TfrmControl
     OnClick = TrayIconClick
     Left = 352
     Top = 120
+  end
+  object TimerAutoAdd: TTimer
+    Enabled = False
+    OnTimer = TimerAutoAddTimer
+    Left = 352
+    Top = 32
   end
 end

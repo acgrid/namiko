@@ -108,6 +108,9 @@ type
     BtnImageWindow: TButton;
     BtnMessageWindow: TButton;
     TrayIcon: TTrayIcon;
+    TimerAutoAdd: TTimer;
+    BtnAuto: TButton;
+    EditAutoTarget: TEdit;
     procedure btnCCShowClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnCCWorkClick(Sender: TObject);
@@ -164,6 +167,8 @@ type
     procedure BtnImageWindowClick(Sender: TObject);
     procedure BtnMessageWindowClick(Sender: TObject);
     procedure TrayIconClick(Sender: TObject);
+    procedure TimerAutoAddTimer(Sender: TObject);
+    procedure BtnAutoClick(Sender: TObject);
 
   private
     { Private declarations }
@@ -210,7 +215,7 @@ type
     MTitleFontSize: Real;
     MTitleFontColor: TAlphaColor;
     // CONTAINERS <<SHOULD BE FREED MANUALLY>>
-    CommentPool: TCommentCollection;
+    CommentPool, ReuseCommentPool: TCommentCollection;
     LiveCommentPool: TLiveCommentCollection;
     UpdateQueue: TRenderUnitQueue;
     // TListView Wrapper
@@ -220,10 +225,11 @@ type
     UThread: TUpdateThread;
     DThread: TDispatchThread;
     HThread: THTTPWorkerThread;
+    RequestID: Int64;
     // New Procedures
     procedure UpdateListView(const CommentID: Integer); // called by AppendListView
     procedure AppendListView(const AComment: TComment);
-    procedure AppendComment(var AComment: TComment); // MUTEX, called by AppendXComment()
+    procedure AppendComment(var AComment: TComment; ToListView: Boolean = True); // MUTEX, called by AppendXComment()
     procedure AppendNetComment(LID: Int64; LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat);
     procedure AppendConsoleComment(AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
     procedure AppendLocalComment(LTime: TTime; RTime: TTime; AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
@@ -288,11 +294,11 @@ end;
 
 // WARNING: Call Me After CommentPoolMutex.Acquire!
 procedure TfrmControl.UpdateListView(const CommentID: Integer);
-var
+{var
   AComment: TComment;
-  Index: Integer;
+  Index: Integer;}
 begin
-  if CommentID > CommentPool.Count then Exit;
+  {if CommentID > CommentPool.Count then Exit;
   Index := CommentID - ListViewOffset - 1;
   if Index >= ListComments.Items.Count then Exit;
   AComment := CommentPool.Items[Index];
@@ -305,14 +311,14 @@ begin
     Displaying: ListComments.Items.Item[Index].Caption := '飞';
     Removing: ListComments.Items.Item[Index].Caption := '出';
     Removed: ListComments.Items.Item[Index].Caption := '退';
-  end;
+  end; }
   //end;
 end;
 
-procedure TfrmControl.AppendComment(var AComment: TComment);
+procedure TfrmControl.AppendComment(var AComment: TComment; ToListView: Boolean = True);
 begin
   AComment.Format.FontColor := BGRToRGB(AComment.Format.FontColor);
-  AppendListView(AComment);
+  if ToListView then AppendListView(AComment);
   // Do not change these two lines
   AComment.Content := StringReplace(AComment.Content,'\n', #13, [rfReplaceAll]);
   {$IFDEF DEBUG_VERBOSE1}LogEvent('Before CommentPoolMutex.Acquire()', logDebug);{$ENDIF}
@@ -351,6 +357,12 @@ begin
   end;
   ThisComment.Status := Created;
   AppendComment(ThisComment);
+end;
+
+procedure TfrmControl.BtnAutoClick(Sender: TObject);
+begin
+  BtnAuto.Caption := IfThen(TimerAutoAdd.Enabled, '自动添加开', '自动添加关');
+  TimerAutoAdd.Enabled := not TimerAutoAdd.Enabled;
 end;
 
 procedure TfrmControl.AppendConsoleComment(AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
@@ -541,6 +553,7 @@ begin
   ClearedItemCount := 0;
   XMLDelay := 0;
   ListViewOffset := 0;
+  RequestID := 0;
   //Set Internal Time as System Time
   InternalTime := Time();
   InternalTimeOffset := 0;
@@ -574,6 +587,7 @@ begin
   //Pools
   CommentPool := TCommentCollection.Create(True);
   CommentPoolMutex.Release;
+  ReuseCommentPool := TCommentCollection.Create(False);
   LiveCommentPool := TLiveCommentCollection.Create(True);
   LiveCommentPoolMutex.Release;
   UpdateQueue := TRenderUnitQueue.Create();
@@ -623,6 +637,7 @@ begin
   UpdateQueueMutex.Acquire;
   FreeAndNil(UpdateQueue);
   UpdateQueueMutex.Release;
+  FreeAndNil(ReuseCommentPool);
   if CCWnd > 0 then DestroyWindow(CCWnd);
 end;
 
@@ -642,6 +657,38 @@ end;
 procedure TfrmControl.FormResize(Sender: TObject);
 begin
   StatusBar.Panels[0].Width := Width - 610;
+end;
+
+procedure TfrmControl.TimerAutoAddTimer(Sender: TObject);
+var
+  AppendQty, I: Integer;
+  AComment, SrcComment: TComment;
+  ALiveComment: TLiveComment;
+begin
+  if not SysReady then Exit;
+  AppendQty := StrToIntDef(EditAutoTarget.Text, 30) - LiveCommentPool.Count;
+  if (AppendQty > 0) and (ReuseCommentPool.Count > AppendQty) then begin
+    Randomize;
+    for I := 0 to AppendQty - 1 do begin
+      ALiveComment := TLiveComment.Create;
+      AComment := TComment.Create;
+      SrcComment := ReuseCommentPool.Items[RandomRange(0, ReuseCommentPool.Count)];
+      AComment.RID := SrcComment.RID;
+      AComment.Time := SrcComment.Time;
+      AComment.Content := SrcComment.Content;
+      AComment.Author := SrcComment.Author;
+      AComment.Format := SrcComment.Format;
+      AComment.Effect := SrcComment.Effect;
+      AComment.Status := Pending;
+      ALiveComment.Body := AComment;
+      LiveCommentPoolMutex.Acquire;
+      try
+        LiveCommentPool.Add(ALiveComment);
+      finally
+        LiveCommentPoolMutex.Release;
+      end;
+    end;
+  end;
 end;
 
 procedure TfrmControl.TimerGeneralTimer(Sender: TObject);
@@ -1459,7 +1506,7 @@ procedure TfrmControl.ListCommentsKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 var
   CommentID: Integer;
-  CommentRID: Int64;
+  AComment: TComment;
   Thread: THTTPMsgWorker;
 begin
   if ListComments.SelCount > 0 then begin
@@ -1467,33 +1514,27 @@ begin
     CommentPoolMutex.Acquire;
     try
       if CommentPool.Count <= CommentID then Exit;
-      with CommentPool.Items[CommentID] do begin
-        CommentRID := RID;
-        if CommentRID = 0 then Exit;
-        case Key of
-          VK_SPACE: begin
-            Status := TCommentStatus.Pending;
-          end;
-          VK_F12: begin
-            Status := TCommentStatus.Pending;
-          end;
-          VK_DELETE: begin
-            Status := TCommentStatus.Removed;
-          end;
-        end;
-      end;
+      AComment := CommentPool.Items[CommentID];
     finally
       CommentPoolMutex.Release;
     end;
+    if (AComment.RID = 0) or (AComment.Status <> Created) then Exit;
     Thread := THTTPMsgWorker.Create;
     case Key of
       VK_SPACE: begin
-        ListComments.Selected.Caption := '进';
-        Thread.DanmakuShow(CommentRID);
+        ListComments.Selected.Caption := '重';
+        Thread.DanmakuShow(AComment.RID);
+        AComment.Status := Pending;
+        ReuseCommentPool.Add(AComment);
+      end;
+      VK_F12: begin
+        ListComments.Selected.Caption := '过';
+        Thread.DanmakuShow(AComment.RID);
+        AComment.Status := Pending;
       end;
       VK_DELETE: begin
         ListComments.Selected.Caption := '删';
-        Thread.DanmakuDelete(CommentRID);
+        Thread.DanmakuDelete(AComment.RID);
       end;
     end;
   end;

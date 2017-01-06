@@ -128,7 +128,7 @@ end;
 
 procedure THTTPWorkerThread.Execute;
 var
-  RequestID, ElaspedMS: Int64;
+  ElaspedMS: Int64;
   Response: string;
   LJSONObject: TJSONObject;
   JResult, JTimestamp, JLastID: TJSONPair;
@@ -155,7 +155,6 @@ begin
               Exit;
             end;
             if Assigned(JTimestamp) and Assigned(JLastID) then begin
-              RequestID := 0;
               FRemoteTimeOffset := DateTimeToUnix(Now()) - (StrToInt64(JTimestamp.JsonValue.Value()) - FTimeOffset); // DateTimeToUnix is local timestamp - (PHP's UTC timestamp - offset of local to UTC)
               ReportLog(Format('测试成功，本地-远程时间差%d秒 开始接收网络弹幕',[FRemoteTimeOffset]));
               Synchronize(procedure begin
@@ -222,14 +221,14 @@ begin
       FStopwatch.Start;
       try
         try
-          Response := Worker.Get(Format('%s?action=fetch&key=%s&fromID=%u&totalc=%u',[FURL,FKey,RequestID,FPoolCount]));
+          Response := Worker.Get(Format('%s?action=fetch&key=%s&fromID=%u&totalc=%u',[FURL,FKey,frmControl.RequestID,FPoolCount]));
           FStopwatch.Stop;
           ElaspedMS := FStopwatch.ElapsedMilliseconds;
           FReqLastMS := ElaspedMS;
           FReqTotalMS := FReqTotalMS + ElaspedMS;
           if Assigned(Worker) and (Worker.ResponseCode = 200) and (Length(Response) > 0) then begin
             try
-              ReadLines(Response, RequestID);
+              ReadLines(Response, frmControl.RequestID);
             except
               on E: Exception do ReportLog(Format('循环JSON异常：[%s] %s',[E.ClassName,E.Message]));
             end;
