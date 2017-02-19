@@ -547,6 +547,7 @@ object frmControl: TfrmControl
     Width = 82
     Height = 25
     Caption = #28165#31354#21015#34920'(&P)'
+    Enabled = False
     TabOrder = 13
     OnClick = btnClearListClick
   end

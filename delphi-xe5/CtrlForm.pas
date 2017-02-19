@@ -1510,7 +1510,7 @@ var
   Thread: THTTPMsgWorker;
 begin
   if ListComments.SelCount > 0 then begin
-    CommentID := StrToInt(ListComments.Selected.SubItems.Strings[T_ID]) - 1;
+    CommentID := ListComments.ItemIndex;
     CommentPoolMutex.Acquire;
     try
       if CommentPool.Count <= CommentID then Exit;
