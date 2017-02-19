@@ -16891,7 +16891,6 @@ var
 
 begin
   Result := 0;
-  Tmp := 0;
   AValue := UpperCase( AValue );
   for I := 1 to Length( AValue ) do
     begin

@@ -139,6 +139,7 @@ var
   JRequest, JAuth, JContent, JSource, JTime: TJSONPair; // Confirm: Memory Leak?
   ThisAuthor: TCommentAuthor;
   ThisFormat: TCommentFormat;
+  ThisEffect: TCommentEffect;
 begin
   LJSONObject := TJsonObject.Create;
   try
@@ -227,9 +228,15 @@ begin
           RJSONObject.AddPair('Result','Recvived');
           RJSONObject.AddPair('Length',IntToStr(Len));
           UDPResponse(RJSONObject);
+          with ThisEffect do begin
+            Display := Scroll;
+            StayTime := frmControl.NetDefaultDuration;
+            RepeatCount := 1;
+            Speed := 0;
+          end;
           // Construct the record and sync to Main thread
           Synchronize(procedure begin
-            frmControl.AppendNetComment(LTime,RTime,ThisAuthor,Content,ThisFormat);
+            frmControl.AppendNetComment(0, LTime, RTime, ThisAuthor, Content, ThisFormat, ThisEffect);
           end);
         end
         else begin

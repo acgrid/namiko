@@ -32,7 +32,7 @@ type
     procedure ReadLines(var AResponse: string; var NextID: Int64);
     procedure ReadSharedConfiguration();
   public
-    const DATA_VERSION = '5';
+    const DATA_VERSION = '6';
     property HexieList: TStringList read Hexie;
     property ReqCount: Int64 read FReqCount;
     property ReqConnTCCount: Int64 read FReqConnTCCount;
@@ -128,7 +128,7 @@ end;
 
 procedure THTTPWorkerThread.Execute;
 var
-  RequestID, ElaspedMS: Int64;
+  ElaspedMS: Int64;
   Response: string;
   LJSONObject: TJSONObject;
   JResult, JTimestamp, JLastID: TJSONPair;
@@ -155,9 +155,9 @@ begin
               Exit;
             end;
             if Assigned(JTimestamp) and Assigned(JLastID) then begin
-              RequestID := StrToInt64(JLastID.JsonValue.Value);
               FRemoteTimeOffset := DateTimeToUnix(Now()) - (StrToInt64(JTimestamp.JsonValue.Value()) - FTimeOffset); // DateTimeToUnix is local timestamp - (PHP's UTC timestamp - offset of local to UTC)
-              ReportLog(Format('测试成功，本地-远程时间差%d秒 开始接收网络弹幕',[FRemoteTimeOffset]));
+              frmControl.RequestID := StrToInt64(JLastID.JsonValue.Value());
+              ReportLog(Format('测试成功，本地-远程时间差%d秒 从%u开始接收网络弹幕',[FRemoteTimeOffset]));
               Synchronize(procedure begin
                 with frmControl do begin
                   Networking := True;
@@ -222,14 +222,14 @@ begin
       FStopwatch.Start;
       try
         try
-          Response := Worker.Get(Format('%s?action=fetch&key=%s&fromID=%u&totalc=%u',[FURL,FKey,RequestID,FPoolCount]));
+          Response := Worker.Get(Format('%s?action=fetch&key=%s&fromID=%u&totalc=%u',[FURL,FKey,frmControl.RequestID,FPoolCount]));
           FStopwatch.Stop;
           ElaspedMS := FStopwatch.ElapsedMilliseconds;
           FReqLastMS := ElaspedMS;
           FReqTotalMS := FReqTotalMS + ElaspedMS;
           if Assigned(Worker) and (Worker.ResponseCode = 200) and (Length(Response) > 0) then begin
             try
-              ReadLines(Response, RequestID);
+              ReadLines(Response, frmControl.RequestID);
             except
               on E: Exception do ReportLog(Format('循环JSON异常：[%s] %s',[E.ClassName,E.Message]));
             end;
@@ -285,6 +285,7 @@ var
   RTime, LTime: TDateTime;
   ThisAuthor: TCommentAuthor;
   ThisFormat: TCommentFormat;
+  ThisEffect: TCommentEffect;
   ImageKey, ImageSignature, MsgType, Content: string;
   HexieIndex: Integer;
   ImagesCnt, SrvMessagesCnt: Cardinal;
@@ -295,6 +296,12 @@ begin
   ThisFormat.DefaultSize := True;
   ThisFormat.DefaultColor := True;
   ThisFormat.DefaultStyle := True;
+  with ThisEffect do begin
+    Display := Scroll;
+    StayTime := frmControl.NetDefaultDuration;
+    RepeatCount := 1;
+    Speed := 0;
+  end;
   ImagesCnt := 0;
   SrvMessagesCnt := 0;
   try
@@ -313,7 +320,7 @@ begin
             if ThisID > NextID then NextID := ThisID;
           end;
           if TJSONPair(LItem).JsonString.Value = 'TS' then begin
-            RTime := UnixToDateTime(TJSONNumber(TJSONPair(LItem).JsonValue).AsInt64 - FTimeOffset + FRemoteTimeOffset);
+            RTime := UnixToDateTime(TJSONNumber(TJSONPair(LItem).JsonValue).AsInt64, False);
             TimeFound := True;
           end;
           if TJSONPair(LItem).JsonString.Value = 'IP' then begin
@@ -352,6 +359,10 @@ begin
             Content := TJSONPair(LItem).JsonValue.Value;
             ContentFound := True;
           end;
+          if TJSONPair(LItem).JsonString.Value = 'FN' then begin
+            ThisFormat.FontName := TJSONString(TJSONPair(LItem).JsonValue).Value;
+            ThisFormat.DefaultName := False;
+          end;
           if TJSONPair(LItem).JsonString.Value = 'FS' then begin
             ThisFormat.FontSize := TJSONNumber(TJSONPair(LItem).JsonValue).AsDouble;
             ThisFormat.DefaultSize := False;
@@ -359,6 +370,12 @@ begin
           if TJSONPair(LItem).JsonString.Value = 'FC' then begin
             ThisFormat.FontColor := ColorToAlphaColor(WebColorStrToColor(TJSONPair(LItem).JsonValue.Value), FOpacity);
             ThisFormat.DefaultColor := False;
+          end;
+          if TJSONPair(LItem).JsonString.Value = 'DISP' then begin
+            ThisEffect.Display := TCommentEffectType(TJSONNumber(TJSONPair(LItem).JsonValue).AsInt);
+          end;
+          if TJSONPair(LItem).JsonString.Value = 'STAY' then begin
+            ThisEffect.StayTime := TJSONNumber(TJSONPair(LItem).JsonValue).AsInt;
           end;
         end;
         if TimeFound and IPFound and ContentFound then begin
@@ -382,7 +399,7 @@ begin
             HexieMutex.Release;
           end;
           Synchronize(procedure begin
-            frmControl.AppendNetComment(LTime,RTime,ThisAuthor,Content,ThisFormat);
+            frmControl.AppendNetComment(ThisID, LTime, RTime, ThisAuthor, Content, ThisFormat, ThisEffect);
           end);
         end
         else if TimeFound and IPFound and ImageFound then begin

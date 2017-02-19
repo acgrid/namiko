@@ -170,7 +170,6 @@ type
     CCWindowShow, CCWindowWorking, Fetching, AddOCWorking : Boolean;
     DispatchKey : WPARAM;
     XMLDelay : Integer;
-    FreezingTime : TTime;
 
     procedure WMHotKey(var Msg : TWMHotKey); message WM_HOTKEY;
 
@@ -221,11 +220,12 @@ type
     UThread: TUpdateThread;
     DThread: TDispatchThread;
     HThread: THTTPWorkerThread;
+    RequestID: Int64;
     // New Procedures
     procedure UpdateListView(const CommentID: Integer); // called by AppendListView
     procedure AppendListView(const AComment: TComment);
-    procedure AppendComment(var AComment: TComment); // MUTEX, called by AppendXComment()
-    procedure AppendNetComment(LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat);
+    procedure AppendComment(var AComment: TComment; ToListView: Boolean = True); // MUTEX, called by AppendXComment()
+    procedure AppendNetComment(LID: Int64; LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat; AEffect: TCommentEffect);
     procedure AppendConsoleComment(AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
     procedure AppendLocalComment(LTime: TTime; RTime: TTime; AContent: string; AEffect: TCommentEffect; AFormat: TCommentFormat);
     procedure UpdateCaption();
@@ -241,6 +241,7 @@ var
   // Thread Sync Objects
   SharedConfigurationMutex, GraphicSharedMutex, {HTTPSharedMutex,} HexieMutex,
   CommentPoolMutex, LiveCommentPoolMutex, UpdateQueueMutex: TMutex;
+  UpdateLockEvent: TLightweightEvent;
   DispatchS, UpdateS: TSemaphore;
   DefaultSA: TSecurityAttributes; // Use to create thread objects
   // Comment Layered Window
@@ -261,14 +262,14 @@ implementation
 
 {$R *.dfm}
 uses
-  SetupForm, HexieForm, DemoForm, ImageMgrForm, MsgViewForm, ImageViewForm;
+  SetupForm, HexieForm, DemoForm, ImageMgrForm, MsgViewForm, ImageViewForm, HTTPMsgWorker;
 
 procedure TfrmControl.AppendListView(const AComment: TComment);
 begin
   with ListComments.Items.Add do begin
-    Caption := 'C';
+    Caption := '待';
     SubItems.Add(IntToStr(AComment.ID));
-    SubItems.Add(Format('%s.%u',[TimeToStr(AComment.Time),MilliSecondOf(AComment.Time)]));
+    SubItems.Add(TimeToStr(AComment.Time));
     SubItems.Add(StringReplace(AComment.Content, #13, '\n', [rfReplaceAll]));
     case AComment.Author.Source of
       Internet: SubItems.Add(AComment.Author.Address);
@@ -294,25 +295,25 @@ var
 begin
   if CommentID > CommentPool.Count then Exit;
   Index := CommentID - ListViewOffset - 1;
-  if Index > ListComments.Items.Count then Exit;
+  if Index >= ListComments.Items.Count then Exit;
   AComment := CommentPool.Items[Index];
   //if StrToInt(ListComments.Items[Index].SubItems.Strings[T_ID]) = CommentID then begin // Out of range
   case AComment.Status of
-    Created: ListComments.Items.Item[Index].Caption := 'C';
-    Pending: ListComments.Items.Item[Index].Caption := 'P';
-    Starting: ListComments.Items.Item[Index].Caption := 'S';
-    Waiting: ListComments.Items.Item[Index].Caption := 'W';
-    Displaying: ListComments.Items.Item[Index].Caption := '<';
-    Removing: ListComments.Items.Item[Index].Caption := 'R';
-    Removed: ListComments.Items.Item[Index].Caption := 'D';
+    Created: ListComments.Items.Item[Index].Caption := '待';
+    Pending: ListComments.Items.Item[Index].Caption := '进';
+    Starting: ListComments.Items.Item[Index].Caption := '起';
+    Waiting: ListComments.Items.Item[Index].Caption := '等';
+    Displaying: ListComments.Items.Item[Index].Caption := '飞';
+    Removing: ListComments.Items.Item[Index].Caption := '出';
+    Removed: ListComments.Items.Item[Index].Caption := '退';
   end;
   //end;
 end;
 
-procedure TfrmControl.AppendComment(var AComment: TComment);
+procedure TfrmControl.AppendComment(var AComment: TComment; ToListView: Boolean = True);
 begin
   AComment.Format.FontColor := BGRToRGB(AComment.Format.FontColor);
-  AppendListView(AComment);
+  if ToListView then AppendListView(AComment);
   // Do not change these two lines
   AComment.Content := StringReplace(AComment.Content,'\n', #13, [rfReplaceAll]);
   {$IFDEF DEBUG_VERBOSE1}LogEvent('Before CommentPoolMutex.Acquire()', logDebug);{$ENDIF}
@@ -327,11 +328,12 @@ begin
   end;
 end;
 
-procedure TfrmControl.AppendNetComment(LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat);
+procedure TfrmControl.AppendNetComment(LID: Int64; LTime: TTime; RTime: TTime; Author: TCommentAuthor; AContent: string; AFormat: TCommentFormat; AEffect: TCommentEffect);
 var
   ThisComment: TComment;
 begin
   ThisComment := TComment.Create;
+  ThisComment.RID := LID;
   ThisComment.Time := LTime + (NetDelayDuration + Random(3000)) / 86400000; // TODO
   ThisComment.Content := AContent;
   ThisComment.Author := Author;
@@ -342,12 +344,7 @@ begin
     if DefaultColor then FontColor := NetDefaultFontColor;
     if DefaultStyle then FontStyle := NetDefaultFontStyle;
   end;
-  with ThisComment.Effect do begin
-    Display := Scroll;
-    StayTime := NetDefaultDuration;
-    RepeatCount := 1;
-    Speed := 0;
-  end;
+  ThisComment.Effect := AEffect;
   ThisComment.Status := Created;
   AppendComment(ThisComment);
 end;
@@ -539,6 +536,7 @@ begin
   ClearedItemCount := 0;
   XMLDelay := 0;
   ListViewOffset := 0;
+  RequestID := 0;
   //Set Internal Time as System Time
   InternalTime := Time();
   InternalTimeOffset := 0;
@@ -1422,13 +1420,14 @@ end;
 
 procedure TfrmControl.BtnFreezingClick(Sender: TObject);
 begin
-  if Freezing then begin
-    InternalTimeOffset := InternalTimeOffset - (Time() - FreezingTime);
+  if UpdateLockEvent.IsSet then begin
+    UpdateLockEvent.ResetEvent;
+    BtnFreezing.Caption := '解除冻结(&Z)';
   end
   else begin
-    FreezingTime := Time();
+    UpdateLockEvent.SetEvent;
+    BtnFreezing.Caption := '冻结显示(&Z)';
   end;
-  Freezing := not Freezing;
 end;
 
 procedure TfrmControl.ListCommentsDblClick(Sender: TObject);
@@ -1503,6 +1502,8 @@ initialization
   UpdateQueueMutex := TMutex.Create(@DefaultSA,True,'render_queue_m');
   DispatchS := TSemaphore.Create(@DefaultSA,0,1024,'dispatch_s',False);
   UpdateS := TSemaphore.Create(@DefaultSA,0,1024,'update_s',False);
+  UpdateLockEvent := TLightweightEvent.Create;
+  UpdateLockEvent.SetEvent;
 
 finalization
   CommentPoolMutex.Free();
@@ -1514,6 +1515,7 @@ finalization
   UpdateQueueMutex.Free();
   DispatchS.Free();
   UpdateS.Free();
+  UpdateLockEvent.Free;
   CoUninitialize();
 
 end.
