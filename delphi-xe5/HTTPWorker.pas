@@ -157,7 +157,7 @@ begin
             if Assigned(JTimestamp) and Assigned(JLastID) then begin
               FRemoteTimeOffset := DateTimeToUnix(Now()) - (StrToInt64(JTimestamp.JsonValue.Value()) - FTimeOffset); // DateTimeToUnix is local timestamp - (PHP's UTC timestamp - offset of local to UTC)
               frmControl.RequestID := StrToInt64(JLastID.JsonValue.Value());
-              ReportLog(Format('测试成功，本地-远程时间差%d秒 从%u开始接收网络弹幕',[FRemoteTimeOffset]));
+              ReportLog(Format('测试成功，本地-远程时间差%d秒 从%u开始接收网络弹幕',[FRemoteTimeOffset, frmControl.RequestID]));
               Synchronize(procedure begin
                 with frmControl do begin
                   Networking := True;
@@ -371,7 +371,7 @@ begin
             ThisFormat.FontColor := ColorToAlphaColor(WebColorStrToColor(TJSONPair(LItem).JsonValue.Value), FOpacity);
             ThisFormat.DefaultColor := False;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'DISP' then begin
+          if TJSONPair(LItem).JsonString.Value = 'DISPLAY' then begin
             ThisEffect.Display := TCommentEffectType(TJSONNumber(TJSONPair(LItem).JsonValue).AsInt);
           end;
           if TJSONPair(LItem).JsonString.Value = 'STAY' then begin
