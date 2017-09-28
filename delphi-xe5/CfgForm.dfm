@@ -35,6 +35,9 @@ object frmConfig: TfrmConfig
     ColWidths = (
       150
       222)
+    RowHeights = (
+      18
+      18)
   end
   object GroupEdit: TGroupBox
     Left = 8
