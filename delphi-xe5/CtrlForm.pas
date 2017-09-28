@@ -994,7 +994,7 @@ begin
     end;
     CCWinPos.Right := CCWinPos.Left + IntegerItems['Display.WorkWindowWidth'];
 
-    MTitleText := StringItems['Title.Text'];
+    MTitleText := ReplaceStr(StringItems['Title.Text'], '\r\n', #13#10);
     MTitleLeft := IntegerItems['Title.Left'];
     MTitleTop := IntegerItems['Title.Top'];
     MTitleFontName := StringItems['Title.FontName'];
@@ -1060,7 +1060,7 @@ begin
     IntegerItems['Display.WorkWindowWidth'] := CCWinPos.Width;
     IntegerItems['Display.WorkWindowHeight'] := CCWinPos.Height;
 
-    StringItems['Title.Text'] := MTitleText;
+    StringItems['Title.Text'] := ReplaceStr(MTitleText, #13#10, '\r\n');
     IntegerItems['Title.Left'] := MTitleLeft;
     IntegerItems['Title.Top'] := MTitleTop;
     StringItems['Title.FontName'] := MTitleFontName;
