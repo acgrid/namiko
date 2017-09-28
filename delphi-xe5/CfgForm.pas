@@ -298,7 +298,7 @@ begin
   MyConfig.Add(TIntegerConfiguration.Create('Connection','Mode','通讯模式。0 = UDP Passive 1 = HTTP Poll',1,0,1,1));
   MyConfig.Add(TIntegerConfiguration.Create('Connection','Port','UDP模式监听端口',20000,1,65535,1));
   MyConfig.Add(TStringConfiguration.Create('Connection','Key','已加密通讯密钥，请勿在此修改','61E075CEC8CCC9C8CC3455BE98A4BCC4'));
-  MyConfig.Add(TStringConfiguration.Create('Connection','Host','HTTP模式请求页面，要求使用版本4格式(JSON)','http://localhost/fetchcomment.php'));
+  MyConfig.Add(TStringConfiguration.Create('Connection','Host','HTTP模式请求页面，要求使用版本6格式(JSON)','http://localhost/fetchcomment.php'));
   MyConfig.Add(TBooleanConfiguration.Create('Connection','AutoStart','启动后自动开始通信',False));
   MyConfig.Add(TIntegerConfiguration.Create('HTTP','Interval','HTTP轮询间隔(ms)',1000,1000,10000,100));
   MyConfig.Add(TIntegerConfiguration.Create('HTTP','ConnTimeout','HTTP连接超时(ms)',3000,500,10000,100));
@@ -308,6 +308,7 @@ begin
   MyConfig.Add(TIntegerConfiguration.Create('Pool','DispatchSince','允许调度已过期弹幕秒数(s)',5,0,600,1));
   MyConfig.Add(TIntegerConfiguration.Create('Pool','NetDelay','网络弹幕延迟显示时间(ms)',4000,0,10000,1000));
   MyConfig.Add(TIntegerConfiguration.Create('Display','BufferLength','渲染缓冲区大小(ms)',2000,200,6000,100));
+  MyConfig.Add(TBooleanConfiguration.Create('Display','AutoMonitor','自动定位次监视器', True));
   MyConfig.Add(TIntegerConfiguration.Create('Display','WorkWindowLeft','弹幕窗口顶点X坐标',0,-99999,99999,10));
   MyConfig.Add(TIntegerConfiguration.Create('Display','WorkWindowTop','弹幕窗口顶点Y坐标',0,-99999,99999,10));
   MyConfig.Add(TIntegerConfiguration.Create('Display','WorkWindowWidth','弹幕窗口宽度',1024,50,99999,10));
@@ -326,6 +327,8 @@ begin
   MyConfig.Add(TStringConfiguration.Create('Title','FontName','官方标题字体','SimHei'));
   MyConfig.Add(TIntegerConfiguration.Create('Title','FontSize','官方标题字号',22,8,100,2));
   MyConfig.Add(TStringConfiguration.Create('Title','FontColor','官方标题颜色','clRed'));
+  MyConfig.Add(TIntegerConfiguration.Create('LOGO','Left','背景图X偏移',0,0,99999,10));
+  MyConfig.Add(TIntegerConfiguration.Create('LOGO','Top','背景图Y偏移',0,0,99999,10));
   MyConfig.Add(TStringConfiguration.Create('ImageView','BackgroundColor','图片显示背景颜色','clBlack'));
   MyConfig.Add(TStringConfiguration.Create('ImageView','ForegroundColor','图片显示前景颜色','clWhite'));
   MyConfig.Add(TIntegerConfiguration.Create('ImageView','DelayTime','图片显示时间(ms)',5000,100,30000,100));

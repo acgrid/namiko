@@ -948,6 +948,8 @@ begin
 end;
 
 procedure TfrmControl.LoadSetting();
+var
+  TargetMonitor: TMonitor;
 begin
   with frmConfig do begin
     NetDefaultFontName := StringItems['NetComment.FontName'];
@@ -978,12 +980,18 @@ begin
     editNetHost.Text := StringItems['Connection.Host'];
     AutoStart := BooleanItems['Connection.AutoStart'];
 
-    CCWinPos := TRect.Create(
-      IntegerItems['Display.WorkWindowLeft'],
-      IntegerItems['Display.WorkWindowTop'],
-      IntegerItems['Display.WorkWindowWidth'],
-      IntegerItems['Display.WorkWindowHeight']
-    );
+    if BooleanItems['Display.AutoMonitor'] then begin
+      TargetMonitor := Screen.Monitors[Screen.MonitorCount - 1];
+      CCWinPos := TRect.Create(Monitor.Left, Monitor.Top, Monitor.Width, IntegerItems['Display.WorkWindowHeight']);
+    end
+    else begin
+      CCWinPos := TRect.Create(
+        IntegerItems['Display.WorkWindowLeft'],
+        IntegerItems['Display.WorkWindowTop'],
+        IntegerItems['Display.WorkWindowWidth'],
+        IntegerItems['Display.WorkWindowHeight']
+      );
+    end;
     CCWinPos.Right := CCWinPos.Left + IntegerItems['Display.WorkWindowWidth'];
 
     MTitleText := StringItems['Title.Text'];
