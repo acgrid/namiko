@@ -20,6 +20,7 @@ type
   TCommentAuthor = record
     Source: TAuthorSource;
     Address: string;
+    Reference: string;
     Group: string;
   end;
 type

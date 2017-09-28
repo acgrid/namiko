@@ -286,7 +286,7 @@ var
   ThisAuthor: TCommentAuthor;
   ThisFormat: TCommentFormat;
   ThisEffect: TCommentEffect;
-  ImageKey, ImageSignature, MsgType, Content: string;
+  ImageKey, ImageSignature, MsgType, Content, JsonKey: string;
   HexieIndex: Integer;
   ImagesCnt, SrvMessagesCnt: Cardinal;
   TimeFound, IPFound, ContentFound, ImageFound, SrvMessageFound: Boolean;
@@ -314,24 +314,29 @@ begin
         ImageFound := False;
         SrvMessageFound := False;
         ThisAuthor.Group := '';
+        ThisAuthor.Reference := '';
         for LItem in TJSONArray(LJsonValue) do begin
-          if TJSONPair(LItem).JsonString.Value = 'ID' then begin
+          JsonKey := TJSONPair(LItem).JsonString.Value;
+          if JsonKey = 'ID' then begin
             ThisID := TJSONNumber(TJSONPair(LItem).JsonValue).AsInt64;
             if ThisID > NextID then NextID := ThisID;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'TS' then begin
+          if JsonKey = 'SID' then begin
+             ThisAuthor.Reference := TJSONPair(LItem).JsonValue.Value;
+          end;
+          if JsonKey = 'TS' then begin
             RTime := UnixToDateTime(TJSONNumber(TJSONPair(LItem).JsonValue).AsInt64, False);
             TimeFound := True;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'IP' then begin
+          if JsonKey = 'IP' then begin
             ThisAuthor.Source := TAuthorSource.Internet;
             ThisAuthor.Address := TJSONPair(LItem).JsonValue.Value;
             IPFound := True;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'UG' then begin
+          if JsonKey = 'UG' then begin
             ThisAuthor.Group := TJSONPair(LItem).JsonValue.Value;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'IMG' then begin
+          if JsonKey = 'IMG' then begin
             LSubItem := TJSONObject(TJSONPair(LItem).JsonValue);
             LSubValue := LSubItem.GetValue('KEY');
             ImageKey := IfThen(Assigned(LSubValue), LSubValue.Value, '');
@@ -344,7 +349,7 @@ begin
               ImageFound := True;
             end;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'SRV' then begin
+          if JsonKey = 'SRV' then begin
             LSubItem := TJSONObject(TJSONPair(LItem).JsonValue);
             LSubValue := LSubItem.GetValue('TYPE');
             MsgType := IfThen(Assigned(LSubValue), LSubValue.Value, '');
@@ -355,26 +360,26 @@ begin
               SrvMessageFound := True;
             end;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'DM' then begin
+          if JsonKey = 'DM' then begin
             Content := TJSONPair(LItem).JsonValue.Value;
             ContentFound := True;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'FN' then begin
+          if JsonKey = 'FN' then begin
             ThisFormat.FontName := TJSONString(TJSONPair(LItem).JsonValue).Value;
             ThisFormat.DefaultName := False;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'FS' then begin
+          if JsonKey = 'FS' then begin
             ThisFormat.FontSize := TJSONNumber(TJSONPair(LItem).JsonValue).AsDouble;
             ThisFormat.DefaultSize := False;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'FC' then begin
+          if JsonKey = 'FC' then begin
             ThisFormat.FontColor := ColorToAlphaColor(WebColorStrToColor(TJSONPair(LItem).JsonValue.Value), FOpacity);
             ThisFormat.DefaultColor := False;
           end;
-          if TJSONPair(LItem).JsonString.Value = 'DISPLAY' then begin
+          if JsonKey = 'DISPLAY' then begin
             ThisEffect.Display := TCommentEffectType(TJSONNumber(TJSONPair(LItem).JsonValue).AsInt);
           end;
-          if TJSONPair(LItem).JsonString.Value = 'STAY' then begin
+          if JsonKey = 'STAY' then begin
             ThisEffect.StayTime := TJSONNumber(TJSONPair(LItem).JsonValue).AsInt;
           end;
         end;

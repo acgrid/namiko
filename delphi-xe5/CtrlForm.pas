@@ -272,7 +272,7 @@ begin
     SubItems.Add(TimeToStr(AComment.Time));
     SubItems.Add(StringReplace(AComment.Content, #13, '\n', [rfReplaceAll]));
     case AComment.Author.Source of
-      Internet: SubItems.Add(AComment.Author.Address);
+      Internet: SubItems.Add(AComment.Author.Reference + '|' + AComment.Author.Address);
       Console: SubItems.Add(L_Console);
       XML: SubItems.Add(L_XMLFile);
     end;
