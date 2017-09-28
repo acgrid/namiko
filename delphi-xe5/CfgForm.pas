@@ -327,6 +327,7 @@ begin
   MyConfig.Add(TStringConfiguration.Create('Title','FontName','官方标题字体','SimHei'));
   MyConfig.Add(TIntegerConfiguration.Create('Title','FontSize','官方标题字号',22,8,100,2));
   MyConfig.Add(TStringConfiguration.Create('Title','FontColor','官方标题颜色','clRed'));
+  MyConfig.Add(TIntegerConfiguration.Create('LOGO','Align','背景图定位 0=自定义 1=左下 2=右下',2,0,2,1));
   MyConfig.Add(TIntegerConfiguration.Create('LOGO','Left','背景图X偏移',0,0,99999,10));
   MyConfig.Add(TIntegerConfiguration.Create('LOGO','Top','背景图Y偏移',0,0,99999,10));
   MyConfig.Add(TStringConfiguration.Create('ImageView','BackgroundColor','图片显示背景颜色','clBlack'));

@@ -71,7 +71,10 @@ type
     FPPath: GPPATH;
     FPPen: GPPen;
     FOriginPoint: TIGPRectF;
-    FTitleBitmap: GpCachedBitmap;
+    FTitleBitmap, FLogoBitmap: GpCachedBitmap;
+    FLogoWidth, FLogoHeight: Cardinal;
+    FLogoFileName: WideString;
+    FLogoAlign, FLogoLeft, FLogoTop: Integer;
     procedure Calculate(ALiveComment: TLiveComment);
     function ConflictTest(AComment: TLiveComment; FromPos: Integer; ToPos: Integer; Layer: Integer=0): Boolean;
     procedure DoDrawHDC(var ARenderUnit: TRenderUnit);
@@ -82,7 +85,8 @@ type
     function GetFont(AFontName: WideString; AFontSize: Single; AFontStyle: Integer): GpFont;
     function GetSolidBrush(AColor: TAlphaColor): GpBrush;
     function GetCachedBitmap(AText: PWCHAR; ALength: Integer; AFontFamily: GPFONTFAMILY;
-       AFontStyle: Integer; emSize: Single; AFillColor: TAlphaColor; AWidth: Integer; AHeight: Integer): GpCachedBitmap;
+       AFontStyle: Integer; emSize: Single; AFillColor: TAlphaColor; AWidth: Integer; AHeight: Integer): GpCachedBitmap; overload;
+    function GetCachedBitmap(ImageFileName: string; var OWidth: Cardinal; var OHeight: Cardinal): GpCachedBitmap; overload;
     function CreateCachedBitmapFromHBITMAP(const hBitmap: HBITMAP; pGraphics: GPGraphics): GpCachedBitmap;
     procedure GetStringDim(AStr: string; AFormat: TCommentFormat; var OWidth: Integer; var OHeight: Integer);
     procedure Remove(ALiveComment: TLiveComment);
@@ -159,6 +163,12 @@ begin
   FOriginPoint.Width := 0;
   FOriginPoint.Height := 0;
   FTitleBitmap := nil;
+  FLogoBitmap := nil;
+  FLogoFileName := ExtractFilePath(ParamStr(0)) + 'logo.png';
+  if not FileExists(FLogoFileName) then FLogoFileName := '';
+  FLogoAlign := frmConfig.IntegerItems['LOGO.Align'];
+  FLogoLeft := frmConfig.IntegerItems['LOGO.Left'];
+  FLogoTop := frmConfig.IntegerItems['LOGO.Top'];
 
   GdipCreateFromHWND(FMainHandle,FPGraphic);
   GdipStringFormatGetGenericTypographic(FPStringFormat);
@@ -352,6 +362,43 @@ begin
     AComment.Status := LWait;
     Inc(FScreenFull);
   end;
+end;
+
+function TRenderThread.GetCachedBitmap(ImageFileName: string; var OWidth: Cardinal; var OHeight: Cardinal): GpCachedBitmap;
+var
+  MainDC, CurrentHDC: HDC;
+  CurrentBitmap: HBITMAP;
+  PGraphic: GPGraphics;
+  PImage: GpImage;
+begin
+  GdipLoadImageFromFile(PWideChar(ImageFileName), PImage);
+  if Assigned(PImage) then begin
+    GdipGetImageWidth(PImage, OWidth);
+    GdipGetImageHeight(PImage, OHeight);
+  end
+  else raise Exception.Create('Cannot load Logo File: ' + ImageFileName);
+  MainDC := GetDC(FMainHandle);
+  if MainDC = 0 then raise Exception.Create('Cannot obtain HDC from HWND.');
+  CurrentHDC := CreateCompatibleDC(MainDC);
+  if CurrentHDC = 0 then raise Exception.Create('Cannot create HDC compatible to parent HDC.');
+  CurrentBitmap := CreateCompatibleBitmap(MainDC, OWidth, OHeight);
+  if CurrentBitmap = 0 then raise Exception.Create('Cannot create bitmap for specific HDC.');
+  SelectObject(CurrentHDC, CurrentBitmap);
+  GdipCreateFromHDC(CurrentHDC, PGraphic);
+  Assert(Assigned(PGraphic), 'GDI+ graphic is not created.');
+  GdipSetSmoothingMode(PGraphic, SmoothingModeAntiAlias);
+  GdipSetInterpolationMode(PGraphic, InterpolationModeHighQualityBicubic);
+  // do render
+  GdipGraphicsClear(PGraphic, $FFFFFFFF);
+  GdipDrawImage(PGraphic, PImage, 0, 0);
+  //GdipCreateBitmapFromHBITMAP(CurrentBitmap, FHPALETTE, RenderedBitmap); // Lost Alpha channels
+  Result := CreateCachedBitmapFromHBITMAP(CurrentBitmap, PGraphic);
+  // finalization
+  GdipDeleteGraphics(PGraphic);
+  ReleaseDC(FMainHandle, MainDC);
+  DeleteObject(CurrentBitmap);
+  DeleteDC(CurrentHDC);
+  GdipDisposeImage(PImage);
 end;
 
 function TRenderThread.GetCachedBitmap(AText: PWideChar; ALength: Integer; AFontFamily: Pointer; AFontStyle: Integer; emSize: Single; AFillColor: TAlphaColor; AWidth: Integer; AHeight: Integer): GpCachedBitmap;
@@ -659,6 +706,7 @@ var
   PGraphic: GpGraphics;
   TitleFormat: TCommentFormat;
   TitleHeight, TitleWidth: Integer;
+  LogoLeft, LogoTop: Cardinal;
   ACommentUnit: TCommentUnit;
 begin
   GdipCreateFromHDC(ARenderUnit.hDC,PGraphic);
@@ -691,10 +739,22 @@ begin
     {$IFNDEF DEBUG}Assert(Assigned(FTitleBitmap), 'Title bitmap cache not created.');{$ENDIF}
   end;
   if Assigned(FTitleBitmap) then GdipDrawCachedBitmap(PGraphic, FTitleBitmap, MTitleLeft, MTitleTop);
+  // Draw Logo
+  if (not Assigned(FLogoBitmap)) and (FLogoFileName <> '') then FLogoBitmap := GetCachedBitmap(FLogoFileName, FLogoWidth, FLogoHeight);
+  if Assigned(FLogoBitmap) then begin
+    case FLogoAlign of
+      1: begin LogoLeft := 0; LogoTop := Cardinal(FHeight) - FLogoHeight; end;
+      2: begin LogoLeft := Cardinal(FWidth) - FLogoWidth; LogoTop := Cardinal(FHeight) - FLogoHeight; end;
+      else begin LogoLeft := FLogoLeft; LogoTop := FLogoTop; end;
+    end;
+    {$IFDEF DEBUG}ReportLog(Format('Logo Position %d %d %d', [FLogoAlign, LogoLeft, LogoTop]));{$ENDIF}
+    GdipDrawCachedBitmap(PGraphic, FLogoBitmap, LogoLeft, LogoTop);
+  end;
   for ACommentUnit in FRenderBuffer.Values do begin
     if ACommentUnit.Length = 0 then Continue;
     if Assigned(ACommentUnit.Bitmap) then GdipDrawCachedBitmap(PGraphic, ACommentUnit.Bitmap, ACommentUnit.Left, ACommentUnit.Top);
   end;
+
   {$IFDEF DEBUG_DIM}GdipDrawLine(PGraphic, FPPen, 0, 0, FWidth, FHeight);{$ENDIF}
   GdipDeleteGraphics(PGraphic);
 end;
