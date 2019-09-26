@@ -432,11 +432,11 @@ object frmControl: TfrmControl
       TabOrder = 2
     end
     object ChkAutoStartNet: TCheckBox
-      Left = 138
-      Top = 106
-      Width = 129
+      Left = 211
+      Top = 21
+      Width = 57
       Height = 17
-      Caption = #21551#21160#21518#24320#22987#36890#20449'(&A)'
+      Caption = #33258#21160'(&A)'
       TabOrder = 3
     end
     object btnNetStart: TButton
@@ -461,9 +461,22 @@ object frmControl: TfrmControl
       Items.Strings = (
         '&UDP'#30417#21548
         '&HTTP'#36718#35810
-        'T&CP'#36716#21457)
+        'T&CP'#36830#25509)
       TabOrder = 5
       OnClick = RadioGroupModesClick
+    end
+    object editNetTCP: TLabeledEdit
+      Left = 138
+      Top = 106
+      Width = 129
+      Height = 25
+      EditLabel.Width = 22
+      EditLabel.Height = 17
+      EditLabel.Caption = 'TCP'
+      LabelPosition = lpLeft
+      LabelSpacing = 5
+      TabOrder = 6
+      TextHint = #20027#26426':'#31471#21475'/'#27963#21160#20195#30721
     end
   end
   object btnOpenFilter: TButton

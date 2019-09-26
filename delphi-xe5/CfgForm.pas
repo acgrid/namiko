@@ -299,6 +299,7 @@ begin
   MyConfig.Add(TIntegerConfiguration.Create('Connection','Port','UDP模式监听端口',20000,1,65535,1));
   MyConfig.Add(TStringConfiguration.Create('Connection','Key','已加密通讯密钥，请勿在此修改','61E075CEC8CCC9C8CC3455BE98A4BCC4'));
   MyConfig.Add(TStringConfiguration.Create('Connection','Host','HTTP模式请求页面，要求使用版本6格式(JSON)','http://localhost/fetchcomment.php'));
+  MyConfig.Add(TStringConfiguration.Create('Connection','TCP','TCP参数，主机:端口/活动ID','wx.cqaoba.com:40000/ACCF'));
   MyConfig.Add(TBooleanConfiguration.Create('Connection','AutoStart','启动后自动开始通信',False));
   MyConfig.Add(TIntegerConfiguration.Create('HTTP','Interval','HTTP轮询间隔(ms)',1000,1000,10000,100));
   MyConfig.Add(TIntegerConfiguration.Create('HTTP','ConnTimeout','HTTP连接超时(ms)',3000,500,10000,100));

@@ -13,7 +13,7 @@ uses
   ShellAPI, ActiveX, IdExceptionCore, IdUDPBase, IdUDPServer,
   System.UIConsts, System.Types, IdComponent, IdBaseComponent,
   Vcl.Grids, Vcl.ValEdit, NamikoTypes,
-  UDPHandleThread, RenderThread, UpdateThread, DispatchThread, HTTPWorker,
+  UDPHandleThread, RenderThread, UpdateThread, DispatchThread, HTTPWorker, TCPClientWorker,
   LogForm, CfgForm;
 
 const
@@ -108,6 +108,7 @@ type
     BtnImageWindow: TButton;
     BtnMessageWindow: TButton;
     TrayIcon: TTrayIcon;
+    editNetTCP: TLabeledEdit;
     procedure btnCCShowClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnCCWorkClick(Sender: TObject);
@@ -220,6 +221,7 @@ type
     UThread: TUpdateThread;
     DThread: TDispatchThread;
     HThread: THTTPWorkerThread;
+    TCPThread: TCPClientThread;
     RequestID: Int64;
     // New Procedures
     procedure UpdateListView(const CommentID: Integer); // called by AppendListView
@@ -510,6 +512,7 @@ begin
     UpdateS.Release; // Empty Operation
   end;
   if Assigned(HThread) and HThread.Started then HThread.Terminate;
+  if Assigned(TCPThread) and TCPThread.Started then TCPThread.Terminate;
 end;
 
 procedure TfrmControl.FormCreate(Sender: TObject);
@@ -610,6 +613,7 @@ begin
   FreeAndNil(RThread);
   FreeAndNil(UThread);
   FreeAndNil(HThread);
+  FreeAndNil(TCPThread);
   CommentPoolMutex.Acquire;
   FreeAndNil(CommentPool);
   CommentPoolMutex.Release;
@@ -926,13 +930,20 @@ end;
 procedure TfrmControl.RadioGroupModesClick(Sender: TObject);
 begin
   case RadioGroupModes.ItemIndex of
-    0, 2: begin
+    0: begin
       editNetPort.Enabled := True;
       editNetHost.Enabled := False;
+      editNetTCP.Enabled := False;
     end;
     1: begin
       editNetPort.Enabled := False;
       editNetHost.Enabled := True;
+      editNetTCP.Enabled := False;
+    end;
+    2: begin
+      editNetPort.Enabled := False;
+      editNetHost.Enabled := False;
+      editNetTCP.Enabled := True;
     end;
   end;
   CommMode := RadioGroupModes.ItemIndex;
@@ -978,10 +989,12 @@ begin
       LogEvent('通信密码无效，请重新设定', logWarning);
     end;
     editNetHost.Text := StringItems['Connection.Host'];
+    editNetTCP.Text := StringItems['Connection.TCP'];
     AutoStart := BooleanItems['Connection.AutoStart'];
 
     if BooleanItems['Display.AutoMonitor'] then begin
       TargetMonitor := Screen.Monitors[Screen.MonitorCount - 1];
+      LogEvent(IntToStr(Monitor.Left));
       CCWinPos := TRect.Create(Monitor.Left, Monitor.Top, Monitor.Width, IntegerItems['Display.WorkWindowHeight']);
     end
     else begin
@@ -1054,6 +1067,7 @@ begin
     StringItems['Connection.Key'] := EncrypKey(NetPassword,KEY);
     StringItems['Connection.Host'] := editNetHost.Text;
     BooleanItems['Connection.AutoStart'] := AutoStart;
+    StringItems['Connection.TCP'] := editNetTCP.Text;
 
     IntegerItems['Display.WorkWindowLeft'] := CCWinPos.Left;
     IntegerItems['Display.WorkWindowTop'] := CCWinPos.Top;
@@ -1253,28 +1267,29 @@ end;
 procedure TfrmControl.btnNetStartClick(Sender: TObject);
 begin
   if Networking then begin
-    {if Transmit then begin
-      editNetPort.Enabled := True;
-      radioNetPasv.Enabled := True;
-      radioNetPort.Enabled := True;
-      Transmit := False;
-      LogEvent('TCP转发服务已关闭');
-    end
-    else }if IdUDPServerCCRecv.Active then begin
-      IdUDPServerCCRecv.Active := False;
-      RadioGroupModes.Enabled := True;
-      editNetPort.Enabled := True;
-      editNetHost.Enabled := True;
-      editNetPassword.Enabled := True;
-      LogEvent('UDP监听关闭，停止接收网络弹幕');
-    end
-    else begin
-      if Assigned(HThread) then HThread.Terminate;
-      RadioGroupModes.Enabled := True;
-      editNetPassword.Enabled := True;
-      editNetHost.Enabled := True;
-      LogEvent('正在关闭HTTP抓取，停止接收网络弹幕');
-      RemoteTime := 0;
+    case RadioGroupModes.ItemIndex of
+      0: begin
+        IdUDPServerCCRecv.Active := False;
+        RadioGroupModes.Enabled := True;
+        editNetPort.Enabled := True;
+        editNetHost.Enabled := True;
+        editNetPassword.Enabled := True;
+        LogEvent('UDP监听关闭，停止接收网络弹幕');
+      end;
+      1: begin
+        if Assigned(HThread) then HThread.Terminate;
+        RadioGroupModes.Enabled := True;
+        editNetPassword.Enabled := True;
+        editNetHost.Enabled := True;
+        LogEvent('正在关闭HTTP抓取，停止接收网络弹幕');
+        RemoteTime := 0;
+      end;
+      2: begin
+        if Assigned(TCPThread) then TCPThread.Terminate;
+        RadioGroupModes.Enabled := True;
+        editNetTCP.Enabled := True;
+        LogEvent('正在关闭TCP连接，停止接收网络弹幕');
+      end;
     end;
     Networking := False;
     btnNetStart.Caption := '开始通信(&M)';
@@ -1326,7 +1341,16 @@ begin
           {$IFDEF DEBUG}APP_DIR+'HTTP.log'{$ELSE}''{$ENDIF}); // Auto Start!
       end;
       2: begin
-        LogEvent('暂未实现TCP转发',logError);
+        if Assigned(TCPThread) then begin
+          if TCPThread.Finished then
+            HThread.Free
+          else begin
+            LogEvent('TCP线程尚未退出，无法启动。', logWarning);
+            Exit;
+          end;
+        end;
+        LogEvent('创建并启动TCP线程');
+        TCPThread := TCPClientThread.Create(editNetTCP.Text); // Auto Start!
       end;
       else begin
         LogEvent('未知模式。',logError);

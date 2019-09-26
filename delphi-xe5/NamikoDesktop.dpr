@@ -19,7 +19,8 @@ uses
   MsgViewForm in 'MsgViewForm.pas' {frmMessages},
   HTTPImageWorker in 'HTTPImageWorker.pas',
   HTTPMsgWorker in 'HTTPMsgWorker.pas',
-  JPEGUtils in 'JPEGUtils.pas';
+  JPEGUtils in 'JPEGUtils.pas',
+  TCPClientWorker in 'TCPClientWorker.pas';
 
 {$R *.res}
 var

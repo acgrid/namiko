@@ -208,6 +208,7 @@
         <DCCReference Include="HTTPImageWorker.pas"/>
         <DCCReference Include="HTTPMsgWorker.pas"/>
         <DCCReference Include="JPEGUtils.pas"/>
+        <DCCReference Include="TCPClientWorker.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -271,6 +272,12 @@
             <Deployment Version="3">
                 <DeployFile LocalName="NamikoDesktop.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
+                        <RemoteName>NamikoDesktop.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="NamikoDesktop.exe" Configuration="Release" Class="ProjectOutput">
+                    <Platform Name="Win64">
                         <RemoteName>NamikoDesktop.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
